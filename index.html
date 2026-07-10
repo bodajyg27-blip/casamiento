@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gabriel & Julieta — Nos casamos</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cormorant+Garamond:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    min-height: 100%;
+  }
+
+  body {
+    background-color: #f4e6d6;
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(201,168,118,0.18), transparent 40%),
+      radial-gradient(circle at 85% 30%, rgba(178,110,130,0.14), transparent 45%),
+      radial-gradient(circle at 30% 90%, rgba(120,140,110,0.12), transparent 40%),
+      linear-gradient(135deg, #f7ece2 0%, #efe0d0 100%);
+    background-attachment: fixed;
+    font-family: 'Cormorant Garamond', serif;
+    color: #5a4636;
+    padding: 30px 15px;
+    display: flex;
+    justify-content: center;
+    position: relative;
+  }
+
+  .bg-pattern {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  .wrap { max-width: 520px; width: 100%; position: relative; z-index: 1; }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.9s ease, transform 0.9s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .map-frame {
+    position: relative;
+    width: 100%;
+    height: 210px;
+    margin-top: 18px;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid #d8b98c;
+  }
+  .map-frame iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    pointer-events: none;
+    filter: sepia(12%) saturate(90%);
+  }
+  .map-frame .map-overlay {
+    position: absolute;
+    inset: 0;
+    display: block;
+    transition: background 0.2s ease;
+  }
+  .map-frame .map-overlay:hover {
+    background: rgba(107,74,47,0.08);
+  }
+  .map-caption {
+    font-size: 13px;
+    color: #a1794a;
+    margin-top: 8px;
+  }
+
+  .card {
+    background: #fffaf3;
+    border: 1px solid #d8b98c;
+    border-radius: 4px;
+    padding: 50px 36px;
+    text-align: center;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.10);
+    position: relative;
+    margin-bottom: 22px;
+  }
+
+  .card::before, .card::after {
+    content: "";
+    position: absolute;
+    width: 26px;
+    height: 26px;
+    border: 1px solid #c9a876;
+  }
+  .card::before { top: 10px; left: 10px; border-right: none; border-bottom: none; }
+  .card::after { bottom: 10px; right: 10px; border-left: none; border-top: none; }
+
+  .kicker {
+    letter-spacing: 4px;
+    font-size: 13px;
+    color: #a98a5a;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .names {
+    font-family: 'Great Vibes', cursive;
+    font-size: 54px;
+    color: #6b4a2f;
+    line-height: 1.15;
+  }
+
+  .amp {
+    font-size: 24px;
+    color: #c9a876;
+    margin: 2px 0;
+    font-style: italic;
+  }
+
+  .divider {
+    width: 56px;
+    height: 1px;
+    background: #c9a876;
+    margin: 22px auto;
+  }
+
+  .message {
+    font-size: 18px;
+    line-height: 1.6;
+    margin-bottom: 24px;
+  }
+
+  .details strong {
+    display: block;
+    font-size: 23px;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+
+  .location {
+    font-size: 17px;
+    color: #8a7360;
+    margin-top: 4px;
+    line-height: 1.5;
+  }
+
+  .location a { color: #a1794a; }
+
+  h2.section-title {
+    font-size: 22px;
+    color: #6b4a2f;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+
+  .section-sub {
+    font-size: 15px;
+    color: #8a7360;
+    margin-bottom: 20px;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid #d8b98c;
+    border-radius: 3px;
+    background: #fffdf8;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 17px;
+    color: #5a4636;
+    outline: none;
+  }
+  input[type="text"]:focus { border-color: #a1794a; }
+
+  .btn {
+    display: inline-block;
+    margin-top: 14px;
+    padding: 11px 30px;
+    background: #6b4a2f;
+    color: #fffaf3;
+    border: none;
+    font-size: 15px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-radius: 2px;
+    cursor: pointer;
+    font-family: 'Cormorant Garamond', serif;
+    transition: background 0.2s ease;
+  }
+  .btn:hover { background: #573c26; }
+  .btn.secondary { background: transparent; color: #6b4a2f; border: 1px solid #6b4a2f; }
+  .btn.secondary:hover { background: #f2e6d5; }
+
+  .guest-results { margin-top: 16px; text-align: left; }
+  .guest-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    border: 1px solid #e6d3b8;
+    border-radius: 3px;
+    margin-bottom: 8px;
+    background: #fffdf8;
+  }
+  .guest-item span { font-size: 17px; }
+  .guest-actions button {
+    font-size: 13px;
+    padding: 6px 12px;
+    margin-left: 6px;
+    border-radius: 3px;
+    border: 1px solid #a1794a;
+    background: #fffaf3;
+    color: #6b4a2f;
+    cursor: pointer;
+    font-family: 'Cormorant Garamond', serif;
+  }
+  .guest-actions button.confirmed { background: #6b4a2f; color: #fffaf3; }
+  .no-results { font-size: 15px; color: #a1794a; margin-top: 10px; }
+
+  .guest-item.selectable { cursor: pointer; transition: background 0.15s ease; }
+  .guest-item.selectable:hover { background: #f2e6d5; }
+  .guest-item .status-tag { font-size: 13px; color: #7a9a6f; }
+
+  .restriction-panel { text-align: left; margin-top: 8px; }
+  .selected-name {
+    font-size: 20px;
+    color: #6b4a2f;
+    font-weight: 600;
+    margin-bottom: 14px;
+  }
+  .restriction-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    margin-bottom: 6px;
+  }
+  .restriction-options label {
+    font-size: 17px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  .restriction-options input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #6b4a2f;
+  }
+  .detail-field { margin-top: 10px; }
+  .restriction-panel .btn { display: block; width: 100%; text-align: center; }
+
+  .song-list { margin-top: 18px; text-align: left; max-height: 180px; overflow-y: auto; }
+  .song-item {
+    padding: 10px 14px;
+    border-bottom: 1px solid #eee0c9;
+    font-size: 16px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .song-item span.by { color: #a1794a; font-size: 14px; }
+
+  .gift-amount {
+    font-size: 30px;
+    color: #6b4a2f;
+    font-weight: 600;
+    margin: 8px 0 18px;
+  }
+
+  .bank-box {
+    background: #f7ece2;
+    border: 1px dashed #c9a876;
+    border-radius: 4px;
+    padding: 18px;
+    text-align: left;
+    font-size: 16px;
+    line-height: 1.9;
+    margin-top: 10px;
+  }
+  .bank-box b { color: #6b4a2f; }
+
+  .copy-note { font-size: 13px; color: #a1794a; margin-top: 8px; }
+
+  footer { text-align: center; font-size: 13px; color: #a1794a; padding: 10px 0 20px; }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 30px;
+    transform: translate(-50%, 20px);
+    background: #6b4a2f;
+    color: #fffaf3;
+    padding: 13px 26px;
+    border-radius: 30px;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    z-index: 50;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+</style>
+</head>
+<body>
+
+<svg class="bg-pattern" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="floral" width="200" height="200" patternUnits="userSpaceOnUse" patternTransform="rotate(8)">
+      <g stroke="#c9a876" stroke-width="1.1" fill="none" opacity="0.35">
+        <path d="M20 180 C 40 140, 30 100, 60 70 C 90 40, 130 50, 150 20" />
+        <circle cx="60" cy="70" r="9" />
+        <circle cx="150" cy="20" r="7" />
+        <path d="M60 70 q 15 -10 25 5" />
+        <path d="M150 20 q 12 -8 20 2" />
+        <path d="M100 150 c 10 -20 30 -20 40 -5" />
+        <circle cx="140" cy="140" r="5" />
+        <path d="M10 40 q 20 15 15 35" />
+        <circle cx="10" cy="40" r="4" />
+      </g>
+    </pattern>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#floral)" />
+</svg>
+
+<div class="wrap">
+
+  <!-- PORTADA -->
+  <div class="card reveal">
+    <div class="kicker">Nos casamos</div>
+    <div class="names">
+      Gabriel<br>
+      <span class="amp">&amp;</span><br>
+      Julieta
+    </div>
+    <div class="divider"></div>
+    <div class="message">
+      Con inmensa alegría queremos invitarte<br>
+      a celebrar el día en que unimos nuestras vidas.
+    </div>
+    <div class="details">
+      <strong>23 de octubre de 2027</strong>
+      19:00 hs
+    </div>
+    <div class="location">
+      Entre Olivos Eventos<br>
+      Calle Espejo 1940, Maipú, Mendoza
+    </div>
+    <div class="map-frame">
+      <iframe src="https://www.google.com/maps?q=Calle+Espejo+1940,+Maipú,+Mendoza&output=embed" loading="lazy"></iframe>
+      <a class="map-overlay" href="https://www.google.com/maps/search/?api=1&query=Calle+Espejo+1940+Maip%C3%BA+Mendoza" target="_blank" aria-label="Abrir en Google Maps"></a>
+    </div>
+    <div class="map-caption">Tocá el mapa para abrir la ubicación en Google Maps</div>
+  </div>
+
+  <!-- RSVP -->
+  <div class="card reveal">
+    <h2 class="section-title">Confirmar asistencia</h2>
+    <div class="section-sub">Buscá tu nombre en la lista de invitados</div>
+    <input type="text" id="rsvpSearch" placeholder="Escribí tu nombre..." oninput="searchGuest()">
+    <div class="guest-results" id="guestResults"></div>
+
+    <div class="restriction-panel" id="restrictionPanel" style="display:none;">
+      <div class="divider"></div>
+      <div class="selected-name" id="selectedName"></div>
+      <div class="section-sub">¿Tenés alguna restricción alimentaria?</div>
+      <div class="restriction-options">
+        <label><input type="checkbox" value="Celiaquía" class="restriction-check"> Celiaquía</label>
+        <label><input type="checkbox" value="Diabetes" class="restriction-check"> Diabetes</label>
+        <label><input type="checkbox" value="Vegetariano" class="restriction-check"> Vegetariano</label>
+        <label><input type="checkbox" value="Intolerancia" class="restriction-check" onchange="toggleDetailField('intolerancia', this)"> Intolerancia</label>
+        <label><input type="checkbox" value="Otros" class="restriction-check" onchange="toggleDetailField('otros', this)"> Otros</label>
+      </div>
+      <input type="text" id="intoleranciaDetail" class="detail-field" placeholder="¿A qué sos intolerante?" style="display:none;">
+      <input type="text" id="otrosDetail" class="detail-field" placeholder="Especificá tu restricción..." style="display:none;">
+      <button class="btn" id="confirmBtn" onclick="submitConfirmation()">Confirmar asistencia</button>
+    </div>
+  </div>
+
+  <!-- REGALO / TARJETA -->
+  <div class="card reveal">
+    <h2 class="section-title">Nuestro regalo de bodas</h2>
+    <div class="section-sub">Si querés colaborar con nuestra luna de miel, este es el valor sugerido de la tarjeta</div>
+    <div class="gift-amount">$ 45.000 ARS</div>
+    <div class="bank-box">
+      <div><b>Titular:</b> Gabriel Oros</div>
+      <div><b>Banco:</b> Banco Ejemplo</div>
+      <div><b>CBU:</b> 0000003100000000000000</div>
+      <div><b>Alias:</b> GABRIEL.JULIETA.BODA</div>
+    </div>
+    <div class="copy-note">* Datos de ejemplo — reemplazar por los datos reales de la cuenta.</div>
+    <button class="btn secondary" onclick="copyAlias()">Copiar alias</button>
+  </div>
+
+  <!-- CANCIÓN -->
+  <div class="card reveal">
+    <h2 class="section-title">Dejá tu canción</h2>
+    <div class="section-sub">Ayudanos a armar la playlist de la noche</div>
+    <input type="text" id="songInput" placeholder="Nombre de la canción y artista...">
+    <button class="btn" onclick="addSong()">Agregar canción</button>
+    <div class="song-list" id="songList"></div>
+  </div>
+
+  <footer>Gabriel &amp; Julieta · 23.10.2027</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // === CONEXIÓN CON GOOGLE SHEET ===
+  // 1. Deployá el Apps Script como "Aplicación web" (acceso: Cualquier usuario)
+  // 2. Pegá acá la URL que termina en /exec
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbz-sc2l5jW1oMN6Dkr-s3gduTSbTTlL2gRiPlw_khEQ6GzTCkJHlnqpgvrvD0b2sBOo/exec";
+
+  let guestList = []; // se carga desde la planilla al abrir la página
+
+  async function loadGuests() {
+    if (GAS_URL.startsWith("PEGAR_AQUI")) return; // todavía no configurado
+    try {
+      const res = await fetch(GAS_URL);
+      guestList = await res.json(); // [{ nombre, confirmado }, ...]
+    } catch (err) {
+      console.error('No se pudo conectar con la planilla', err);
+    }
+  }
+  loadGuests();
+
+  let selectedGuestName = null;
+
+  function searchGuest() {
+    const query = document.getElementById('rsvpSearch').value.trim().toLowerCase();
+    const resultsDiv = document.getElementById('guestResults');
+    resultsDiv.innerHTML = "";
+    hideRestrictionPanel();
+
+    if (query.length < 2) return;
+
+    if (GAS_URL.startsWith("PEGAR_AQUI")) {
+      resultsDiv.innerHTML = '<div class="no-results">Conectá primero la planilla (GAS_URL) para habilitar la búsqueda.</div>';
+      return;
+    }
+
+    const matches = guestList.filter(g => g.nombre.toLowerCase().includes(query));
+
+    if (matches.length === 0) {
+      resultsDiv.innerHTML = '<div class="no-results">No encontramos tu nombre. Contactanos directamente para confirmar.</div>';
+      return;
+    }
+
+    matches.forEach(g => {
+      const item = document.createElement('div');
+      item.className = 'guest-item selectable';
+      item.innerHTML = `
+        <span>${g.nombre}</span>
+        <span class="status-tag">${g.confirmado ? 'Ya confirmado ✓' : ''}</span>
+      `;
+      item.onclick = () => selectGuest(g.nombre);
+      resultsDiv.appendChild(item);
+    });
+  }
+
+  function selectGuest(nombre) {
+    selectedGuestName = nombre;
+    document.getElementById('guestResults').innerHTML = '';
+    document.getElementById('rsvpSearch').value = nombre;
+
+    const guest = guestList.find(g => g.nombre === nombre);
+    document.getElementById('selectedName').textContent = nombre +
+      (guest && guest.confirmado ? ' — asistencia ya confirmada ✓' : '');
+
+    // reset panel state
+    document.querySelectorAll('.restriction-check').forEach(c => c.checked = false);
+    document.getElementById('intoleranciaDetail').style.display = 'none';
+    document.getElementById('intoleranciaDetail').value = '';
+    document.getElementById('otrosDetail').style.display = 'none';
+    document.getElementById('otrosDetail').value = '';
+
+    const confirmBtn = document.getElementById('confirmBtn');
+    confirmBtn.textContent = 'Confirmar asistencia';
+
+    document.getElementById('restrictionPanel').style.display = 'block';
+  }
+
+  function hideRestrictionPanel() {
+    selectedGuestName = null;
+    document.getElementById('restrictionPanel').style.display = 'none';
+  }
+
+  function toggleDetailField(which, checkbox) {
+    const field = document.getElementById(which + 'Detail');
+    field.style.display = checkbox.checked ? 'block' : 'none';
+    if (!checkbox.checked) field.value = '';
+  }
+
+  async function submitConfirmation() {
+    if (!selectedGuestName) return;
+
+    const restricciones = Array.from(document.querySelectorAll('.restriction-check:checked')).map(c => c.value);
+    let detalle = '';
+    if (restricciones.includes('Intolerancia')) {
+      detalle += 'Intolerancia: ' + document.getElementById('intoleranciaDetail').value.trim();
+    }
+    if (restricciones.includes('Otros')) {
+      detalle += (detalle ? ' | ' : '') + 'Otros: ' + document.getElementById('otrosDetail').value.trim();
+    }
+
+    const btn = document.getElementById('confirmBtn');
+    btn.textContent = 'Confirmando...';
+    try {
+      const res = await fetch(GAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ nombre: selectedGuestName, restricciones, detalle })
+      });
+      const data = await res.json();
+      if (data.success) {
+        btn.textContent = 'Asistencia confirmada ✓';
+        showToast('✅ ¡Asistencia confirmada!');
+        const g = guestList.find(g => g.nombre === selectedGuestName);
+        if (g) g.confirmado = true;
+      } else {
+        btn.textContent = 'Confirmar asistencia';
+        showToast('No encontramos tu nombre, reintentá');
+      }
+    } catch (err) {
+      btn.textContent = 'Confirmar asistencia';
+      showToast('Error de conexión, intentá de nuevo');
+    }
+  }
+
+  // Canciones sugeridas (guardadas en la pestaña "Canciones" del Sheet)
+  let songs = [];
+
+  async function loadSongs() {
+    if (GAS_URL.startsWith("PEGAR_AQUI")) return;
+    try {
+      const res = await fetch(GAS_URL + "?tipo=canciones");
+      const data = await res.json();
+      songs = data.map(s => s.cancion).reverse();
+      renderSongs();
+    } catch (err) {
+      console.error('No se pudieron cargar las canciones', err);
+    }
+  }
+  loadSongs();
+
+  async function addSong() {
+    const input = document.getElementById('songInput');
+    const value = input.value.trim();
+    if (!value) return;
+
+    if (GAS_URL.startsWith("PEGAR_AQUI")) {
+      songs.unshift(value);
+      input.value = "";
+      renderSongs();
+      showToast('🎵 ¡Canción agregada!');
+      return;
+    }
+
+    input.disabled = true;
+    try {
+      const res = await fetch(GAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ tipo: 'cancion', cancion: value })
+      });
+      const data = await res.json();
+      if (data.success) {
+        songs.unshift(value);
+        input.value = "";
+        renderSongs();
+        showToast('🎵 ¡Canción agregada!');
+      } else {
+        showToast('No se pudo guardar, intentá de nuevo');
+      }
+    } catch (err) {
+      showToast('Error de conexión, intentá de nuevo');
+    } finally {
+      input.disabled = false;
+    }
+  }
+
+  let toastTimer;
+  function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+  }
+
+  function renderSongs() {
+    const list = document.getElementById('songList');
+    list.innerHTML = songs.map(s => `<div class="song-item"><span>🎵 ${s}</span></div>`).join('');
+  }
+
+  function copyAlias() {
+    navigator.clipboard.writeText('GABRIEL.JULIETA.BODA').then(() => {
+      alert('Alias copiado: GABRIEL.JULIETA.BODA');
+    });
+  }
+
+  // Animación de aparición al scrollear
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.15 });
+
+  document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+</script>
+</body>
+</html>
