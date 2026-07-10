@@ -473,21 +473,6 @@
     <div class="song-list" id="songList"></div>
   </div>
 
-  <!-- REGALO / TARJETA -->
-  <div class="card reveal">
-    <h2 class="section-title">Nuestro regalo de bodas</h2>
-    <div class="section-sub">Si querés colaborar con nuestra luna de miel, este es el valor sugerido de la tarjeta</div>
-    <div class="gift-amount">$ 45.000 ARS</div>
-    <div class="bank-box">
-      <div><b>Titular:</b> Gabriel Oros</div>
-      <div><b>Banco:</b> Banco Ejemplo</div>
-      <div><b>CBU:</b> 0000003100000000000000</div>
-      <div><b>Alias:</b> GABRIEL.JULIETA.BODA</div>
-    </div>
-    <div class="copy-note">* Datos de ejemplo — reemplazar por los datos reales de la cuenta.</div>
-    <button class="btn secondary" onclick="copyAlias()">Copiar alias</button>
-  </div>
-
   <footer>Gabriel &amp; Julieta · 23.10.2027</footer>
 </div>
 
@@ -702,12 +687,6 @@
   function renderSongs() {
     const list = document.getElementById('songList');
     list.innerHTML = songs.map(s => `<div class="song-item"><span>🎵 ${s}</span></div>`).join('');
-  }
-
-  function copyAlias() {
-    navigator.clipboard.writeText('GABRIEL.JULIETA.BODA').then(() => {
-      alert('Alias copiado: GABRIEL.JULIETA.BODA');
-    });
   }
 
   // Animación de aparición al scrollear
