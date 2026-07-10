@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Gabriel & Julieta — Nos casamos</title>
+<title>Julieta & Gabriel — Nos casamos</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cormorant+Garamond:wght@400;500;600;700&display=swap');
 
@@ -142,6 +142,52 @@
     font-size: 23px;
     letter-spacing: 1px;
     margin-bottom: 4px;
+  }
+
+  .calendar-month-label {
+    font-size: 21px;
+    color: #6b4a2f;
+    letter-spacing: 1px;
+    text-transform: capitalize;
+    margin-bottom: 16px;
+  }
+
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px 4px;
+  }
+
+  .calendar-weekday {
+    font-size: 12px;
+    color: #a1794a;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding-bottom: 4px;
+  }
+
+  .calendar-day {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    border-radius: 50%;
+    color: #5a4636;
+  }
+  .calendar-day.empty { visibility: hidden; }
+  .calendar-day.highlight {
+    background: #6b4a2f;
+    color: #fffaf3;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(107,74,47,0.35);
+  }
+
+  .calendar-time {
+    font-size: 18px;
+    color: #6b4a2f;
+    margin-top: 18px;
+    letter-spacing: 1px;
   }
 
   .location {
@@ -348,10 +394,6 @@
       Con inmensa alegría queremos invitarte<br>
       a celebrar el día en que unimos nuestras vidas.
     </div>
-    <div class="details">
-      <strong>23 de octubre de 2027</strong>
-      19:00 hs
-    </div>
     <div class="location">
       Entre Olivos Eventos<br>
       Calle Espejo 1940, Maipú, Mendoza
@@ -361,6 +403,14 @@
       <a class="map-overlay" href="https://www.google.com/maps/search/?api=1&query=Calle+Espejo+1940+Maip%C3%BA+Mendoza" target="_blank" aria-label="Abrir en Google Maps"></a>
     </div>
     <div class="map-caption">Tocá el mapa para abrir la ubicación en Google Maps</div>
+  </div>
+
+  <!-- GUARDÁ LA FECHA -->
+  <div class="card reveal">
+    <h2 class="section-title">Guardá la fecha</h2>
+    <div class="section-sub">Nos casamos este día</div>
+    <div class="calendar-grid" id="calendar"></div>
+    <div class="calendar-time">19:00 hs</div>
   </div>
 
   <!-- RSVP -->
@@ -421,6 +471,33 @@
   // 1. Deployá el Apps Script como "Aplicación web" (acceso: Cualquier usuario)
   // 2. Pegá acá la URL que termina en /exec
   const GAS_URL = "https://script.google.com/macros/s/AKfycbz-sc2l5jW1oMN6Dkr-s3gduTSbTTlL2gRiPlw_khEQ6GzTCkJHlnqpgvrvD0b2sBOo/exec";
+
+  // Calendario de "guardá la fecha"
+  function renderCalendar(year, monthIndex, highlightDay) {
+    const monthNames = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    const weekdays = ['Do','Lu','Ma','Mi','Ju','Vi','Sa'];
+    const firstDay = new Date(year, monthIndex, 1).getDay();
+    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+
+    document.querySelector('.calendar-month-label')?.remove();
+    const grid = document.getElementById('calendar');
+    const label = document.createElement('div');
+    label.className = 'calendar-month-label';
+    label.textContent = `${monthNames[monthIndex]} ${year}`;
+    grid.insertAdjacentElement('beforebegin', label);
+
+    let html = '';
+    weekdays.forEach(w => html += `<div class="calendar-weekday">${w}</div>`);
+    for (let i = 0; i < firstDay; i++) {
+      html += '<div class="calendar-day empty"></div>';
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      const cls = d === highlightDay ? 'calendar-day highlight' : 'calendar-day';
+      html += `<div class="${cls}">${d}</div>`;
+    }
+    grid.innerHTML = html;
+  }
+  renderCalendar(2027, 9, 23);
 
   let guestList = []; // se carga desde la planilla al abrir la página
 
@@ -538,21 +615,15 @@
     }
   }
 
-  // Canciones sugeridas (guardadas en la pestaña "Canciones" del Sheet)
-  let songs = [];
+  // Canciones sugeridas por esta persona en esta pestaña.
+  // Se guardan en sessionStorage: sobreviven a un refresh de la misma pestaña,
+  // pero no se comparten con otra pestaña ni con lo que agregaron otros invitados.
+  let songs = JSON.parse(sessionStorage.getItem('misCanciones') || '[]');
+  renderSongs();
 
-  async function loadSongs() {
-    if (GAS_URL.startsWith("PEGAR_AQUI")) return;
-    try {
-      const res = await fetch(GAS_URL + "?tipo=canciones");
-      const data = await res.json();
-      songs = data.map(s => s.cancion).reverse();
-      renderSongs();
-    } catch (err) {
-      console.error('No se pudieron cargar las canciones', err);
-    }
+  function saveSongs() {
+    sessionStorage.setItem('misCanciones', JSON.stringify(songs));
   }
-  loadSongs();
 
   async function addSong() {
     const input = document.getElementById('songInput');
@@ -561,6 +632,7 @@
 
     if (GAS_URL.startsWith("PEGAR_AQUI")) {
       songs.unshift(value);
+      saveSongs();
       input.value = "";
       renderSongs();
       showToast('🎵 ¡Canción agregada!');
@@ -577,6 +649,7 @@
       const data = await res.json();
       if (data.success) {
         songs.unshift(value);
+        saveSongs();
         input.value = "";
         renderSongs();
         showToast('🎵 ¡Canción agregada!');
