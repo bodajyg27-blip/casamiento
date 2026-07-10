@@ -131,6 +131,20 @@
     margin: 22px auto;
   }
 
+  .photo-frame {
+    width: 150px;
+    height: 150px;
+    margin: 6px auto 26px;
+    border-radius: 50%;
+    background: #fffaf3;
+    border: 1px solid #d8b98c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  }
+  .photo-frame svg { width: 68px; height: 68px; }
+
   .message {
     font-size: 18px;
     line-height: 1.6;
@@ -390,10 +404,31 @@
       Julieta
     </div>
     <div class="divider"></div>
+    <div class="photo-frame">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="38" cy="56" r="26" fill="none" stroke="#c9a876" stroke-width="4"/>
+        <circle cx="62" cy="56" r="26" fill="none" stroke="#6b4a2f" stroke-width="4"/>
+        <circle cx="38" cy="30" r="4" fill="#c9a876"/>
+      </svg>
+    </div>
     <div class="message">
       Con inmensa alegría queremos invitarte<br>
       a celebrar el día en que unimos nuestras vidas.
     </div>
+  </div>
+
+  <!-- GUARDÁ LA FECHA -->
+  <div class="card reveal">
+    <h2 class="section-title">Guardá la fecha</h2>
+    <div class="section-sub">Nos casamos este día</div>
+    <div class="calendar-grid" id="calendar"></div>
+    <div class="calendar-time">19:00 hs</div>
+  </div>
+
+  <!-- LUGAR -->
+  <div class="card reveal">
+    <h2 class="section-title">Dónde celebramos</h2>
+    <div class="section-sub">Así llegás al salón</div>
     <div class="location">
       Entre Olivos Eventos<br>
       Calle Espejo 1940, Maipú, Mendoza
@@ -403,14 +438,6 @@
       <a class="map-overlay" href="https://www.google.com/maps/search/?api=1&query=Calle+Espejo+1940+Maip%C3%BA+Mendoza" target="_blank" aria-label="Abrir en Google Maps"></a>
     </div>
     <div class="map-caption">Tocá el mapa para abrir la ubicación en Google Maps</div>
-  </div>
-
-  <!-- GUARDÁ LA FECHA -->
-  <div class="card reveal">
-    <h2 class="section-title">Guardá la fecha</h2>
-    <div class="section-sub">Nos casamos este día</div>
-    <div class="calendar-grid" id="calendar"></div>
-    <div class="calendar-time">19:00 hs</div>
   </div>
 
   <!-- RSVP -->
@@ -437,6 +464,15 @@
     </div>
   </div>
 
+  <!-- CANCIÓN -->
+  <div class="card reveal">
+    <h2 class="section-title">Dejá tu canción</h2>
+    <div class="section-sub">Ayudanos a armar la playlist de la noche</div>
+    <input type="text" id="songInput" placeholder="Nombre de la canción y artista..." maxlength="50">
+    <button class="btn" onclick="addSong()">Agregar canción</button>
+    <div class="song-list" id="songList"></div>
+  </div>
+
   <!-- REGALO / TARJETA -->
   <div class="card reveal">
     <h2 class="section-title">Nuestro regalo de bodas</h2>
@@ -450,15 +486,6 @@
     </div>
     <div class="copy-note">* Datos de ejemplo — reemplazar por los datos reales de la cuenta.</div>
     <button class="btn secondary" onclick="copyAlias()">Copiar alias</button>
-  </div>
-
-  <!-- CANCIÓN -->
-  <div class="card reveal">
-    <h2 class="section-title">Dejá tu canción</h2>
-    <div class="section-sub">Ayudanos a armar la playlist de la noche</div>
-    <input type="text" id="songInput" placeholder="Nombre de la canción y artista...">
-    <button class="btn" onclick="addSong()">Agregar canción</button>
-    <div class="song-list" id="songList"></div>
   </div>
 
   <footer>Gabriel &amp; Julieta · 23.10.2027</footer>
