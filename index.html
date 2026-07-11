@@ -50,35 +50,49 @@
     transform: translateY(0);
   }
 
-  .map-frame {
+  .lugares-wrap {
     position: relative;
-    width: 100%;
-    height: 210px;
-    margin-top: 18px;
-    border-radius: 4px;
-    overflow: hidden;
-    border: 1px solid #c7c894;
   }
-  .map-frame iframe {
-    width: 100%;
-    height: 100%;
-    border: 0;
-    pointer-events: none;
-    filter: sepia(12%) saturate(90%);
-  }
-  .map-frame .map-overlay {
+  .lugares-link {
     position: absolute;
-    inset: 0;
+    left: 30%;
+    width: 40%;
+    height: 3.6%;
     display: block;
+    border-radius: 30px;
     transition: background 0.2s ease;
   }
-  .map-frame .map-overlay:hover {
-    background: rgba(75,83,32,0.08);
+  .lugares-link:hover {
+    background: rgba(255,255,255,0.15);
   }
-  .map-caption {
-    font-size: 13px;
-    color: #7d7a3f;
-    margin-top: 8px;
+  .lugares-link-ceremonia { top: 43%; }
+  .lugares-link-fiesta { top: 81.5%; }
+
+  .hora-fiesta, .hora-lugar-ceremonia {
+    position: absolute;
+    left: 30%;
+    right: 30%;
+    background: #676d64;
+    color: #f2f1de;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+  .hora-fiesta {
+    top: 73.4%;
+    height: 3.4%;
+  }
+  .hora-lugar-ceremonia {
+    left: 27%;
+    right: 27%;
+    top: 37.3%;
+    height: 3.2%;
   }
 
   .card {
@@ -128,52 +142,6 @@
     margin-bottom: 4px;
   }
 
-  .calendar-month-label {
-    font-size: 21px;
-    color: #4b5320;
-    letter-spacing: 1px;
-    text-transform: capitalize;
-    margin-bottom: 16px;
-  }
-
-  .calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 8px 4px;
-  }
-
-  .calendar-weekday {
-    font-size: 12px;
-    color: #7d7a3f;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    padding-bottom: 4px;
-  }
-
-  .calendar-day {
-    aspect-ratio: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 15px;
-    border-radius: 50%;
-    color: #48472e;
-  }
-  .calendar-day.empty { visibility: hidden; }
-  .calendar-day.highlight {
-    background: #4b5320;
-    color: #f9f8ec;
-    font-weight: 600;
-    box-shadow: 0 4px 12px rgba(75,83,32,0.35);
-  }
-
-  .calendar-time {
-    font-size: 18px;
-    color: #4b5320;
-    margin-top: 18px;
-    letter-spacing: 1px;
-  }
-
   .countdown {
     display: flex;
     justify-content: center;
@@ -198,6 +166,22 @@
     text-transform: uppercase;
     color: #7d7a3f;
     margin-top: 2px;
+  }
+
+  .calendario-wrap {
+    position: relative;
+  }
+  .countdown-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 77%;
+  }
+  .countdown-overlay .countdown-num {
+    color: #f2f1de;
+  }
+  .countdown-overlay .countdown-label {
+    color: #c9cba3;
   }
 
   .envelope {
@@ -295,15 +279,6 @@
   .envelope.open .envelope-hint {
     opacity: 0;
   }
-
-  .location {
-    font-size: 17px;
-    color: #71724a;
-    margin-top: 4px;
-    line-height: 1.5;
-  }
-
-  .location a { color: #7d7a3f; }
 
   h2.section-title {
     font-size: 22px;
@@ -517,12 +492,9 @@
   </div>
 
   <!-- GUARDÁ LA FECHA -->
-  <div class="card reveal">
-    <h2 class="section-title">Guardá la fecha</h2>
-    <div class="section-sub">Nos casamos este día</div>
-    <div class="calendar-grid" id="calendar"></div>
-    <div class="calendar-time">19:00 hs</div>
-    <div class="countdown" id="countdown">
+  <div class="portada-image reveal calendario-wrap">
+    <img src="img/calendario.jpg" alt="Guardá la fecha — Sábado 23 de octubre de 2027">
+    <div class="countdown countdown-overlay" id="countdown">
       <div class="countdown-unit"><span class="countdown-num" id="cdDays">0</span><span class="countdown-label">días</span></div>
       <div class="countdown-unit"><span class="countdown-num" id="cdHours">00</span><span class="countdown-label">hs</span></div>
       <div class="countdown-unit"><span class="countdown-num" id="cdMins">00</span><span class="countdown-label">min</span></div>
@@ -531,18 +503,12 @@
   </div>
 
   <!-- LUGAR -->
-  <div class="card reveal">
-    <h2 class="section-title">Dónde celebramos</h2>
-    <div class="section-sub">Así llegás al salón</div>
-    <div class="location">
-      Entre Olivos Eventos<br>
-      Calle Espejo 1940, Maipú, Mendoza
-    </div>
-    <div class="map-frame">
-      <iframe src="https://www.google.com/maps?q=Calle+Espejo+1940,+Maipú,+Mendoza&output=embed" loading="lazy"></iframe>
-      <a class="map-overlay" href="https://www.google.com/maps/search/?api=1&query=Calle+Espejo+1940+Maip%C3%BA+Mendoza" target="_blank" aria-label="Abrir en Google Maps"></a>
-    </div>
-    <div class="map-caption">Tocá el mapa para abrir la ubicación en Google Maps</div>
+  <div class="portada-image reveal lugares-wrap">
+    <img src="img/lugares.jpg" alt="Ceremonia y fiesta — cómo llegar">
+    <div class="hora-lugar-ceremonia">19:00 - Iglesia</div>
+    <div class="hora-fiesta">20:30 hs</div>
+    <a class="lugares-link lugares-link-ceremonia" href="https://www.google.com/maps/search/?api=1&query=Calle+Espejo+1940+Maip%C3%BA+Mendoza" target="_blank" rel="noopener" aria-label="Cómo llegar a la ceremonia"></a>
+    <a class="lugares-link lugares-link-fiesta" href="https://www.google.com/maps/search/?api=1&query=Calle+Espejo+1940+Maip%C3%BA+Mendoza" target="_blank" rel="noopener" aria-label="Cómo llegar a la fiesta"></a>
   </div>
 
   <!-- RSVP -->
@@ -595,33 +561,6 @@
   // 1. Deployá el Apps Script como "Aplicación web" (acceso: Cualquier usuario)
   // 2. Pegá acá la URL que termina en /exec
   const GAS_URL = "https://script.google.com/macros/s/AKfycbz-sc2l5jW1oMN6Dkr-s3gduTSbTTlL2gRiPlw_khEQ6GzTCkJHlnqpgvrvD0b2sBOo/exec";
-
-  // Calendario de "guardá la fecha"
-  function renderCalendar(year, monthIndex, highlightDay) {
-    const monthNames = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-    const weekdays = ['Do','Lu','Ma','Mi','Ju','Vi','Sa'];
-    const firstDay = new Date(year, monthIndex, 1).getDay();
-    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-
-    document.querySelector('.calendar-month-label')?.remove();
-    const grid = document.getElementById('calendar');
-    const label = document.createElement('div');
-    label.className = 'calendar-month-label';
-    label.textContent = `${monthNames[monthIndex]} ${year}`;
-    grid.insertAdjacentElement('beforebegin', label);
-
-    let html = '';
-    weekdays.forEach(w => html += `<div class="calendar-weekday">${w}</div>`);
-    for (let i = 0; i < firstDay; i++) {
-      html += '<div class="calendar-day empty"></div>';
-    }
-    for (let d = 1; d <= daysInMonth; d++) {
-      const cls = d === highlightDay ? 'calendar-day highlight' : 'calendar-day';
-      html += `<div class="${cls}">${d}</div>`;
-    }
-    grid.innerHTML = html;
-  }
-  renderCalendar(2027, 9, 23);
 
   // Cuenta regresiva en vivo: días, horas, minutos y segundos hasta la boda
   function renderCountdown(targetDate) {
