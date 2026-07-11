@@ -258,11 +258,9 @@
     align-items: center;
     cursor: pointer;
     overflow: hidden;
-    transition: opacity 0.7s ease, transform 0.7s ease, visibility 0.7s ease;
+    will-change: opacity, transform;
   }
-  .envelope.open {
-    opacity: 0;
-    transform: scale(1.04);
+  .envelope.hidden {
     visibility: hidden;
     pointer-events: none;
   }
@@ -294,10 +292,6 @@
     text-transform: uppercase;
     color: #f2f1de;
     text-shadow: 0 2px 8px rgba(0,0,0,0.45);
-    transition: opacity 0.3s ease;
-  }
-  .envelope.open .envelope-hint {
-    opacity: 0;
   }
 
   h2.section-title {
@@ -471,7 +465,7 @@
     <div class="envelope-kicker">Nos casamos</div>
     <div class="envelope-names">Julieta &amp; Gabriel</div>
   </div>
-  <div class="envelope-hint">Tocá para abrir la invitación</div>
+  <div class="envelope-hint">Scrolleá para abrir la invitación</div>
 </div>
 
 <svg class="bg-pattern" xmlns="http://www.w3.org/2000/svg">
@@ -599,14 +593,24 @@
   }
   renderCountdown(new Date(2027, 9, 23, 19, 0, 0));
 
-  // Sobre de apertura
+  // Sobre de apertura: se va abriendo a medida que se scrollea
   const envelope = document.getElementById('envelope');
-  document.documentElement.style.overflow = 'hidden';
+  const OPEN_DISTANCE = 110;
+
+  function updateEnvelope() {
+    const progress = Math.min(window.scrollY / OPEN_DISTANCE, 1);
+    envelope.style.opacity = String(1 - progress);
+    envelope.style.transform = `scale(${1 + progress * 0.04})`;
+    envelope.classList.toggle('hidden', progress >= 1);
+  }
+  window.addEventListener('scroll', updateEnvelope, { passive: true });
+  updateEnvelope();
+
   envelope.addEventListener('click', () => {
-    envelope.classList.add('open');
-    document.documentElement.style.overflow = '';
-    setupReveal();
-  }, { once: true });
+    window.scrollTo({ top: OPEN_DISTANCE, behavior: 'smooth' });
+  });
+
+  setupReveal();
 
   let guestList = []; // se carga desde la planilla al abrir la página
 
@@ -798,7 +802,7 @@
           entry.target.classList.add('visible');
         }
       });
-    }, { threshold: 0.15, rootMargin: '0px 0px -35% 0px' });
+    }, { threshold: 0.15 });
 
     const sections = document.querySelectorAll('.reveal');
     sections.forEach((el, i) => {

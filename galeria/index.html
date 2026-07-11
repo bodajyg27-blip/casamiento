@@ -5,7 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Julieta & Gabriel — Galería de fotos</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cormorant+Garamond:wght@400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap');
+
+  @font-face {
+    font-family: 'Edwardian Script ITC';
+    src: url('../fonts/Edwardian.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+  }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -42,8 +50,9 @@
   }
 
   .card {
-    background: #f9f8ec;
-    border: 1px solid #c7c894;
+    background-image: url('../img/fondo.jpg');
+    background-size: cover;
+    background-position: center;
     border-radius: 4px;
     padding: 40px 30px;
     text-align: center;
@@ -53,15 +62,19 @@
   }
 
   h2.section-title {
-    font-size: 22px;
-    color: #4b5320;
+    font-family: 'Edwardian Script ITC', cursive;
+    font-weight: normal;
+    font-size: 52px;
+    color: #f2f1de;
     letter-spacing: 1px;
     margin-bottom: 6px;
   }
 
   .section-sub {
-    font-size: 15px;
-    color: #71724a;
+    font-family: 'Edwardian Script ITC', cursive;
+    font-weight: normal;
+    font-size: 30px;
+    color: #d6d8ba;
     margin-bottom: 20px;
   }
 
@@ -133,13 +146,13 @@
   .gallery-empty {
     grid-column: 1 / -1;
     font-size: 15px;
-    color: #7d7a3f;
+    color: #d6d8ba;
     padding: 20px 0;
   }
 
   .upload-progress {
     font-size: 14px;
-    color: #7d7a3f;
+    color: #d6d8ba;
     margin-top: 10px;
     min-height: 20px;
   }
