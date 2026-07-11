@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Julieta & Gabriel — Nos casamos</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cormorant+Garamond:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    min-height: 100%;
+  }
+
+  body {
+    background-color: #eeecd4;
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(156,163,82,0.18), transparent 40%),
+      radial-gradient(circle at 85% 30%, rgba(139,150,80,0.14), transparent 45%),
+      radial-gradient(circle at 30% 90%, rgba(108,128,68,0.12), transparent 40%),
+      linear-gradient(135deg, #f2f1de 0%, #e7e6c6 100%);
+    background-attachment: fixed;
+    font-family: 'Cormorant Garamond', serif;
+    color: #48472e;
+    padding: 30px 15px;
+    display: flex;
+    justify-content: center;
+    position: relative;
+  }
+
+  .bg-pattern {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  .wrap { max-width: 520px; width: 100%; position: relative; z-index: 1; }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.9s ease, transform 0.9s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .map-frame {
+    position: relative;
+    width: 100%;
+    height: 210px;
+    margin-top: 18px;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid #c7c894;
+  }
+  .map-frame iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    pointer-events: none;
+    filter: sepia(12%) saturate(90%);
+  }
+  .map-frame .map-overlay {
+    position: absolute;
+    inset: 0;
+    display: block;
+    transition: background 0.2s ease;
+  }
+  .map-frame .map-overlay:hover {
+    background: rgba(75,83,32,0.08);
+  }
+  .map-caption {
+    font-size: 13px;
+    color: #7d7a3f;
+    margin-top: 8px;
+  }
+
+  .card {
+    background: #f9f8ec;
+    border: 1px solid #c7c894;
+    border-radius: 4px;
+    padding: 50px 36px;
+    text-align: center;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.10);
+    position: relative;
+    margin-bottom: 22px;
+  }
+
+  .card::before, .card::after {
+    content: "";
+    position: absolute;
+    width: 26px;
+    height: 26px;
+    border: 1px solid #9c9a52;
+  }
+  .card::before { top: 10px; left: 10px; border-right: none; border-bottom: none; }
+  .card::after { bottom: 10px; right: 10px; border-left: none; border-top: none; }
+
+  .kicker {
+    letter-spacing: 4px;
+    font-size: 13px;
+    color: #8a8a4a;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .names {
+    font-family: 'Great Vibes', cursive;
+    font-size: 54px;
+    color: #4b5320;
+    line-height: 1.15;
+  }
+
+  .amp {
+    font-size: 24px;
+    color: #9c9a52;
+    margin: 2px 0;
+    font-style: italic;
+  }
+
+  .divider {
+    width: 56px;
+    height: 1px;
+    background: #9c9a52;
+    margin: 22px auto;
+  }
+
+  .photo-frame {
+    width: 150px;
+    height: 150px;
+    margin: 6px auto 26px;
+    border-radius: 50%;
+    background: #f9f8ec;
+    border: 1px solid #c7c894;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  }
+  .photo-frame svg { width: 68px; height: 68px; }
+
+  .message {
+    font-size: 18px;
+    line-height: 1.6;
+    margin-bottom: 24px;
+  }
+
+  .details strong {
+    display: block;
+    font-size: 23px;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+
+  .calendar-month-label {
+    font-size: 21px;
+    color: #4b5320;
+    letter-spacing: 1px;
+    text-transform: capitalize;
+    margin-bottom: 16px;
+  }
+
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px 4px;
+  }
+
+  .calendar-weekday {
+    font-size: 12px;
+    color: #7d7a3f;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding-bottom: 4px;
+  }
+
+  .calendar-day {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    border-radius: 50%;
+    color: #48472e;
+  }
+  .calendar-day.empty { visibility: hidden; }
+  .calendar-day.highlight {
+    background: #4b5320;
+    color: #f9f8ec;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(75,83,32,0.35);
+  }
+
+  .calendar-time {
+    font-size: 18px;
+    color: #4b5320;
+    margin-top: 18px;
+    letter-spacing: 1px;
+  }
+
+  .countdown {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 14px;
+  }
+  .countdown-unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 44px;
+  }
+  .countdown-num {
+    font-size: 24px;
+    font-weight: 600;
+    color: #4b5320;
+    font-variant-numeric: tabular-nums;
+  }
+  .countdown-label {
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #7d7a3f;
+    margin-top: 2px;
+  }
+
+  .envelope {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: #33391f;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    overflow: hidden;
+    transition: opacity 0.6s ease 0.7s, visibility 0.6s ease 0.7s;
+  }
+  .envelope.open {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .envelope-dot {
+    position: absolute;
+    top: 26px;
+    right: 26px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 6px solid rgba(255,255,255,0.07);
+    background: rgba(0,0,0,0.18);
+  }
+  .envelope-panel {
+    position: relative;
+    width: 100%;
+    flex: 0 0 56%;
+    background: #5b6b35;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.8s cubic-bezier(.65,0,.35,1);
+  }
+  .envelope.open .envelope-panel {
+    transform: translateY(-115%);
+  }
+  .envelope-content {
+    text-align: center;
+    color: #fdf6ec;
+    padding: 0 24px;
+  }
+  .envelope-kicker {
+    font-size: 14px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #e2e2ae;
+    margin-bottom: 14px;
+  }
+  .envelope-names {
+    font-family: 'Great Vibes', cursive;
+    font-size: 48px;
+    line-height: 1.15;
+    color: #f9f8ec;
+  }
+  .envelope-scallop {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 34px;
+    background: radial-gradient(circle at 14px 0, transparent 15px, #5b6b35 16px) 0 0 / 28px 28px repeat-x;
+  }
+  .envelope-seal {
+    position: relative;
+    margin-top: -58px;
+    width: 108px;
+    z-index: 2;
+    transition: transform 0.6s ease, opacity 0.6s ease;
+  }
+  .envelope.open .envelope-seal {
+    transform: scale(0.4) rotate(-10deg) translateY(-30px);
+    opacity: 0;
+  }
+  .envelope-seal svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    filter: drop-shadow(0 8px 16px rgba(0,0,0,0.35));
+  }
+  .envelope-hint {
+    margin-top: auto;
+    margin-bottom: 42px;
+    font-size: 13px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #e2e2ae;
+    transition: opacity 0.3s ease;
+  }
+  .envelope.open .envelope-hint {
+    opacity: 0;
+  }
+
+  .location {
+    font-size: 17px;
+    color: #71724a;
+    margin-top: 4px;
+    line-height: 1.5;
+  }
+
+  .location a { color: #7d7a3f; }
+
+  h2.section-title {
+    font-size: 22px;
+    color: #4b5320;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+
+  .section-sub {
+    font-size: 15px;
+    color: #71724a;
+    margin-bottom: 20px;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid #c7c894;
+    border-radius: 3px;
+    background: #f6f5e6;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 17px;
+    color: #48472e;
+    outline: none;
+  }
+  input[type="text"]:focus { border-color: #7d7a3f; }
+
+  .btn {
+    display: inline-block;
+    margin-top: 14px;
+    padding: 11px 30px;
+    background: #4b5320;
+    color: #f9f8ec;
+    border: none;
+    font-size: 15px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-radius: 2px;
+    cursor: pointer;
+    font-family: 'Cormorant Garamond', serif;
+    transition: background 0.2s ease;
+  }
+  .btn:hover { background: #3a4118; }
+  .btn.secondary { background: transparent; color: #4b5320; border: 1px solid #4b5320; }
+  .btn.secondary:hover { background: #eceed6; }
+
+  .guest-results { margin-top: 16px; text-align: left; }
+  .guest-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    border: 1px solid #dcdcb0;
+    border-radius: 3px;
+    margin-bottom: 8px;
+    background: #f6f5e6;
+  }
+  .guest-item span { font-size: 17px; }
+  .guest-actions button {
+    font-size: 13px;
+    padding: 6px 12px;
+    margin-left: 6px;
+    border-radius: 3px;
+    border: 1px solid #7d7a3f;
+    background: #f9f8ec;
+    color: #4b5320;
+    cursor: pointer;
+    font-family: 'Cormorant Garamond', serif;
+  }
+  .guest-actions button.confirmed { background: #4b5320; color: #f9f8ec; }
+  .no-results { font-size: 15px; color: #7d7a3f; margin-top: 10px; }
+
+  .guest-item.selectable { cursor: pointer; transition: background 0.15s ease; }
+  .guest-item.selectable:hover { background: #eceed6; }
+  .guest-item .status-tag { font-size: 13px; color: #6b7a3a; }
+
+  .restriction-panel { text-align: left; margin-top: 8px; }
+  .selected-name {
+    font-size: 20px;
+    color: #4b5320;
+    font-weight: 600;
+    margin-bottom: 14px;
+  }
+  .restriction-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    margin-bottom: 6px;
+  }
+  .restriction-options label {
+    font-size: 17px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  .restriction-options input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #4b5320;
+  }
+  .detail-field { margin-top: 10px; }
+  .restriction-panel .btn { display: block; width: 100%; text-align: center; }
+
+  .song-list { margin-top: 18px; text-align: left; max-height: 180px; overflow-y: auto; }
+  .song-item {
+    padding: 10px 14px;
+    border-bottom: 1px solid #e4e4c4;
+    font-size: 16px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .song-item span.by { color: #7d7a3f; font-size: 14px; }
+
+  .gift-amount {
+    font-size: 30px;
+    color: #4b5320;
+    font-weight: 600;
+    margin: 8px 0 18px;
+  }
+
+  .bank-box {
+    background: #f2f1de;
+    border: 1px dashed #9c9a52;
+    border-radius: 4px;
+    padding: 18px;
+    text-align: left;
+    font-size: 16px;
+    line-height: 1.9;
+    margin-top: 10px;
+  }
+  .bank-box b { color: #4b5320; }
+
+  .copy-note { font-size: 13px; color: #7d7a3f; margin-top: 8px; }
+
+  footer { text-align: center; font-size: 13px; color: #7d7a3f; padding: 10px 0 20px; }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 30px;
+    transform: translate(-50%, 20px);
+    background: #4b5320;
+    color: #f9f8ec;
+    padding: 13px 26px;
+    border-radius: 30px;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    z-index: 50;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+</style>
+</head>
+<body>
+
+<div class="envelope" id="envelope">
+  <div class="envelope-dot"></div>
+  <div class="envelope-panel">
+    <div class="envelope-content">
+      <div class="envelope-kicker">Nos casamos</div>
+      <div class="envelope-names">Julieta &amp; Gabriel</div>
+    </div>
+    <div class="envelope-scallop"></div>
+  </div>
+  <div class="envelope-seal">
+    <svg viewBox="0 0 100 130" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <ellipse cx="50" cy="65" rx="48" ry="62" fill="#f9f8ec" stroke="#9c9a52" stroke-width="2"/>
+      <ellipse cx="50" cy="65" rx="40" ry="53" fill="none" stroke="#9c9a52" stroke-width="1"/>
+      <path d="M50 34 C 44 46, 44 58, 50 68 C 56 58, 56 46, 50 34 Z" fill="none" stroke="#4b5320" stroke-width="2"/>
+      <path d="M50 40 C 42 40, 36 46, 35 54" fill="none" stroke="#4b5320" stroke-width="1.5"/>
+      <path d="M50 46 C 58 46, 64 52, 65 60" fill="none" stroke="#4b5320" stroke-width="1.5"/>
+      <line x1="50" y1="68" x2="50" y2="86" stroke="#4b5320" stroke-width="2"/>
+      <path d="M50 78 C 44 78, 40 82, 38 88" fill="none" stroke="#4b5320" stroke-width="1.5"/>
+      <text x="50" y="104" text-anchor="middle" font-family="'Cormorant Garamond', serif" font-size="15" letter-spacing="3" fill="#4b5320">J &amp; G</text>
+    </svg>
+  </div>
+  <div class="envelope-hint">Tocá para abrir la invitación</div>
+</div>
+
+<svg class="bg-pattern" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="floral" width="200" height="200" patternUnits="userSpaceOnUse" patternTransform="rotate(8)">
+      <g stroke="#9c9a52" stroke-width="1.1" fill="none" opacity="0.35">
+        <path d="M20 180 C 40 140, 30 100, 60 70 C 90 40, 130 50, 150 20" />
+        <circle cx="60" cy="70" r="9" />
+        <circle cx="150" cy="20" r="7" />
+        <path d="M60 70 q 15 -10 25 5" />
+        <path d="M150 20 q 12 -8 20 2" />
+        <path d="M100 150 c 10 -20 30 -20 40 -5" />
+        <circle cx="140" cy="140" r="5" />
+        <path d="M10 40 q 20 15 15 35" />
+        <circle cx="10" cy="40" r="4" />
+      </g>
+    </pattern>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#floral)" />
+</svg>
+
+<div class="wrap">
+
+  <!-- PORTADA -->
+  <div class="card reveal">
+    <div class="kicker">Nos casamos</div>
+    <div class="names">
+      Julieta<br>
+      <span class="amp">&amp;</span><br>
+      Gabriel
+    </div>
+    <div class="divider"></div>
+    <div class="photo-frame">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="38" cy="56" r="26" fill="none" stroke="#9c9a52" stroke-width="4"/>
+        <circle cx="62" cy="56" r="26" fill="none" stroke="#4b5320" stroke-width="4"/>
+        <circle cx="38" cy="30" r="4" fill="#9c9a52"/>
+      </svg>
+    </div>
+    <div class="message">
+      Con inmensa alegría queremos invitarte<br>
+      a celebrar el día en que unimos nuestras vidas.
+    </div>
+  </div>
+
+  <!-- GUARDÁ LA FECHA -->
+  <div class="card reveal">
+    <h2 class="section-title">Guardá la fecha</h2>
+    <div class="section-sub">Nos casamos este día</div>
+    <div class="calendar-grid" id="calendar"></div>
+    <div class="calendar-time">19:00 hs</div>
+    <div class="countdown" id="countdown">
+      <div class="countdown-unit"><span class="countdown-num" id="cdDays">0</span><span class="countdown-label">días</span></div>
+      <div class="countdown-unit"><span class="countdown-num" id="cdHours">00</span><span class="countdown-label">hs</span></div>
+      <div class="countdown-unit"><span class="countdown-num" id="cdMins">00</span><span class="countdown-label">min</span></div>
+      <div class="countdown-unit"><span class="countdown-num" id="cdSecs">00</span><span class="countdown-label">seg</span></div>
+    </div>
+  </div>
+
+  <!-- LUGAR -->
+  <div class="card reveal">
+    <h2 class="section-title">Dónde celebramos</h2>
+    <div class="section-sub">Así llegás al salón</div>
+    <div class="location">
+      Entre Olivos Eventos<br>
+      Calle Espejo 1940, Maipú, Mendoza
+    </div>
+    <div class="map-frame">
+      <iframe src="https://www.google.com/maps?q=Calle+Espejo+1940,+Maipú,+Mendoza&output=embed" loading="lazy"></iframe>
+      <a class="map-overlay" href="https://www.google.com/maps/search/?api=1&query=Calle+Espejo+1940+Maip%C3%BA+Mendoza" target="_blank" aria-label="Abrir en Google Maps"></a>
+    </div>
+    <div class="map-caption">Tocá el mapa para abrir la ubicación en Google Maps</div>
+  </div>
+
+  <!-- RSVP -->
+  <div class="card reveal">
+    <h2 class="section-title">Confirmar asistencia</h2>
+    <div class="section-sub">Buscá tu nombre en la lista de invitados</div>
+    <input type="text" id="rsvpSearch" placeholder="Escribí tu nombre..." oninput="searchGuest()">
+    <div class="guest-results" id="guestResults"></div>
+
+    <div class="restriction-panel" id="restrictionPanel" style="display:none;">
+      <div class="divider"></div>
+      <div class="selected-name" id="selectedName"></div>
+      <div class="section-sub">¿Tenés alguna restricción alimentaria?</div>
+      <div class="restriction-options">
+        <label><input type="checkbox" value="Celiaquía" class="restriction-check"> Celiaquía</label>
+        <label><input type="checkbox" value="Diabetes" class="restriction-check"> Diabetes</label>
+        <label><input type="checkbox" value="Vegetariano" class="restriction-check"> Vegetariano</label>
+        <label><input type="checkbox" value="Intolerancia" class="restriction-check" onchange="toggleDetailField('intolerancia', this)"> Intolerancia</label>
+        <label><input type="checkbox" value="Otros" class="restriction-check" onchange="toggleDetailField('otros', this)"> Otros</label>
+      </div>
+      <input type="text" id="intoleranciaDetail" class="detail-field" placeholder="¿A qué sos intolerante?" style="display:none;">
+      <input type="text" id="otrosDetail" class="detail-field" placeholder="Especificá tu restricción..." style="display:none;">
+      <button class="btn" id="confirmBtn" onclick="submitConfirmation()">Confirmar asistencia</button>
+    </div>
+  </div>
+
+  <!-- CANCIÓN -->
+  <div class="card reveal">
+    <h2 class="section-title">Dejá tu canción</h2>
+    <div class="section-sub">Ayudanos a armar la playlist de la noche</div>
+    <input type="text" id="songInput" placeholder="Nombre de la canción y artista..." maxlength="50">
+    <button class="btn" onclick="addSong()">Agregar canción</button>
+    <div class="song-list" id="songList"></div>
+  </div>
+
+  <!-- REGALO / TARJETA -->
+  <div class="card reveal">
+    <h2 class="section-title">Nuestro regalo de bodas</h2>
+    <div class="section-sub">Si querés colaborar con nuestra luna de miel, este es el valor sugerido de la tarjeta</div>
+    <div class="gift-amount">$ 45.000 ARS</div>
+    <div class="bank-box">
+      <div><b>Titular:</b> Gabriel Oros</div>
+      <div><b>Banco:</b> Banco Ejemplo</div>
+      <div><b>CBU:</b> 0000003100000000000000</div>
+      <div><b>Alias:</b> GABRIEL.JULIETA.BODA</div>
+    </div>
+    <div class="copy-note">* Datos de ejemplo — reemplazar por los datos reales de la cuenta.</div>
+    <button class="btn secondary" onclick="copyAlias()">Copiar alias</button>
+  </div>
+
+  <footer>Julieta &amp; Gabriel · 23.10.2027</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // === CONEXIÓN CON GOOGLE SHEET ===
+  // 1. Deployá el Apps Script como "Aplicación web" (acceso: Cualquier usuario)
+  // 2. Pegá acá la URL que termina en /exec
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbz-sc2l5jW1oMN6Dkr-s3gduTSbTTlL2gRiPlw_khEQ6GzTCkJHlnqpgvrvD0b2sBOo/exec";
+
+  // Calendario de "guardá la fecha"
+  function renderCalendar(year, monthIndex, highlightDay) {
+    const monthNames = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    const weekdays = ['Do','Lu','Ma','Mi','Ju','Vi','Sa'];
+    const firstDay = new Date(year, monthIndex, 1).getDay();
+    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+
+    document.querySelector('.calendar-month-label')?.remove();
+    const grid = document.getElementById('calendar');
+    const label = document.createElement('div');
+    label.className = 'calendar-month-label';
+    label.textContent = `${monthNames[monthIndex]} ${year}`;
+    grid.insertAdjacentElement('beforebegin', label);
+
+    let html = '';
+    weekdays.forEach(w => html += `<div class="calendar-weekday">${w}</div>`);
+    for (let i = 0; i < firstDay; i++) {
+      html += '<div class="calendar-day empty"></div>';
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      const cls = d === highlightDay ? 'calendar-day highlight' : 'calendar-day';
+      html += `<div class="${cls}">${d}</div>`;
+    }
+    grid.innerHTML = html;
+  }
+  renderCalendar(2027, 9, 23);
+
+  // Cuenta regresiva en vivo: días, horas, minutos y segundos hasta la boda
+  function renderCountdown(targetDate) {
+    const daysEl = document.getElementById('cdDays');
+    const hoursEl = document.getElementById('cdHours');
+    const minsEl = document.getElementById('cdMins');
+    const secsEl = document.getElementById('cdSecs');
+    const pad = n => String(n).padStart(2, '0');
+
+    function update() {
+      const diffMs = targetDate - new Date();
+      if (diffMs <= 0) {
+        daysEl.textContent = '0';
+        hoursEl.textContent = minsEl.textContent = secsEl.textContent = '00';
+        return;
+      }
+      const totalSeconds = Math.floor(diffMs / 1000);
+      daysEl.textContent = Math.floor(totalSeconds / 86400);
+      hoursEl.textContent = pad(Math.floor((totalSeconds % 86400) / 3600));
+      minsEl.textContent = pad(Math.floor((totalSeconds % 3600) / 60));
+      secsEl.textContent = pad(totalSeconds % 60);
+    }
+    update();
+    setInterval(update, 1000);
+  }
+  renderCountdown(new Date(2027, 9, 23, 19, 0, 0));
+
+  // Sobre de apertura
+  const envelope = document.getElementById('envelope');
+  document.documentElement.style.overflow = 'hidden';
+  envelope.addEventListener('click', () => {
+    envelope.classList.add('open');
+    document.documentElement.style.overflow = '';
+  }, { once: true });
+
+  let guestList = []; // se carga desde la planilla al abrir la página
+
+  async function loadGuests() {
+    if (GAS_URL.startsWith("PEGAR_AQUI")) return; // todavía no configurado
+    try {
+      const res = await fetch(GAS_URL);
+      guestList = await res.json(); // [{ nombre, confirmado }, ...]
+    } catch (err) {
+      console.error('No se pudo conectar con la planilla', err);
+    }
+  }
+  loadGuests();
+
+  let selectedGuestName = null;
+
+  function searchGuest() {
+    const query = document.getElementById('rsvpSearch').value.trim().toLowerCase();
+    const resultsDiv = document.getElementById('guestResults');
+    resultsDiv.innerHTML = "";
+    hideRestrictionPanel();
+
+    if (query.length < 2) return;
+
+    if (GAS_URL.startsWith("PEGAR_AQUI")) {
+      resultsDiv.innerHTML = '<div class="no-results">Conectá primero la planilla (GAS_URL) para habilitar la búsqueda.</div>';
+      return;
+    }
+
+    const matches = guestList.filter(g => g.nombre.toLowerCase().includes(query));
+
+    if (matches.length === 0) {
+      resultsDiv.innerHTML = '<div class="no-results">No encontramos tu nombre. Contactanos directamente para confirmar.</div>';
+      return;
+    }
+
+    matches.forEach(g => {
+      const item = document.createElement('div');
+      item.className = 'guest-item selectable';
+      item.innerHTML = `
+        <span>${g.nombre}</span>
+        <span class="status-tag">${g.confirmado ? 'Ya confirmado ✓' : ''}</span>
+      `;
+      item.onclick = () => selectGuest(g.nombre);
+      resultsDiv.appendChild(item);
+    });
+  }
+
+  function selectGuest(nombre) {
+    selectedGuestName = nombre;
+    document.getElementById('guestResults').innerHTML = '';
+    document.getElementById('rsvpSearch').value = nombre;
+
+    const guest = guestList.find(g => g.nombre === nombre);
+    document.getElementById('selectedName').textContent = nombre +
+      (guest && guest.confirmado ? ' — asistencia ya confirmada ✓' : '');
+
+    // reset panel state
+    document.querySelectorAll('.restriction-check').forEach(c => c.checked = false);
+    document.getElementById('intoleranciaDetail').style.display = 'none';
+    document.getElementById('intoleranciaDetail').value = '';
+    document.getElementById('otrosDetail').style.display = 'none';
+    document.getElementById('otrosDetail').value = '';
+
+    const confirmBtn = document.getElementById('confirmBtn');
+    confirmBtn.textContent = 'Confirmar asistencia';
+
+    document.getElementById('restrictionPanel').style.display = 'block';
+  }
+
+  function hideRestrictionPanel() {
+    selectedGuestName = null;
+    document.getElementById('restrictionPanel').style.display = 'none';
+  }
+
+  function toggleDetailField(which, checkbox) {
+    const field = document.getElementById(which + 'Detail');
+    field.style.display = checkbox.checked ? 'block' : 'none';
+    if (!checkbox.checked) field.value = '';
+  }
+
+  async function submitConfirmation() {
+    if (!selectedGuestName) return;
+
+    const restricciones = Array.from(document.querySelectorAll('.restriction-check:checked')).map(c => c.value);
+    let detalle = '';
+    if (restricciones.includes('Intolerancia')) {
+      detalle += 'Intolerancia: ' + document.getElementById('intoleranciaDetail').value.trim();
+    }
+    if (restricciones.includes('Otros')) {
+      detalle += (detalle ? ' | ' : '') + 'Otros: ' + document.getElementById('otrosDetail').value.trim();
+    }
+
+    const btn = document.getElementById('confirmBtn');
+    btn.textContent = 'Confirmando...';
+    try {
+      const res = await fetch(GAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ nombre: selectedGuestName, restricciones, detalle })
+      });
+      const data = await res.json();
+      if (data.success) {
+        btn.textContent = 'Asistencia confirmada ✓';
+        showToast('✅ ¡Asistencia confirmada!');
+        const g = guestList.find(g => g.nombre === selectedGuestName);
+        if (g) g.confirmado = true;
+      } else {
+        btn.textContent = 'Confirmar asistencia';
+        showToast('No encontramos tu nombre, reintentá');
+      }
+    } catch (err) {
+      btn.textContent = 'Confirmar asistencia';
+      showToast('Error de conexión, intentá de nuevo');
+    }
+  }
+
+  // Canciones sugeridas por esta persona en esta pestaña.
+  // Se guardan en sessionStorage: sobreviven a un refresh de la misma pestaña,
+  // pero no se comparten con otra pestaña ni con lo que agregaron otros invitados.
+  let songs = JSON.parse(sessionStorage.getItem('misCanciones') || '[]');
+  renderSongs();
+
+  function saveSongs() {
+    sessionStorage.setItem('misCanciones', JSON.stringify(songs));
+  }
+
+  async function addSong() {
+    const input = document.getElementById('songInput');
+    const value = input.value.trim();
+    if (!value) return;
+
+    if (GAS_URL.startsWith("PEGAR_AQUI")) {
+      songs.unshift(value);
+      saveSongs();
+      input.value = "";
+      renderSongs();
+      showToast('🎵 ¡Canción agregada!');
+      return;
+    }
+
+    input.disabled = true;
+    try {
+      const res = await fetch(GAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ tipo: 'cancion', cancion: value })
+      });
+      const data = await res.json();
+      if (data.success) {
+        songs.unshift(value);
+        saveSongs();
+        input.value = "";
+        renderSongs();
+        showToast('🎵 ¡Canción agregada!');
+      } else {
+        showToast('No se pudo guardar, intentá de nuevo');
+      }
+    } catch (err) {
+      showToast('Error de conexión, intentá de nuevo');
+    } finally {
+      input.disabled = false;
+    }
+  }
+
+  let toastTimer;
+  function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+  }
+
+  function renderSongs() {
+    const list = document.getElementById('songList');
+    list.innerHTML = songs.map(s => `<div class="song-item"><span>🎵 ${s}</span></div>`).join('');
+  }
+
+  function copyAlias() {
+    navigator.clipboard.writeText('GABRIEL.JULIETA.BODA').then(() => {
+      alert('Alias copiado: GABRIEL.JULIETA.BODA');
+    });
+  }
+
+  // Animación de aparición al scrollear
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.15 });
+
+  document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+</script>
+</body>
+</html>
