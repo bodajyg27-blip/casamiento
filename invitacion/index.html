@@ -582,14 +582,13 @@
   <div class="card reveal">
     <h2 class="section-title">Nuestro regalo de bodas</h2>
     <div class="section-sub">Si querés colaborar con nuestra luna de miel, este es el valor sugerido de la tarjeta</div>
-    <div class="gift-amount">$ 45.000 ARS</div>
+    <div class="gift-amount" id="giftAmount">Cargando...</div>
     <div class="bank-box">
-      <div><b>Titular:</b> Gabriel Oros</div>
-      <div><b>Banco:</b> Banco Ejemplo</div>
-      <div><b>CBU:</b> 0000003100000000000000</div>
-      <div><b>Alias:</b> GABRIEL.JULIETA.BODA</div>
+      <div><b>Titular:</b> <span id="giftTitular">—</span></div>
+      <div><b>Banco:</b> <span id="giftBanco">—</span></div>
+      <div><b>CBU:</b> <span id="giftCbu">—</span></div>
+      <div><b>Alias:</b> <span id="giftAlias">—</span></div>
     </div>
-    <div class="copy-note">* Datos de ejemplo — reemplazar por los datos reales de la cuenta.</div>
     <button class="btn secondary" onclick="copyAlias()">Copiar alias</button>
   </div>
 
@@ -843,9 +842,33 @@
     list.innerHTML = songs.map(s => `<div class="song-item"><span>🎵 ${s}</span></div>`).join('');
   }
 
+  // Datos de la tarjeta de regalo, traídos desde la pestaña "Regalo" del Sheet
+  let giftAlias = '';
+
+  async function loadRegalo() {
+    if (GAS_URL.startsWith("PEGAR_AQUI")) return;
+    try {
+      const res = await fetch(GAS_URL + "?tipo=regalo");
+      const data = await res.json();
+      if (data.Monto) {
+        const monto = Number(data.Monto);
+        document.getElementById('giftAmount').textContent = '$ ' + monto.toLocaleString('es-AR') + ' ARS';
+      }
+      document.getElementById('giftTitular').textContent = data.Titular || '';
+      document.getElementById('giftBanco').textContent = data.Banco || '';
+      document.getElementById('giftCbu').textContent = data.CBU || '';
+      document.getElementById('giftAlias').textContent = data.Alias || '';
+      giftAlias = data.Alias || '';
+    } catch (err) {
+      console.error('No se pudo cargar la info del regalo', err);
+    }
+  }
+  loadRegalo();
+
   function copyAlias() {
-    navigator.clipboard.writeText('GABRIEL.JULIETA.BODA').then(() => {
-      alert('Alias copiado: GABRIEL.JULIETA.BODA');
+    if (!giftAlias) return;
+    navigator.clipboard.writeText(giftAlias).then(() => {
+      alert('Alias copiado: ' + giftAlias);
     });
   }
 
