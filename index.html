@@ -178,6 +178,17 @@
     height: auto;
   }
 
+  .hero-first {
+    min-height: calc(100vh - 60px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .hero-first .portada-image {
+    margin-bottom: 0;
+    width: 100%;
+  }
+
   .details strong {
     display: block;
     font-size: 23px;
@@ -477,8 +488,10 @@
 <div class="wrap">
 
   <!-- PORTADA -->
-  <div class="portada-image reveal">
-    <img src="img/TARJETA.jpg" alt="Nos casamos — Julieta &amp; Gabriel. Con inmensa alegría queremos invitarte a celebrar el día en que unimos nuestras vidas.">
+  <div class="hero-first reveal">
+    <div class="portada-image">
+      <img src="img/TARJETA.jpg" alt="Nos casamos — Julieta &amp; Gabriel. Con inmensa alegría queremos invitarte a celebrar el día en que unimos nuestras vidas.">
+    </div>
   </div>
 
   <!-- GUARDÁ LA FECHA -->
@@ -584,6 +597,7 @@
   envelope.addEventListener('click', () => {
     envelope.classList.add('open');
     document.documentElement.style.overflow = '';
+    setupReveal();
   }, { once: true });
 
   let guestList = []; // se carga desde la planilla al abrir la página
@@ -764,16 +778,29 @@
     list.innerHTML = songs.map(s => `<div class="song-item"><span>🎵 ${s}</span></div>`).join('');
   }
 
-  // Animación de aparición al scrollear
-  const revealObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('visible');
+  // Animación de aparición al scrollear.
+  // El observer arranca recién cuando se abre el sobre: si se registrara antes,
+  // cualquier sección que ya estuviera dentro del viewport (aunque tapada por
+  // el sobre) quedaría marcada "visible" de entrada, y aparecerían varias
+  // secciones juntas en vez de solo la primera al abrir.
+  function setupReveal() {
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -35% 0px' });
+
+    const sections = document.querySelectorAll('.reveal');
+    sections.forEach((el, i) => {
+      if (i === 0) {
+        el.classList.add('visible');
+      } else {
+        revealObserver.observe(el);
       }
     });
-  }, { threshold: 0.15 });
-
-  document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+  }
 </script>
 </body>
 </html> 
