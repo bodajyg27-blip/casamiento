@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Julieta & Gabriel — Nos casamos</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cormorant+Garamond:wght@400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Tangerine:wght@400;700&family=Cormorant+Garamond:wght@400;500;600;700&display=swap');
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -116,6 +116,49 @@
   .card::before { top: 10px; left: 10px; border-right: none; border-bottom: none; }
   .card::after { bottom: 10px; right: 10px; border-left: none; border-top: none; }
 
+  .card-fondo {
+    background-image: url('../img/fondo.jpg');
+    background-size: cover;
+    background-position: center;
+    border: none;
+  }
+  .card-fondo::before,
+  .card-fondo::after {
+    content: none;
+  }
+  .card-fondo h2.section-title {
+    color: #f2f1de;
+  }
+  .card-fondo .section-sub {
+    color: #d6d8ba;
+  }
+  .card-fondo .no-results {
+    color: #d6d8ba;
+  }
+  .card-fondo .selected-name {
+    color: #f2f1de;
+  }
+  .card-fondo .restriction-options label {
+    color: #f2f1de;
+  }
+  .card-fondo .divider {
+    background: #d6d8ba;
+  }
+  .card-fondo .song-item {
+    color: #f2f1de;
+    border-bottom-color: rgba(255,255,255,0.2);
+  }
+  .card-fondo .song-item span.by {
+    color: #d6d8ba;
+  }
+  .card-fondo .btn.secondary {
+    color: #f2f1de;
+    border-color: #f2f1de;
+  }
+  .card-fondo .btn.secondary:hover {
+    background: rgba(255,255,255,0.12);
+  }
+
   .divider {
     width: 56px;
     height: 1px;
@@ -188,84 +231,41 @@
     position: fixed;
     inset: 0;
     z-index: 100;
-    background: #33391f;
+    background-image: url('../img/sobre.png');
+    background-size: cover;
+    background-position: center;
     display: flex;
     flex-direction: column;
     align-items: center;
     cursor: pointer;
     overflow: hidden;
-    transition: opacity 0.6s ease 0.7s, visibility 0.6s ease 0.7s;
+    transition: opacity 0.7s ease, transform 0.7s ease, visibility 0.7s ease;
   }
   .envelope.open {
     opacity: 0;
+    transform: scale(1.04);
     visibility: hidden;
     pointer-events: none;
-  }
-  .envelope-dot {
-    position: absolute;
-    top: 26px;
-    right: 26px;
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    border: 6px solid rgba(255,255,255,0.07);
-    background: rgba(0,0,0,0.18);
-  }
-  .envelope-panel {
-    position: relative;
-    width: 100%;
-    flex: 0 0 56%;
-    background: #5b6b35;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: transform 0.8s cubic-bezier(.65,0,.35,1);
-  }
-  .envelope.open .envelope-panel {
-    transform: translateY(-115%);
   }
   .envelope-content {
     text-align: center;
     color: #fdf6ec;
-    padding: 0 24px;
+    padding: 64px 24px 0;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.45);
   }
   .envelope-kicker {
     font-size: 14px;
     letter-spacing: 4px;
     text-transform: uppercase;
-    color: #e2e2ae;
+    color: #f2f1de;
     margin-bottom: 14px;
   }
   .envelope-names {
-    font-family: 'Great Vibes', cursive;
-    font-size: 48px;
+    font-family: 'Tangerine', cursive;
+    font-weight: 700;
+    font-size: 68px;
     line-height: 1.15;
-    color: #f9f8ec;
-  }
-  .envelope-scallop {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: -1px;
-    height: 34px;
-    background: radial-gradient(circle at 14px 0, transparent 15px, #5b6b35 16px) 0 0 / 28px 28px repeat-x;
-  }
-  .envelope-seal {
-    position: relative;
-    margin-top: -58px;
-    width: 108px;
-    z-index: 2;
-    transition: transform 0.6s ease, opacity 0.6s ease;
-  }
-  .envelope.open .envelope-seal {
-    transform: scale(0.4) rotate(-10deg) translateY(-30px);
-    opacity: 0;
-  }
-  .envelope-seal svg {
-    width: 100%;
-    height: auto;
-    display: block;
-    filter: drop-shadow(0 8px 16px rgba(0,0,0,0.35));
+    color: #fffdf6;
   }
   .envelope-hint {
     margin-top: auto;
@@ -273,7 +273,8 @@
     font-size: 13px;
     letter-spacing: 3px;
     text-transform: uppercase;
-    color: #e2e2ae;
+    color: #f2f1de;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.45);
     transition: opacity 0.3s ease;
   }
   .envelope.open .envelope-hint {
@@ -281,14 +282,18 @@
   }
 
   h2.section-title {
-    font-size: 22px;
+    font-family: 'Tangerine', cursive;
+    font-weight: 700;
+    font-size: 38px;
     color: #4b5320;
     letter-spacing: 1px;
     margin-bottom: 6px;
   }
 
   .section-sub {
-    font-size: 15px;
+    font-family: 'Tangerine', cursive;
+    font-weight: 700;
+    font-size: 23px;
     color: #71724a;
     margin-bottom: 20px;
   }
@@ -336,7 +341,7 @@
     margin-bottom: 8px;
     background: #f6f5e6;
   }
-  .guest-item span { font-size: 17px; }
+  .guest-item span { font-family: 'Tangerine', cursive; font-weight: 700; font-size: 26px; }
   .guest-actions button {
     font-size: 13px;
     padding: 6px 12px;
@@ -357,9 +362,10 @@
 
   .restriction-panel { text-align: left; margin-top: 8px; }
   .selected-name {
-    font-size: 20px;
+    font-family: 'Tangerine', cursive;
+    font-size: 28px;
     color: #4b5320;
-    font-weight: 600;
+    font-weight: 700;
     margin-bottom: 14px;
   }
   .restriction-options {
@@ -442,25 +448,9 @@
 <body>
 
 <div class="envelope" id="envelope">
-  <div class="envelope-dot"></div>
-  <div class="envelope-panel">
-    <div class="envelope-content">
-      <div class="envelope-kicker">Nos casamos</div>
-      <div class="envelope-names">Julieta &amp; Gabriel</div>
-    </div>
-    <div class="envelope-scallop"></div>
-  </div>
-  <div class="envelope-seal">
-    <svg viewBox="0 0 100 130" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <ellipse cx="50" cy="65" rx="48" ry="62" fill="#f9f8ec" stroke="#9c9a52" stroke-width="2"/>
-      <ellipse cx="50" cy="65" rx="40" ry="53" fill="none" stroke="#9c9a52" stroke-width="1"/>
-      <path d="M50 34 C 44 46, 44 58, 50 68 C 56 58, 56 46, 50 34 Z" fill="none" stroke="#4b5320" stroke-width="2"/>
-      <path d="M50 40 C 42 40, 36 46, 35 54" fill="none" stroke="#4b5320" stroke-width="1.5"/>
-      <path d="M50 46 C 58 46, 64 52, 65 60" fill="none" stroke="#4b5320" stroke-width="1.5"/>
-      <line x1="50" y1="68" x2="50" y2="86" stroke="#4b5320" stroke-width="2"/>
-      <path d="M50 78 C 44 78, 40 82, 38 88" fill="none" stroke="#4b5320" stroke-width="1.5"/>
-      <text x="50" y="104" text-anchor="middle" font-family="'Cormorant Garamond', serif" font-size="15" letter-spacing="3" fill="#4b5320">J &amp; G</text>
-    </svg>
+  <div class="envelope-content">
+    <div class="envelope-kicker">Nos casamos</div>
+    <div class="envelope-names">Julieta &amp; Gabriel</div>
   </div>
   <div class="envelope-hint">Tocá para abrir la invitación</div>
 </div>
@@ -512,7 +502,7 @@
   </div>
 
   <!-- RSVP -->
-  <div class="card reveal">
+  <div class="card card-fondo reveal">
     <h2 class="section-title">Confirmar asistencia</h2>
     <div class="section-sub">Buscá tu nombre en la lista de invitados</div>
     <input type="text" id="rsvpSearch" placeholder="Escribí tu nombre..." oninput="searchGuest()">
@@ -536,7 +526,7 @@
   </div>
 
   <!-- CANCIÓN -->
-  <div class="card reveal">
+  <div class="card card-fondo reveal">
     <h2 class="section-title">Dejá tu canción</h2>
     <div class="section-sub">Ayudanos a armar la playlist de la noche</div>
     <input type="text" id="songInput" placeholder="Nombre de la canción y artista..." maxlength="50">
@@ -559,7 +549,7 @@
   </div>
 
   <!-- GALERÍA -->
-  <div class="card reveal">
+  <div class="card card-fondo reveal">
     <h2 class="section-title">Fotos del casamiento</h2>
     <div class="section-sub">Subí tus fotos y mirá las que van compartiendo los demás invitados</div>
     <a class="btn secondary" href="../galeria/index.html">Ver galería</a>
