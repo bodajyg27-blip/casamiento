@@ -1,22 +1,21 @@
 # Bugs / pendientes conocidos — Invitación de casamiento
 
-## Abierto — Divergencia git local/remoto
+## Resuelto — Divergencia git local/remoto
 
-`main` local y `origin/main` (`bodajyg27-blip/casamiento`) divergieron:
-
-- **Local** tiene 1 commit (`comit`) que no está en origin — incluye la sección de calendario y el fix de canciones sobre `invitacion_casamiento.html` e `index.html`.
-- **Origin** tiene 7 commits que no están en local (`Update index.html`, `Add files via upload`, `Create static.yml`, `Delete .github/workflows/invitacion`, `Delete .github/workflows/static.yml`, `Create invitacion`, `Create static.yml`) — parecen configuración de GitHub Pages hecha directo desde la web de GitHub, incluyendo otra versión de `index.html`.
-
-**Pendiente:** resolver (merge o rebase) antes de volver a pushear. Todavía no se intentó — confirmar con el usuario cómo prefiere reconciliar (¿priorizar la versión local del index.html, la de GitHub, o mergear manualmente?).
+`main` local y `origin/main` (`bodajyg27-blip/casamiento`) divergieron varias veces durante el 2026-07-10/11 porque alguien seguía editando una copia de la invitación directo en GitHub (raíz del repo: `index.html`, `invitacion/index.html`, `.github/workflows/static.yml`) mientras se trabajaba local en `documentos/`. Se resolvió con merges sucesivos (sin conflictos reales, porque las rutas tocadas por cada lado no se superponían) y quedó todo sincronizado. Ver la decisión de consolidar el trabajo en los archivos de la raíz en [[decisiones-tecnicas]].
 
 ## Pendiente — Foto real de la pareja
 
-La sección "Nos casamos" tiene un placeholder circular con un SVG de anillos entrelazados en el lugar de la foto. El usuario quiere reemplazarlo por una foto real de la pareja. No se puede generar ni traer una foto real sin que el usuario la provea (no hay forma de fetchear una foto de ellos desde internet). Falta: que el usuario suministre el archivo de imagen para embeberlo en **ambos** `index.html` (principal e `invitacion/`).
+La portada ahora es una imagen (`img/TARJETA.jpg`) en vez de texto+SVG, así que este pendiente **ya no aplica** de la misma forma — si en el futuro se quiere una foto real de la pareja en vez del diseño actual de la tarjeta, habría que pedirle al usuario que genere/edite una nueva imagen equivalente (no una foto suelta a insertar en un placeholder, porque ese placeholder ya no existe).
 
 ## Pendiente — Ajuste de tipografía y colores por sección con imágenes de referencia
 
-El usuario avisó que va a pasar imágenes de referencia para seguir ajustando tipografía y colores **sección por sección** (más allá del cambio global a verde oliva ya aplicado). Cuando lleguen esas imágenes: aplicar los cambios en **ambos** `documentos/index.html` y `documentos/invitacion/index.html` salvo que se indique lo contrario, y documentar cada ajuste en [[desarrollos]] / [[decisiones-tecnicas]] a medida que se confirme con el usuario.
+El usuario sigue pasando imágenes de referencia para ajustar secciones (la portada ya se resolvió reemplazándola por imagen directa — ver [[desarrollos]]). Cuando lleguen imágenes para otras secciones: aplicar los cambios en **ambos** `index.html` e `invitacion/index.html` (los de la **raíz** del repo, no los de `documentos/` — ver [[decisiones-tecnicas]]) salvo que se indique lo contrario, y documentar cada ajuste en [[desarrollos]] / [[decisiones-tecnicas]] a medida que se confirme con el usuario.
 
-## Abierto — `documentos/invitacion_casamiento.html` no recibió ninguno de los cambios recientes
+## Abierto — Archivos congelados que no reciben más cambios
 
-Desde que se consolidó el trabajo en `documentos/index.html` (2026-07-10), `invitacion_casamiento.html` quedó congelado en una versión vieja: no tiene el sobre de apertura, ni la paleta oliva, ni el reordenamiento de secciones, ni el split de pago. Si alguien lo abre esperando ver el estado actual del proyecto, va a ver algo desactualizado. No se toca a propósito (ver [[decisiones-tecnicas]]) — solo dejar constancia de que existe y por qué está desactualizado.
+Estos archivos quedaron fuera del flujo de trabajo activo y no se tocan más (ver [[decisiones-tecnicas]]):
+- `documentos/invitacion_casamiento.html` — congelado desde 2026-07-10.
+- `documentos/index.html` y `documentos/invitacion/index.html` — congelados desde 2026-07-11 (el trabajo se mudó a los archivos homónimos de la **raíz** del repo).
+
+Si alguien los abre esperando ver el estado actual del proyecto, va a ver algo desactualizado. Antes de tocar cualquier `index.html` del proyecto, confirmar que sea el de la raíz.

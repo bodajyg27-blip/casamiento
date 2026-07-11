@@ -38,6 +38,17 @@
 
 **Cómo aplicarlo:** cualquier cambio de diseño, estructura, tipografía o color (sobre, calendario, RSVP, canciones, paleta general) se replica en **ambos archivos** por igual. Solo la sección de pago (y lo que dependa de ella, como `copyAlias()`) es exclusiva de `invitacion/index.html`. Si se agrega una feature nueva y no se aclara lo contrario, asumir que va en los dos.
 
+## Archivos de trabajo definitivos: `index.html` e `invitacion/index.html` en la RAÍZ del repo (no en `documentos/`)
+
+**Decisión (2026-07-11):** a partir de ahora se edita solo **`index.html`** e **`invitacion/index.html`** ubicados en la raíz del repo (no los de `documentos/`).
+
+**Por qué:** el remoto ya tenía una copia de la invitación en la raíz (creada/editada directo desde GitHub, con su propio workflow de Pages en `.github/workflows/static.yml`) que terminó sincronizada con el contenido de `documentos/` tras los merges del 2026-07-11. El usuario decidió consolidar el trabajo ahí en vez de en `documentos/`, para simplificar y alinearse con cómo GitHub Pages sirve el sitio.
+
+**Cómo aplicarlo:**
+- Todo cambio nuevo de diseño/estructura/contenido va en `index.html` e `invitacion/index.html` (raíz).
+- `documentos/index.html` y `documentos/invitacion/index.html` quedan **congelados** desde el 2026-07-11 — no se tocan más, igual que ya le pasaba a `documentos/invitacion_casamiento.html`. Si en algún momento hay que decidir entre uno y otro por una duda de "¿cuál es el que importa?", es siempre el de la raíz.
+- La imagen de portada vive en `img/TARJETA.jpg` (raíz). Desde `index.html` (raíz) se referencia como `img/TARJETA.jpg`; desde `invitacion/index.html` (raíz) como `../img/TARJETA.jpg`. Ojo con no confundir estas rutas con las de los archivos congelados de `documentos/` (que usan `../img/` y `../../img/` respectivamente, por estar un nivel más adentro).
+
 ## Sobre de apertura a pantalla completa, con paleta propia adaptada de una referencia
 
 **Decisión:** el usuario pasó una captura de un pin de Pinterest (no se pudo leer el contenido visual vía `WebFetch` — Pinterest no expone eso a scraping) describiendo un sobre a pantalla completa: panel de color sólido arriba con borde festoneado, sello ovalado con flor + iniciales superpuesto, texto de apertura abajo. Se implementó esa estructura con la paleta de colores del sitio en vez de copiar los colores exactos de la referencia (que era bordó).

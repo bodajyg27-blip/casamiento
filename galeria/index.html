@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Julieta & Gabriel — Galería de fotos</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cormorant+Garamond:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    min-height: 100%;
+  }
+
+  body {
+    background-color: #eeecd4;
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(156,163,82,0.18), transparent 40%),
+      radial-gradient(circle at 85% 30%, rgba(139,150,80,0.14), transparent 45%),
+      radial-gradient(circle at 30% 90%, rgba(108,128,68,0.12), transparent 40%),
+      linear-gradient(135deg, #f2f1de 0%, #e7e6c6 100%);
+    background-attachment: fixed;
+    font-family: 'Cormorant Garamond', serif;
+    color: #48472e;
+    padding: 30px 15px;
+    display: flex;
+    justify-content: center;
+    position: relative;
+  }
+
+  .wrap { max-width: 640px; width: 100%; }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.9s ease, transform 0.9s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .card {
+    background: #f9f8ec;
+    border: 1px solid #c7c894;
+    border-radius: 4px;
+    padding: 40px 30px;
+    text-align: center;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.10);
+    position: relative;
+    margin-bottom: 22px;
+  }
+
+  h2.section-title {
+    font-size: 22px;
+    color: #4b5320;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+
+  .section-sub {
+    font-size: 15px;
+    color: #71724a;
+    margin-bottom: 20px;
+  }
+
+  .btn {
+    display: inline-block;
+    margin-top: 14px;
+    padding: 11px 30px;
+    background: #4b5320;
+    color: #f9f8ec;
+    border: none;
+    font-size: 15px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-radius: 2px;
+    cursor: pointer;
+    font-family: 'Cormorant Garamond', serif;
+    transition: background 0.2s ease;
+  }
+  .btn:hover { background: #3a4118; }
+  .btn:disabled { opacity: 0.6; cursor: default; }
+
+  .back-link {
+    display: inline-block;
+    margin-bottom: 18px;
+    font-size: 14px;
+    color: #7d7a3f;
+    text-decoration: none;
+    letter-spacing: 0.5px;
+  }
+  .back-link:hover { color: #4b5320; }
+
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 18px;
+    text-align: left;
+  }
+  .gallery-item {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid #c7c894;
+    background: #f2f1de;
+  }
+  .gallery-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .gallery-download {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(75,83,32,0.85);
+    color: #f9f8ec;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    text-decoration: none;
+    line-height: 1;
+  }
+  .gallery-empty {
+    grid-column: 1 / -1;
+    font-size: 15px;
+    color: #7d7a3f;
+    padding: 20px 0;
+  }
+
+  .upload-progress {
+    font-size: 14px;
+    color: #7d7a3f;
+    margin-top: 10px;
+    min-height: 20px;
+  }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 30px;
+    transform: translate(-50%, 20px);
+    background: #4b5320;
+    color: #f9f8ec;
+    padding: 13px 26px;
+    border-radius: 30px;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    z-index: 50;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <a class="back-link" href="../index.html">&larr; Volver a la invitación</a>
+
+  <div class="card reveal visible">
+    <h2 class="section-title">Fotos del casamiento</h2>
+    <div class="section-sub">Subí las tuyas y mirá las que van subiendo los demás invitados</div>
+
+    <input type="file" id="photoInput" accept="image/*" multiple style="display:none">
+    <button class="btn" id="uploadBtn" onclick="document.getElementById('photoInput').click()">Subir fotos</button>
+    <div class="upload-progress" id="uploadProgress"></div>
+
+    <div class="gallery-grid" id="galleryGrid">
+      <div class="gallery-empty">Cargando fotos...</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbz-sc2l5jW1oMN6Dkr-s3gduTSbTTlL2gRiPlw_khEQ6GzTCkJHlnqpgvrvD0b2sBOo/exec";
+  const MAX_DIM = 1600;
+
+  let toastTimer;
+  function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+  }
+
+  async function loadGaleria() {
+    const grid = document.getElementById('galleryGrid');
+    try {
+      const res = await fetch(GAS_URL + "?tipo=galeria");
+      const fotos = await res.json();
+      if (!fotos.length) {
+        grid.innerHTML = '<div class="gallery-empty">Todavía no hay fotos. ¡Subí la primera!</div>';
+        return;
+      }
+      grid.innerHTML = fotos.map(f => `
+        <div class="gallery-item">
+          <img data-src="${f.url}" alt="Foto del casamiento">
+          <a class="gallery-download" data-id="${f.id}" title="Descargar">&#8681;</a>
+        </div>
+      `).join('');
+      grid.querySelectorAll('img[data-src]').forEach(loadFotoInto);
+      grid.querySelectorAll('.gallery-download').forEach(a => {
+        a.addEventListener('click', (e) => {
+          e.preventDefault();
+          downloadFoto(a.dataset.id);
+        });
+      });
+    } catch (err) {
+      grid.innerHTML = '<div class="gallery-empty">No se pudieron cargar las fotos. Reintentá más tarde.</div>';
+    }
+  }
+  loadGaleria();
+
+  async function loadFotoInto(imgEl) {
+    try {
+      const res = await fetch(imgEl.dataset.src);
+      const data = await res.json();
+      imgEl.src = 'data:' + data.mimeType + ';base64,' + data.data;
+    } catch (err) {
+      console.error('No se pudo cargar una foto', err);
+    }
+  }
+
+  async function downloadFoto(id) {
+    try {
+      const res = await fetch(GAS_URL + "?tipo=foto&id=" + id);
+      const data = await res.json();
+      const link = document.createElement('a');
+      link.href = 'data:' + data.mimeType + ';base64,' + data.data;
+      link.download = 'foto-casamiento.jpg';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      showToast('No se pudo descargar la foto');
+    }
+  }
+
+  function resizeImage(file, maxDim) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onerror = reject;
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round(height * maxDim / width);
+              width = maxDim;
+            } else {
+              width = Math.round(width * maxDim / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          canvas.toBlob(blob => resolve(blob), 'image/jpeg', 0.85);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onloadend = () => resolve(reader.result.split(',')[1]);
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  async function handleFiles(fileList) {
+    const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+    if (!files.length) return;
+
+    const input = document.getElementById('photoInput');
+    const btn = document.getElementById('uploadBtn');
+    const progress = document.getElementById('uploadProgress');
+    btn.disabled = true;
+
+    let ok = 0;
+    for (let i = 0; i < files.length; i++) {
+      progress.textContent = `Subiendo ${i + 1} de ${files.length}...`;
+      try {
+        const resized = await resizeImage(files[i], MAX_DIM);
+        const base64 = await blobToBase64(resized);
+        const res = await fetch(GAS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ tipo: 'foto', nombre: files[i].name, mimeType: 'image/jpeg', data: base64 })
+        });
+        const data = await res.json();
+        if (data.success) ok++;
+      } catch (err) {
+        console.error('Error subiendo foto', err);
+      }
+    }
+
+    progress.textContent = '';
+    btn.disabled = false;
+    input.value = '';
+
+    if (ok > 0) {
+      showToast(`📸 ${ok} foto${ok > 1 ? 's' : ''} subida${ok > 1 ? 's' : ''}`);
+      loadGaleria();
+    } else {
+      showToast('No se pudo subir la foto, reintentá');
+    }
+  }
+
+  document.getElementById('photoInput').addEventListener('change', (e) => handleFiles(e.target.files));
+</script>
+</body>
+</html>

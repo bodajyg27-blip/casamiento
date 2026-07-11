@@ -6,16 +6,18 @@ Invitación web estática de casamiento (Julieta & Gabriel, 23/10/2027) con sobr
 
 ## Archivos
 
-- `documentos/index.html` — **archivo de trabajo principal**. HTML + CSS + JS inline, todo en un solo archivo. Sin la sección de método de pago. Es el que sirve GitHub Pages por defecto.
-- `documentos/invitacion/index.html` — **segunda variante de trabajo**, copia de `index.html` que sí incluye la sección "Nuestro regalo de bodas" con el alias/CBU. Cualquier cambio de diseño/estructura se replica en ambos (ver [[decisiones-tecnicas]]).
-- `documentos/invitacion_casamiento.html` — versión histórica, congelada desde el 2026-07-10, ya no se edita ni recibe los cambios posteriores (ver [[bugs-conocidos]]).
+- **`index.html`** (raíz del repo) — **archivo de trabajo principal actual**. HTML + CSS + JS inline, todo en un solo archivo. Sin la sección de método de pago. Es el que sirve GitHub Pages por defecto (raíz del repo).
+- **`invitacion/index.html`** (raíz del repo) — **segunda variante de trabajo actual**, copia de `index.html` que sí incluye la sección "Nuestro regalo de bodas" con el alias/CBU. Cualquier cambio de diseño/estructura se replica en ambos.
+- `img/TARJETA.jpg` (raíz del repo) — imagen de la portada, referenciada como `img/TARJETA.jpg` desde `index.html` y `../img/TARJETA.jpg` desde `invitacion/index.html`.
+- `documentos/index.html` y `documentos/invitacion/index.html` — **legacy desde 2026-07-11**. Dejaron de editarse a partir de esta fecha (decisión del usuario: trabajar solo con los archivos de la raíz). Referencian la imagen con una ruta relativa distinta (`../img/` y `../../img/` respectivamente) porque están un nivel más adentro.
+- `documentos/invitacion_casamiento.html` — versión histórica, congelada desde el 2026-07-10, ya no se edita.
 - `documentos/AppsScript_RSVP.gs` — backend en Google Apps Script, deployado como Web App, respaldado por un Google Sheet con dos pestañas: "Invitados" y "Canciones". No se redeploya solo — cualquier cambio acá requiere que el usuario vuelva a hacer "Deploy" en el editor de Apps Script.
 
 ## Backend (Google Apps Script)
 
 - `doGet`: `?tipo=canciones` devuelve las canciones; sin parámetro devuelve la lista de invitados (`{ nombre, confirmado }`).
 - `doPost`: `{ tipo: "cancion", cancion }` agrega una canción (recortada a 50 caracteres en el servidor); cualquier otro body confirma asistencia (`{ nombre, restricciones, detalle }`), pero **solo si el nombre ya existe en la planilla de Invitados**.
-- La URL del Web App vive hardcodeada en `GAS_URL` dentro del `<script>` de cada `index.html` (repetida en ambos archivos). Es visible en la pestaña Network del navegador de cualquiera que use la página — ver [[decisiones-tecnicas]] sobre por qué no se oculta.
+- La URL del Web App vive hardcodeada en `GAS_URL` dentro del `<script>` de cada `index.html` (repetida en cada archivo). Es visible en la pestaña Network del navegador de cualquiera que use la página — ver [[decisiones-tecnicas]] sobre por qué no se oculta.
 
 ## Interacción / UX de cada `index.html`
 
