@@ -513,7 +513,7 @@
 
   <!-- PORTADA -->
   <div class="portada-image reveal">
-    <img src="../img/TARJETA.jpg" alt="Nos casamos — Julieta &amp; Gabriel. Con inmensa alegría queremos invitarte a celebrar el día en que unimos nuestras vidas.">
+    <img src="../../img/TARJETA.jpg" alt="Nos casamos — Julieta &amp; Gabriel. Con inmensa alegría queremos invitarte a celebrar el día en que unimos nuestras vidas.">
   </div>
 
   <!-- GUARDÁ LA FECHA -->
@@ -576,6 +576,21 @@
     <input type="text" id="songInput" placeholder="Nombre de la canción y artista..." maxlength="50">
     <button class="btn" onclick="addSong()">Agregar canción</button>
     <div class="song-list" id="songList"></div>
+  </div>
+
+  <!-- REGALO / TARJETA -->
+  <div class="card reveal">
+    <h2 class="section-title">Nuestro regalo de bodas</h2>
+    <div class="section-sub">Si querés colaborar con nuestra luna de miel, este es el valor sugerido de la tarjeta</div>
+    <div class="gift-amount">$ 45.000 ARS</div>
+    <div class="bank-box">
+      <div><b>Titular:</b> Gabriel Oros</div>
+      <div><b>Banco:</b> Banco Ejemplo</div>
+      <div><b>CBU:</b> 0000003100000000000000</div>
+      <div><b>Alias:</b> GABRIEL.JULIETA.BODA</div>
+    </div>
+    <div class="copy-note">* Datos de ejemplo — reemplazar por los datos reales de la cuenta.</div>
+    <button class="btn secondary" onclick="copyAlias()">Copiar alias</button>
   </div>
 
   <footer>Julieta &amp; Gabriel · 23.10.2027</footer>
@@ -826,6 +841,12 @@
   function renderSongs() {
     const list = document.getElementById('songList');
     list.innerHTML = songs.map(s => `<div class="song-item"><span>🎵 ${s}</span></div>`).join('');
+  }
+
+  function copyAlias() {
+    navigator.clipboard.writeText('GABRIEL.JULIETA.BODA').then(() => {
+      alert('Alias copiado: GABRIEL.JULIETA.BODA');
+    });
   }
 
   // Animación de aparición al scrollear

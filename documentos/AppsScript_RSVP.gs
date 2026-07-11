@@ -68,7 +68,7 @@ function getCanciones() {
 
 function addCancion(params) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Canciones");
-  const cancion = (params.cancion || "").trim();
+  const cancion = (params.cancion || "").trim().slice(0, 50);
   if (!cancion) {
     return ContentService.createTextOutput(JSON.stringify({ success: false }))
       .setMimeType(ContentService.MimeType.JSON);
