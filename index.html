@@ -102,28 +102,6 @@
   .card::before { top: 10px; left: 10px; border-right: none; border-bottom: none; }
   .card::after { bottom: 10px; right: 10px; border-left: none; border-top: none; }
 
-  .kicker {
-    letter-spacing: 4px;
-    font-size: 13px;
-    color: #8a8a4a;
-    text-transform: uppercase;
-    margin-bottom: 16px;
-  }
-
-  .names {
-    font-family: 'Great Vibes', cursive;
-    font-size: 54px;
-    color: #4b5320;
-    line-height: 1.15;
-  }
-
-  .amp {
-    font-size: 24px;
-    color: #9c9a52;
-    margin: 2px 0;
-    font-style: italic;
-  }
-
   .divider {
     width: 56px;
     height: 1px;
@@ -131,24 +109,16 @@
     margin: 22px auto;
   }
 
-  .photo-frame {
-    width: 150px;
-    height: 150px;
-    margin: 6px auto 26px;
-    border-radius: 50%;
-    background: #f9f8ec;
-    border: 1px solid #c7c894;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  .portada-image {
+    margin-bottom: 22px;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.10);
   }
-  .photo-frame svg { width: 68px; height: 68px; }
-
-  .message {
-    font-size: 18px;
-    line-height: 1.6;
-    margin-bottom: 24px;
+  .portada-image img {
+    display: block;
+    width: 100%;
+    height: auto;
   }
 
   .details strong {
@@ -542,25 +512,8 @@
 <div class="wrap">
 
   <!-- PORTADA -->
-  <div class="card reveal">
-    <div class="kicker">Nos casamos</div>
-    <div class="names">
-      Julieta<br>
-      <span class="amp">&amp;</span><br>
-      Gabriel
-    </div>
-    <div class="divider"></div>
-    <div class="photo-frame">
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <circle cx="38" cy="56" r="26" fill="none" stroke="#9c9a52" stroke-width="4"/>
-        <circle cx="62" cy="56" r="26" fill="none" stroke="#4b5320" stroke-width="4"/>
-        <circle cx="38" cy="30" r="4" fill="#9c9a52"/>
-      </svg>
-    </div>
-    <div class="message">
-      Con inmensa alegría queremos invitarte<br>
-      a celebrar el día en que unimos nuestras vidas.
-    </div>
+  <div class="portada-image reveal">
+    <img src="img/TARJETA.jpg" alt="Nos casamos — Julieta &amp; Gabriel. Con inmensa alegría queremos invitarte a celebrar el día en que unimos nuestras vidas.">
   </div>
 
   <!-- GUARDÁ LA FECHA -->
@@ -887,4 +840,4 @@
   document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
 </script>
 </body>
-</html>
+</html> 
