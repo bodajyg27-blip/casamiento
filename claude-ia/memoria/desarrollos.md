@@ -1,6 +1,6 @@
 # Desarrollos — Invitación de casamiento
 
-Historial de features completadas sobre `documentos/index.html` y `documentos/invitacion/index.html` (archivos de trabajo actuales).
+Historial de features completadas sobre `index.html` e `invitacion/index.html` (**raíz del repo** — archivos de trabajo actuales desde el 2026-07-11, ver [[decisiones-tecnicas]]).
 
 ## 2026-07-09 — Setup inicial del repo
 
@@ -82,3 +82,71 @@ Historial de features completadas sobre `documentos/index.html` y `documentos/in
 - Mapeo de colores aplicado (ver [[decisiones-tecnicas]] para el detalle completo) — aplicado con `sed` sobre ambos archivos por igual, reemplazo exacto de códigos hex.
 - **No se tocó**: el filtro `sepia()` del iframe de Google Maps (riesgo de afectar la legibilidad del mapa real) y "Titular: Gabriel Oros" en la sección de pago (dato real, no parte del theme).
 - Pendiente anunciado por el usuario: van a pasar imágenes de referencia para seguir ajustando tipografía y colores **por sección** — este documento se actualiza a medida que eso avance.
+
+## 2026-07-11 — Migración de archivos: `documentos/` → raíz del repo
+
+- El remoto ya tenía una copia de la invitación en la raíz (creada/editada directo desde GitHub, con `.github/workflows/static.yml` para Pages). Tras varios merges, el usuario decidió consolidar **todo** el trabajo en `index.html` e `invitacion/index.html` de la **raíz**, no en `documentos/`.
+- `documentos/index.html`, `documentos/invitacion/index.html` y `documentos/invitacion_casamiento.html` quedan **congelados**, no se editan más. Ver [[decisiones-tecnicas]].
+
+## 2026-07-11 — Regalo de bodas dinámico desde el Sheet
+
+- `AppsScript_RSVP.gs`: nuevo endpoint `?tipo=regalo`, lee la pestaña **"Regalo"** del mismo Sheet (formato clave/valor: `Monto`, `Titular`, `Banco`, `CBU`, `Alias`).
+- `invitacion/index.html`: la sección de regalo carga esos datos vía `fetch` al abrir la página (`loadRegalo()`) y los pinta en `#giftAmount`, `#giftTitular`, etc. El botón "Copiar alias" copia el alias real recibido, no un valor fijo.
+
+## 2026-07-11 — Galería de fotos (Google Drive + Apps Script)
+
+- Página nueva **`galeria/index.html`**: sube fotos (redimensionadas a máx. 1600px en el navegador antes de subir) y las lista en grilla, con descarga individual.
+- Backend: `?tipo=galeria` (GET, lista archivos de una carpeta de Drive) y `{tipo:'foto'}` (POST, sube un archivo). Las fotos se sirven **en base64 dentro de un JSON**, no como blob binario directo — Apps Script no admite devolver un blob crudo desde `doGet` (tirapa error "valor de retorno no admitido"), y el sharing público de Drive tampoco andaba de forma confiable. El cliente arma la imagen con `data:` URI. Ver [[decisiones-tecnicas]].
+- Enlace agregado en `index.html` e `invitacion/index.html`: sección "Fotos del casamiento" → botón "Ver galería".
+- Requiere que el usuario autorice permisos de Drive manualmente la primera vez que se usó cada función nueva (`getGaleria`, luego `addFoto`) — Apps Script no re-pide autorización automáticamente al agregar código que usa un scope nuevo.
+
+## 2026-07-11/12 — Reemplazo de secciones codeadas por imágenes de diseño, con overlays interactivos
+
+El usuario empezó a proveer imágenes de diseño (mismo estilo "papel grabado" oliva) para reemplazar secciones armadas con CSS/JS:
+
+- **Portada** (`img/TARJETA.jpg`): reemplaza kicker+nombres+mensaje armados en HTML.
+- **Calendario** (`img/calendario.jpg`): reemplaza el calendario armado con JS. La cuenta regresiva quedó como **overlay HTML superpuesto** sobre la imagen (`.countdown-overlay`), en el espacio vacío debajo de los números dibujados.
+- **Lugar** (`img/lugares.jpg`): reemplaza el mapa embebido. Tiene dos botones **invisibles** superpuestos sobre los "CÓMO LLEGAR" dibujados (Ceremonia y Fiesta, medidos con Python/Pillow para que el área clickeable coincida exactamente), más overlays de texto ("19:00 -- Iglesia", "20:30 hs") tapando los placeholders "HORA"/"HORA -- LUGAR" de la imagen con un color de fondo muestreado a mano para que no se note el parche.
+- **Fondo con textura** (`img/fondo.jpg`): aplicado como fondo de las tarjetas de RSVP, Canción, Galería y Regalo (clase `.card-fondo`), con los textos internos reclareados para mantener contraste.
+- Técnica general para "tapar texto de una imagen y poner HTML encima": usar Python/Pillow para (1) ubicar la banda de píxeles oscuros/claros del texto a tapar, (2) muestrear el color de fondo alrededor, (3) pintar un rectángulo de ese color sobre el original, (4) superponer el texto real en HTML en esa posición, animado igual que el resto.
+
+## 2026-07-12 — Tipografía real: Edwardian Script ITC
+
+- El usuario subió `fonts/Edwardian.ttf`. Se carga con `@font-face` en `index.html` e `invitacion/index.html` (ruta relativa `fonts/` vs `../fonts/`).
+- Reemplaza a Tangerine (que a su vez había reemplazado a Great Vibes, alternativas gratuitas usadas antes de tener el archivo real). Aplicado a: nombres del sobre, `h2.section-title`, `.section-sub`, nombre de invitado encontrado, nombre seleccionado en restricciones, y el overlay de nombres de la portada.
+- Sin variante bold — se usa `font-weight: normal` en todos lados (forzar 700 generaría un "bold falso" feo en una fuente script).
+
+## 2026-07-12 — Sistema de animación en dos niveles: `.visible` (tarjeta) y `.centered` (datos internos)
+
+- Antes: un solo `IntersectionObserver` (threshold 0.15) agregaba `.visible` a toda `.reveal` y listo — sin distinguir "la tarjeta ya asomó" de "la tarjeta está bien centrada".
+- Ahora: el mismo observer también agrega/saca la clase `.centered` según `intersectionRatio >= 0.5`. Los **datos internos** de cada sección (contador, "19:00 -- Iglesia"/"20:30 hs", monto, nombres de la portada) usan `.reveal.centered X` en vez de `.reveal.visible X`, con `transition-delay` escalonado por elemento — así se animan recién cuando la sección está bien centrada, no apenas asoma, y **se repiten cada vez** que la sección vuelve a centrarse (el observer hace `classList.toggle`, no solo `add`).
+- Aplicado a: `.countdown-unit`, `.hora-lugar-ceremonia`, `.hora-fiesta`, `.gift-amount`, `.bank-box`, y el overlay de nombres de la portada.
+
+## 2026-07-12 — Bug: animación de nombres de la portada no se veía
+
+- Causa real (no era caché ni bug de CSS): la primera sección (portada) marcaba `.centered` **apenas cargaba la página**, mientras el sobre de apertura todavía tapaba toda la pantalla. La animación completa (menos de 2s) terminaba de reproducirse *detrás* del sobre — para cuando el usuario lo abría, ya estaba en su estado final, se veía estática.
+- Fix: la primera sección **no se observa desde el arranque**. Recién se empieza a observar (con el mismo `IntersectionObserver` que las demás) cuando el usuario abre el sobre (`revealFirstSection()`, llamada desde el handler de click del sobre). A partir de ahí se comporta como cualquier otra sección — se repite cada vez que se recentra.
+- Se probaron y descartaron en el camino: doble `requestAnimationFrame` solo (no alcanzaba, el problema no era de timing de paint sino de *cuándo* se disparaba respecto al sobre), y una animación de apertura tipo scroll-scrub del sobre (revertida, ver [[decisiones-tecnicas]]).
+
+## 2026-07-12 — Sobre de apertura: iteraciones de diseño
+
+Varias vueltas sobre el mecanismo de apertura del sobre, terminó así:
+
+1. Diseño codeado (panel + sello SVG) → reemplazado por foto real (`img/sobre.png`).
+2. Se probó una solapa animada 3D (`rotateX` + `perspective`, imitando una secuencia de fotos de referencia) — el usuario la encontró fea, se revirtió por completo.
+3. Se probó apertura ligada al scroll (el sobre se iba desvaneciendo en proporción al `scrollY`, sin click) — funcionaba pero el usuario prefirió volver al modelo de **click/tap** original.
+4. Estado final: click/tap sobre el sobre → `classList.add('open')` → fade + scale leve (`transition: opacity/transform 0.6s`) → libera el scroll del body → dispara `revealFirstSection()`.
+5. Nombres del sobre animados en secuencia (Julieta → & → Gabriel, con `<span>` individuales y `animation-delay` escalonado vía `@keyframes envelopeTextIn`), disparados por `animation-delay` fijo al cargar la página (no dependen del `.centered` de scroll, porque el sobre en sí ya está visible desde el arranque).
+6. `history.scrollRestoration = 'manual'` + `scrollTo(0,0)` al principio del script, para que el navegador no restaure el scroll de la visita anterior al recargar (evita ver el sobre "a medio abrir" un instante antes de que corra el JS).
+
+## 2026-07-12 — Portada: nombres reales tapando el texto de la imagen
+
+- `img/TARJETA.jpg` tenía "Julieta & Gabriel" dibujado dentro de la imagen. Se tapó con un parche de color (Python/Pillow, color muestreado del fondo real de la tarjeta) y se puso el texto real en HTML encima (mismas clases `.nombres-overlay`/`.nombres-part`/`.nombres-amp` que se usaron en una sección "Nombres" intermedia que se probó con `img/fondoblanco.jpg` y después se **sacó** por quedar redundante).
+- Con esto, la portada tiene el mismo efecto de aparición escalonada de nombres que el resto de las secciones "centradas".
+
+## 2026-07-12 — Procesamiento de imágenes con Python (Pillow + scipy)
+
+Varias imágenes provistas por el usuario venían con fondos que no eran transparentes de verdad (canal alpha en 255 aunque mostraran un patrón cuadriculado tipo "checkerboard" pintado en el RGB, no transparencia real):
+
+- `img/alianzas.png`: se detectó el fondo (píxeles de baja saturación) y se usó `scipy.ndimage.label` para identificar componentes conectados — se removió el fondo externo **y** los huecos internos de los anillos (que al no tocar el borde de la imagen no se habían sacado en el primer intento), con un leve desenfoque gaussiano en el borde del recorte para evitar un halo duro. Usada en el footer ("Julieta & Gabriel 💍 23.10.2027").
+- Antes de confiar en el resultado, siempre conviene **componer la imagen sobre un color sólido** (no dejarse engañar por el checkerboard que el visor de imágenes muestra tanto para "transparencia real" como, a veces, para contenido opaco cuadriculado) para confirmar visualmente que el fondo es transparente de verdad.

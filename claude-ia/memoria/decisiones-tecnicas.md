@@ -86,3 +86,51 @@
 **Decisión:** en toda la invitación el nombre de Julieta va primero, Gabriel segundo — en el `<title>`, la portada, el sobre de apertura y el footer.
 
 **Excepción:** "Titular: Gabriel Oros" en la sección de pago no sigue esta regla — es el nombre de una persona real (titular de cuenta bancaria), no una mención de la pareja como par.
+
+## Archivos de trabajo definitivos (v2): `index.html` e `invitacion/index.html` en la raíz, `documentos/` congelado del todo
+
+**Actualización (2026-07-11), reemplaza la decisión "Archivos de trabajo definitivos" anterior:** confirmado y en efecto — se trabaja únicamente en `index.html` e `invitacion/index.html` de la **raíz** del repo. `documentos/index.html`, `documentos/invitacion/index.html` y `documentos/invitacion_casamiento.html` están **todos** congelados y desactualizados a propósito.
+
+**Cómo aplicarlo:** antes de tocar cualquier `index.html` del proyecto, confirmar que sea el de la raíz (no el de `documentos/`). Si alguna vez hay que decidir "¿cuál es la fuente de verdad?", es siempre el de la raíz.
+
+## Galería de fotos: JSON+base64 en vez de blob binario o Drive público
+
+**Decisión:** las fotos de la galería se sirven codificadas en base64 dentro de una respuesta JSON de Apps Script (`{ mimeType, data }`), no como archivo binario directo ni con el link público de Drive.
+
+**Por qué:** se probaron dos alternativas y ambas fallaron:
+1. `return file.getBlob()` directo desde `doGet` → Apps Script tira "el valor que muestra no es un valor de retorno admitido". No soporta devolver un blob crudo desde un web app.
+2. Compartir cada archivo como "cualquiera con el link" (`file.setSharing(...)`) y que el navegador pida la URL de Drive directo → los requests anónimos (sin sesión de Google) redirigían a un login, aun con el sharing bien configurado. No quedó claro por qué (¿restricción de la cuenta/organización?), pero no era confiable.
+
+**Cómo aplicarlo:** el cliente arma la imagen con `img.src = 'data:' + mimeType + ';base64,' + data`, construida en JS a partir del JSON. Es más pesado que servir binario directo, pero funciona de forma confiable sin depender de configuración de sharing de Drive. Si en el futuro hay muchas fotos y esto se vuelve lento, reconsiderar.
+
+## Animación de secciones en dos niveles: `.visible` vs `.centered`
+
+**Decisión:** el `IntersectionObserver` que revela las secciones al scrollear maneja **dos clases independientes**: `.visible` (la tarjeta entera hace fade+slide, se agrega una sola vez al 15% de intersección y no se saca más) y `.centered` (dispara la animación de los *datos internos* — contador, horas, monto, nombres — al 50% de intersección, y se **saca y pone** con cada cambio, así se repite cada vez que la sección se recentra).
+
+**Por qué:** pedido explícito del usuario en dos pasos — primero quiso que los datos internos tuvieran su propio efecto de aparición (no solo la tarjeta), después que ese efecto se repitiera cada vez que volvía a centrar la sección scrolleando para arriba y para abajo.
+
+**Cómo aplicarlo:** cualquier dato nuevo que se agregue a una sección y deba tener este efecto de aparición usa `.reveal.centered .clase-del-dato` en el CSS (no `.reveal.visible`), con su propio `transition-delay` para escalonarlo respecto a los demás datos de la misma sección.
+
+## La primera sección no se observa desde el arranque — espera a que se abra el sobre
+
+**Decisión:** la sección `.reveal` de índice 0 (la portada) no se pasa al `IntersectionObserver` al cargar la página. Se marca `.visible` de una (la tarjeta se ve apenas se abre el sobre), pero el `.centered` (que dispara la animación de los nombres) recién se empieza a observar cuando el usuario **abre el sobre** (`revealFirstSection()`, llamada desde el click handler del sobre).
+
+**Por qué:** si se observara desde el arranque, el `IntersectionObserver` dispara su callback casi inmediatamente (la portada ya está en el viewport al cargar), agregando `.centered` mientras el sobre todavía tapa la pantalla. La animación de los nombres (dura ~2s) se reproduce entera *detrás* del sobre opaco — para cuando el usuario lo abre, ya terminó, se ve estática. No alcanzaba con un `requestAnimationFrame` doble (eso resuelve un problema de timing de *pintado*, no de *cuándo conceptualmente* debería arrancar la animación).
+
+**Cómo aplicarlo:** si se agrega contenido animado nuevo a la portada, va a funcionar solo porque usa la misma clase `.reveal.centered` — no hace falta tocar nada extra, `revealFirstSection()` ya se encarga de arrancar la observación en el momento correcto.
+
+## Sobre de apertura: click/tap, no scroll — y por qué
+
+**Decisión:** el sobre se abre con un click/tap (`classList.add('open')` + fade/scale por CSS transition), no con una animación ligada al scroll (`scrollY`-driven).
+
+**Por qué:** se implementó la versión scroll-driven (el sobre se iba desvaneciendo en proporción exacta a cuánto scrolleaba el usuario, sin necesidad de click) y funcionaba técnicamente, pero el usuario prefirió volver al modelo original de click. También se probó y se descartó una solapa animada en 3D (`rotateX`) imitando una secuencia de fotos de referencia — el usuario la encontró fea y se revirtió por completo, sin dejar rastros en el código.
+
+**Cómo aplicarlo:** no reintroducir el mecanismo scroll-driven sin que el usuario lo pida explícitamente de nuevo — ya se probó y se descartó una vez.
+
+## Tapar texto de una imagen y reemplazarlo por HTML animado (patrón repetible)
+
+**Decisión/patrón:** cuando una imagen de diseño trae texto dibujado adentro (nombres, horas, lugar) que se necesita hacer dinámico o animado, no se edita la imagen "a mano" — se usa Python/Pillow para: (1) ubicar la banda de píxeles de ese texto (por brillo/oscuridad), (2) muestrear el color de fondo alrededor, (3) pintar un rectángulo sólido de ese color tapando el texto original, (4) superponer el texto real en HTML en esa posición exacta, con la tipografía y el efecto de aparición del resto del sitio.
+
+**Por qué:** permite mantener el diseño gráfico que provee el usuario (mismo marco, misma textura) pero con contenido que puede animarse, actualizarse o traerse del Sheet — cosa que un texto dibujado en un JPG no permite.
+
+**Cómo aplicarlo:** este patrón ya se usó en `lugares.jpg` (hora de ceremonia/fiesta) y `TARJETA.jpg` (nombres de la portada). Si aparece una imagen nueva con texto que haya que "activar", replicar el mismo proceso. Siempre verificar el parche componiendo la imagen resultante sobre un fondo sólido antes de darlo por bueno (ver también la nota de `alianzas.png` sobre falsos positivos de "transparencia" en el visor).

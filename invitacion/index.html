@@ -302,9 +302,11 @@
     align-items: center;
     cursor: pointer;
     overflow: hidden;
-    will-change: opacity, transform;
+    transition: opacity 0.6s ease, transform 0.6s ease, visibility 0.6s ease;
   }
-  .envelope.hidden {
+  .envelope.open {
+    opacity: 0;
+    transform: scale(1.04);
     visibility: hidden;
     pointer-events: none;
   }
@@ -579,7 +581,7 @@
       <span class="envelope-name-part">Gabriel</span>
     </div>
   </div>
-  <div class="envelope-hint">Scrolleá para abrir la invitación</div>
+  <div class="envelope-hint">Tocá para abrir la invitación</div>
 </div>
 
 <svg class="bg-pattern" xmlns="http://www.w3.org/2000/svg">
@@ -607,18 +609,6 @@
   <div class="hero-first reveal">
     <div class="portada-image nombres-wrap">
       <img src="../img/TARJETA.jpg" alt="Nos casamos — Julieta &amp; Gabriel. Con inmensa alegría queremos invitarte a celebrar el día en que unimos nuestras vidas.">
-      <div class="nombres-overlay">
-        <span class="nombres-part">Julieta</span>
-        <span class="nombres-amp">&amp;</span>
-        <span class="nombres-part">Gabriel</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- NOMBRES -->
-  <div class="hero-first reveal">
-    <div class="portada-image nombres-wrap">
-      <img src="../img/fondoblanco.jpg" alt="Julieta y Gabriel">
       <div class="nombres-overlay">
         <span class="nombres-part">Julieta</span>
         <span class="nombres-amp">&amp;</span>
@@ -746,22 +736,26 @@
   }
   renderCountdown(new Date(2027, 9, 23, 19, 0, 0));
 
-  // Sobre de apertura: se va abriendo a medida que se scrollea
+  // Sobre de apertura: se abre con un click/tap
   const envelope = document.getElementById('envelope');
-  const OPEN_DISTANCE = 110;
+  let revealObserver;
 
-  function updateEnvelope() {
-    const progress = Math.min(window.scrollY / OPEN_DISTANCE, 1);
-    envelope.style.opacity = String(1 - progress);
-    envelope.style.transform = `scale(${1 + progress * 0.04})`;
-    envelope.classList.toggle('hidden', progress >= 1);
+  // La animación de los nombres de la primera sección empieza a
+  // observarse recién cuando se abre el sobre (si no, se reproduciría
+  // entera detrás del sobre todavía opaco). A partir de ahí se comporta
+  // como cualquier otra sección: se repite cada vez que vuelve a
+  // centrarse en pantalla.
+  function revealFirstSection() {
+    const first = document.querySelector('.reveal');
+    if (first && revealObserver) revealObserver.observe(first);
   }
-  window.addEventListener('scroll', updateEnvelope, { passive: true });
-  updateEnvelope();
 
+  document.documentElement.style.overflow = 'hidden';
   envelope.addEventListener('click', () => {
-    window.scrollTo({ top: OPEN_DISTANCE, behavior: 'smooth' });
-  });
+    envelope.classList.add('open');
+    document.documentElement.style.overflow = '';
+    revealFirstSection();
+  }, { once: true });
 
   setupReveal();
 
@@ -979,7 +973,7 @@
   // el sobre) quedaría marcada "visible" de entrada, y aparecerían varias
   // secciones juntas en vez de solo la primera al abrir.
   function setupReveal() {
-    const revealObserver = new IntersectionObserver((entries) => {
+    revealObserver = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           entry.target.classList.add('visible');
@@ -994,16 +988,9 @@
     const sections = document.querySelectorAll('.reveal');
     sections.forEach((el, i) => {
       if (i === 0) {
+        // El "centered" (que dispara la animación de los nombres) lo agrega
+        // revealFirstSection() cuando se empieza a abrir el sobre, no acá.
         el.classList.add('visible');
-        // Doble rAF: deja que el navegador pinte el estado inicial (opacity:0)
-        // antes de agregar "centered", así la transición sí se ve. Si se
-        // agregara todo junto, el navegador saltaría directo al resultado
-        // final sin animar.
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            el.classList.add('centered');
-          });
-        });
       } else {
         revealObserver.observe(el);
       }
