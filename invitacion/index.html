@@ -239,6 +239,44 @@
   .calendario-wrap {
     position: relative;
   }
+  .nombres-wrap {
+    position: relative;
+  }
+  .nombres-overlay {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    transform: translateY(-50%);
+    text-align: center;
+    font-family: 'Edwardian Script ITC', cursive;
+    color: #4b5320;
+  }
+  .nombres-part {
+    display: block;
+    font-size: 64px;
+    line-height: 1.15;
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .nombres-amp {
+    display: block;
+    font-size: 30px;
+    margin: 4px 0;
+    color: #9c9a52;
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.centered .nombres-part,
+  .reveal.centered .nombres-amp {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .reveal.centered .nombres-part:nth-child(1) { transition-delay: 0.2s; }
+  .reveal.centered .nombres-amp { transition-delay: 0.5s; }
+  .reveal.centered .nombres-part:nth-child(3) { transition-delay: 0.8s; }
   .countdown-overlay {
     position: absolute;
     left: 0;
@@ -282,6 +320,10 @@
     text-transform: uppercase;
     color: #f2f1de;
     margin-bottom: 14px;
+    opacity: 0;
+    transform: translateY(14px);
+    animation: envelopeTextIn 0.8s ease forwards;
+    animation-delay: 0.4s;
   }
   .envelope-names {
     font-family: 'Edwardian Script ITC', cursive;
@@ -290,6 +332,21 @@
     line-height: 1.15;
     color: #fffdf6;
   }
+  .envelope-name-part,
+  .envelope-amp {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(14px);
+    animation: envelopeTextIn 0.7s ease forwards;
+  }
+  .envelope-names .envelope-name-part:first-child { animation-delay: 0.65s; }
+  .envelope-names .envelope-amp {
+    animation-delay: 0.95s;
+    font-size: 0.5em;
+    vertical-align: middle;
+    margin: 0 8px;
+  }
+  .envelope-names .envelope-name-part:last-child { animation-delay: 1.25s; }
   .envelope-hint {
     margin-top: auto;
     margin-bottom: 42px;
@@ -298,6 +355,16 @@
     text-transform: uppercase;
     color: #f2f1de;
     text-shadow: 0 2px 8px rgba(0,0,0,0.45);
+    opacity: 0;
+    transform: translateY(14px);
+    animation: envelopeTextIn 0.8s ease forwards;
+    animation-delay: 1.75s;
+  }
+  @keyframes envelopeTextIn {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   h2.section-title {
@@ -440,6 +507,14 @@
   .copy-note { font-size: 13px; color: #7d7a3f; margin-top: 8px; }
 
   footer { text-align: center; font-size: 13px; color: #7d7a3f; padding: 10px 0 20px; }
+  .footer-rings {
+    height: 1.6em;
+    width: auto;
+    vertical-align: middle;
+    margin: 0 6px;
+    position: relative;
+    top: -1px;
+  }
 
   .toast {
     position: fixed;
@@ -462,6 +537,35 @@
     opacity: 1;
     transform: translate(-50%, 0);
   }
+
+  /* Los datos de cada sección (horas, lugar, contador, pago) aparecen con
+     un leve fundido/desplazamiento escalonado justo cuando la sección se
+     centra en pantalla, en vez de mostrarse ya puestos de una. */
+  .reveal .countdown-unit,
+  .reveal .hora-lugar-ceremonia,
+  .reveal .hora-fiesta,
+  .reveal .gift-amount,
+  .reveal .bank-box {
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .reveal.centered .countdown-unit,
+  .reveal.centered .hora-lugar-ceremonia,
+  .reveal.centered .hora-fiesta,
+  .reveal.centered .gift-amount,
+  .reveal.centered .bank-box {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .reveal.centered .countdown-unit:nth-child(1) { transition-delay: 0.15s; }
+  .reveal.centered .countdown-unit:nth-child(2) { transition-delay: 0.25s; }
+  .reveal.centered .countdown-unit:nth-child(3) { transition-delay: 0.35s; }
+  .reveal.centered .countdown-unit:nth-child(4) { transition-delay: 0.45s; }
+  .reveal.centered .hora-lugar-ceremonia { transition-delay: 0.2s; }
+  .reveal.centered .hora-fiesta { transition-delay: 0.35s; }
+  .reveal.centered .gift-amount { transition-delay: 0.15s; }
+  .reveal.centered .bank-box { transition-delay: 0.3s; }
 </style>
 </head>
 <body>
@@ -469,7 +573,11 @@
 <div class="envelope" id="envelope">
   <div class="envelope-content">
     <div class="envelope-kicker">Nos casamos</div>
-    <div class="envelope-names">Julieta &amp; Gabriel</div>
+    <div class="envelope-names">
+      <span class="envelope-name-part">Julieta</span>
+      <span class="envelope-amp">&amp;</span>
+      <span class="envelope-name-part">Gabriel</span>
+    </div>
   </div>
   <div class="envelope-hint">Scrolleá para abrir la invitación</div>
 </div>
@@ -497,8 +605,25 @@
 
   <!-- PORTADA -->
   <div class="hero-first reveal">
-    <div class="portada-image">
+    <div class="portada-image nombres-wrap">
       <img src="../img/TARJETA.jpg" alt="Nos casamos — Julieta &amp; Gabriel. Con inmensa alegría queremos invitarte a celebrar el día en que unimos nuestras vidas.">
+      <div class="nombres-overlay">
+        <span class="nombres-part">Julieta</span>
+        <span class="nombres-amp">&amp;</span>
+        <span class="nombres-part">Gabriel</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOMBRES -->
+  <div class="hero-first reveal">
+    <div class="portada-image nombres-wrap">
+      <img src="../img/fondoblanco.jpg" alt="Julieta y Gabriel">
+      <div class="nombres-overlay">
+        <span class="nombres-part">Julieta</span>
+        <span class="nombres-amp">&amp;</span>
+        <span class="nombres-part">Gabriel</span>
+      </div>
     </div>
   </div>
 
@@ -576,12 +701,20 @@
     <a class="btn secondary" href="../galeria/index.html">Ver galería</a>
   </div>
 
-  <footer>Julieta &amp; Gabriel · 23.10.2027</footer>
+  <footer>Julieta &amp; Gabriel <img src="../img/alianzas.png" alt="" class="footer-rings"> 23.10.2027</footer>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
+  // Evita que el navegador restaure el scroll de la visita anterior al
+  // recargar (si no, se ve el sobre a medio abrir un instante antes de
+  // que corra el JS, como si "recargara con un mini-scroll").
+  if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+  }
+  window.scrollTo(0, 0);
+
   // === CONEXIÓN CON GOOGLE SHEET ===
   // 1. Deployá el Apps Script como "Aplicación web" (acceso: Cualquier usuario)
   // 2. Pegá acá la URL que termina en /exec
@@ -851,13 +984,26 @@
         if (entry.isIntersecting) {
           entry.target.classList.add('visible');
         }
+        // Los datos internos (horas, contador, etc.) se animan cada vez
+        // que la sección vuelve a estar bien centrada en pantalla, no
+        // solo la primera vez.
+        entry.target.classList.toggle('centered', entry.intersectionRatio >= 0.5);
       });
-    }, { threshold: 0.15 });
+    }, { threshold: [0.15, 0.5] });
 
     const sections = document.querySelectorAll('.reveal');
     sections.forEach((el, i) => {
       if (i === 0) {
         el.classList.add('visible');
+        // Doble rAF: deja que el navegador pinte el estado inicial (opacity:0)
+        // antes de agregar "centered", así la transición sí se ve. Si se
+        // agregara todo junto, el navegador saltaría directo al resultado
+        // final sin animar.
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            el.classList.add('centered');
+          });
+        });
       } else {
         revealObserver.observe(el);
       }
