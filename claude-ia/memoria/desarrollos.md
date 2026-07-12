@@ -2,6 +2,19 @@
 
 Historial de features completadas sobre `index.html` e `invitacion/index.html` (**raíz del repo** — archivos de trabajo actuales desde el 2026-07-11, ver [[decisiones-tecnicas]]).
 
+## 2026-07-12 — Optimización de peso de imágenes
+
+`img/` pesaba ~16.6 MB en total, con dos archivos PNG desproporcionados: `sobre.png` (2.8M, la primera imagen que carga cualquier visitante, como `background-image` del sobre a pantalla completa) y `alianzas.png` (3.3M, usada solo como ícono de 1.6em en el footer). Ninguna imagen tenía `width`/`height` ni `loading="lazy"`.
+
+Cambios (con Pillow, `img.save()`, no había `cwebp`/`pngquant` instalados):
+- `sobre.png` → `sobre.jpg` (calidad 85): no tenía transparencia real (era RGB, no RGBA), así que JPEG es directamente mejor. 2.8M → 360K.
+- `alianzas.png` → `alianzas.webp`: sí tiene transparencia real, así que se mantuvo con WebP (soporta alpha y comprime mucho mejor que PNG). Redimensionada de 1844×2304 a 500×624 antes de exportar, porque se muestra a 1.6em de alto — no tiene sentido servir la resolución completa. 3.3M → 23K.
+- `fondoblanco.jpg` (305K) eliminada: había quedado huérfana desde que se sacó la sección "NOMBRES" duplicada (ver entrada del sobre click-based).
+- `width`/`height` agregados a todos los `<img>` (evita layout shift mientras cargan) y `loading="lazy"` a las que están debajo del fold (calendario, lugares, footer). La portada (`TARJETA.jpg`) y el sobre (CSS background) quedaron sin lazy porque son lo primero que se ve.
+- Resultado: `img/` pasó de ~16.6 MB a ~1.4 MB.
+
+Ver [[decisiones-tecnicas]] para el criterio de cuándo usar JPEG vs WebP en este proyecto.
+
 ## 2026-07-09 — Setup inicial del repo
 
 - Commit inicial (`first commit`) con `.vscode/settings.json`, `documentos/AppsScript_RSVP.gs` y `documentos/invitacion_casamiento.html`.

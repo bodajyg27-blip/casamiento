@@ -11,7 +11,7 @@ Sitio publicado: `https://bodajyg.site/` (dominio propio con CNAME, el `.github.
 - **`index.html`** — archivo de trabajo principal. HTML + CSS + JS inline, todo en un solo archivo. Sin la sección de método de pago.
 - **`invitacion/index.html`** — segunda variante, igual a `index.html` pero **con** la sección "Nuestro regalo de bodas". Cualquier cambio de diseño/estructura se replica en ambos.
 - **`galeria/index.html`** — página de galería de fotos (subida + listado + descarga), enlazada desde las dos anteriores.
-- **`img/`** — imágenes de diseño: `sobre.png` (sobre de apertura), `TARJETA.jpg` (portada), `calendario.jpg` (guardá la fecha), `lugares.jpg` (ceremonia/fiesta/cómo llegar), `fondo.jpg` (textura de fondo para RSVP/canción/galería/regalo), `alianzas.png` (footer, transparencia real procesada con Python).
+- **`img/`** — imágenes de diseño, optimizadas para peso (~1.4M en total, ver [[decisiones-tecnicas]]): `sobre.jpg` (sobre de apertura), `TARJETA.jpg` (portada), `calendario.jpg` (guardá la fecha), `lugares.jpg` (ceremonia/fiesta/cómo llegar), `fondo.jpg` (textura de fondo para RSVP/canción/galería/regalo), `alianzas.webp` (footer, transparencia real, procesada con Python/Pillow).
 - **`fonts/Edwardian.ttf`** — tipografía script real, cargada vía `@font-face` en cada `index.html`.
 - **`documentos/AppsScript_RSVP.gs`** — backend en Google Apps Script, deployado como Web App, respaldado por un Google Sheet con pestañas: "Invitados", "Canciones", "Regalo". No se redeploya solo — cualquier cambio acá requiere que el usuario vuelva a hacer "Deploy" en el editor de Apps Script (y a veces re-autorizar permisos, ver [[bugs-conocidos]]).
 

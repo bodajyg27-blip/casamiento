@@ -1,5 +1,16 @@
 # Decisiones técnicas — Invitación de casamiento
 
+## Formato de imagen: JPEG si no hay alpha real, WebP si lo hay
+
+**Decisión:** para las imágenes de `img/`, se elige el formato según si la imagen tiene transparencia real (canal alpha usado) o no, no por costumbre/lo que venga del diseñador.
+- Si la imagen es opaca (aunque el archivo original sea PNG), se convierte a JPEG — comprime mucho mejor para fotos/diseños con degradés.
+- Si necesita transparencia real (ej. `alianzas.webp`, que se recorta sobre distintos fondos), se usa WebP, no PNG — WebP soporta alpha y comprime bastante mejor que PNG para el mismo contenido.
+- Además, toda imagen se redimensiona al tamaño real en que se muestra en pantalla antes de exportarla (ej. `alianzas.webp` se bajó de 1844×2304 a 500×624 porque se muestra a 1.6em de alto) — no tiene sentido servir resolución de impresión para un ícono chico.
+
+**Por qué:** `img/sobre.png` y `img/alianzas.png` pesaban 2.8M y 3.3M respectivamente sin necesidad — ninguna de las dos tenía razón real para ser tan pesada (una no tenía alpha, la otra se mostraba 4x más chica de lo que pesaba). Ver [[desarrollos]] para el detalle de la conversión.
+
+**Cómo aplicarlo:** cualquier imagen nueva que se agregue al proyecto debería pasar por este mismo criterio antes de commitear — no subir un PNG de varios MB directo del diseñador sin evaluar si puede ser JPEG/WebP y si puede reducirse de tamaño. Herramienta usada: Pillow (`Image.save()`), no había `cwebp`/`pngquant` instalados en la máquina.
+
 ## sessionStorage (no localStorage) para las canciones
 
 **Decisión:** la lista de canciones que ve cada invitado se guarda en `sessionStorage`, no en `localStorage` ni trayéndola del Google Sheet.
