@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Julieta & Gabriel — Pantalla</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap');
+
+  @font-face {
+    font-family: 'Edwardian Script ITC';
+    src: url('../fonts/Edwardian.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    background: #0b0a06;
+    overflow: hidden;
+    cursor: none;
+    font-family: 'Cormorant Garamond', serif;
+  }
+
+  #stage { position: fixed; inset: 0; background: #0b0a06; }
+
+  .slide-wrap {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 1.3s ease;
+  }
+  .slide-wrap.visible { opacity: 1; }
+
+  .bg-blur {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: blur(34px) brightness(0.5);
+    transform: scale(1.15);
+  }
+  .fg {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    z-index: 1;
+  }
+  .fg.kenburns { animation: kenburns 7s ease-out forwards; }
+  @keyframes kenburns {
+    from { transform: scale(1); }
+    to { transform: scale(1.07); }
+  }
+
+  video.fg { background: #000; z-index: 1; }
+
+  .branding {
+    position: fixed;
+    left: 30px;
+    bottom: 24px;
+    font-family: 'Edwardian Script ITC', cursive;
+    color: rgba(255,255,255,0.5);
+    font-size: 38px;
+    z-index: 5;
+    pointer-events: none;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.4);
+  }
+
+  .caption {
+    position: fixed;
+    right: 30px;
+    bottom: 26px;
+    color: rgba(255,255,255,0.55);
+    font-size: 18px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    z-index: 5;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+  .caption.visible { opacity: 1; }
+
+  #start-overlay {
+    position: fixed;
+    inset: 0;
+    background: #14130a;
+    background-image:
+      radial-gradient(circle at 20% 20%, rgba(156,163,82,0.25), transparent 45%),
+      radial-gradient(circle at 80% 80%, rgba(108,128,68,0.2), transparent 45%);
+    color: #f2f1de;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    z-index: 10;
+    cursor: pointer;
+  }
+  #start-overlay .kicker {
+    font-family: 'Edwardian Script ITC', cursive;
+    font-size: clamp(48px, 8vw, 90px);
+    margin-bottom: 14px;
+  }
+  #start-overlay h1 {
+    font-size: clamp(18px, 2.2vw, 26px);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 40px;
+    color: #d6d8ba;
+  }
+  #start-overlay .hint {
+    font-size: clamp(16px, 1.6vw, 20px);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 14px 36px;
+    border: 1px solid rgba(242,241,222,0.5);
+    border-radius: 30px;
+    animation: pulseHint 1.8s ease-in-out infinite;
+  }
+  @keyframes pulseHint {
+    0%, 100% { opacity: 0.65; }
+    50% { opacity: 1; }
+  }
+
+  #empty-msg {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    color: #d6d8ba;
+    font-size: 22px;
+    text-align: center;
+    z-index: 4;
+    padding: 20px;
+  }
+</style>
+</head>
+<body>
+
+  <div id="stage"></div>
+  <div class="branding">Julieta &amp; Gabriel</div>
+  <div class="caption" id="caption">Mensaje de un invitado</div>
+  <div id="empty-msg">Todavía no hay fotos ni mensajes para mostrar.<br>Van a empezar a aparecer apenas los invitados suban contenido.</div>
+
+  <div id="start-overlay">
+    <p class="kicker">Julieta &amp; Gabriel</p>
+    <h1>Nos casamos</h1>
+    <p class="hint">Tocá para comenzar</p>
+  </div>
+
+<script>
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbz-sc2l5jW1oMN6Dkr-s3gduTSbTTlL2gRiPlw_khEQ6GzTCkJHlnqpgvrvD0b2sBOo/exec";
+  const PHOTO_DURATION = 6500;
+  const REFRESH_INTERVAL = 2 * 60 * 1000;
+  const PRECARGA_ADELANTE = 2;
+
+  const stage = document.getElementById('stage');
+  const caption = document.getElementById('caption');
+  const emptyMsg = document.getElementById('empty-msg');
+
+  let fotos = [];
+  let mensajes = [];
+  let playlist = [];
+  let idx = 0;
+  let cache = new Map();
+  let lastRefresh = 0;
+  let advanceTimer = null;
+
+  function barajar(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  async function cargarDatos() {
+    try {
+      const [resF, resM] = await Promise.all([
+        fetch(GAS_URL + '?tipo=galeria'),
+        fetch(GAS_URL + '?tipo=mensajes')
+      ]);
+      fotos = await resF.json();
+      mensajes = await resM.json();
+    } catch (err) {
+      console.error('Error cargando datos', err);
+    }
+    lastRefresh = Date.now();
+  }
+
+  function construirPlaylist() {
+    const todos = [
+      ...fotos.map(f => ({ type: 'foto', item: f })),
+      ...mensajes.map(m => ({ type: 'video', item: m }))
+    ];
+    return barajar(todos);
+  }
+
+  async function obtenerFoto(foto) {
+    if (cache.has(foto.id)) return cache.get(foto.id);
+    const res = await fetch(foto.url);
+    const data = await res.json();
+    const url = 'data:' + data.mimeType + ';base64,' + data.data;
+    cache.set(foto.id, url);
+    return url;
+  }
+
+  async function obtenerVideo(msg) {
+    if (cache.has(msg.id)) return cache.get(msg.id);
+    const res = await fetch(GAS_URL + '?tipo=mensajeVideo&id=' + msg.id);
+    const data = await res.json();
+    const url = 'data:' + data.mimeType + ';base64,' + data.data;
+    cache.set(msg.id, url);
+    return url;
+  }
+
+  function precargar(entry) {
+    if (!entry) return Promise.resolve();
+    return (entry.type === 'foto' ? obtenerFoto(entry.item) : obtenerVideo(entry.item)).catch(() => {});
+  }
+
+  function limpiarAnteriores() {
+    const wraps = stage.querySelectorAll('.slide-wrap');
+    if (wraps.length > 1) {
+      setTimeout(() => {
+        wraps.forEach((w, i) => { if (i < wraps.length - 1) w.remove(); });
+      }, 1400);
+    }
+  }
+
+  async function mostrarSiguiente() {
+    clearTimeout(advanceTimer);
+    if (!playlist.length) {
+      emptyMsg.style.display = 'flex';
+      setTimeout(async () => { await cargarDatos(); playlist = construirPlaylist(); mostrarSiguiente(); }, 15000);
+      return;
+    }
+    emptyMsg.style.display = 'none';
+
+    if (idx >= playlist.length) {
+      idx = 0;
+      if (Date.now() - lastRefresh > REFRESH_INTERVAL) {
+        await cargarDatos();
+      }
+      playlist = construirPlaylist();
+    }
+
+    const entry = playlist[idx];
+    idx++;
+    for (let ahead = 0; ahead < PRECARGA_ADELANTE; ahead++) {
+      precargar(playlist[(idx + ahead) % playlist.length]);
+    }
+
+    const wrap = document.createElement('div');
+    wrap.className = 'slide-wrap';
+
+    if (entry.type === 'foto') {
+      caption.classList.remove('visible');
+      const url = await obtenerFoto(entry.item).catch(() => null);
+      if (!url) { mostrarSiguiente(); return; }
+      const bg = document.createElement('img');
+      bg.className = 'bg-blur';
+      bg.src = url;
+      const fg = document.createElement('img');
+      fg.className = 'fg kenburns';
+      fg.src = url;
+      wrap.appendChild(bg);
+      wrap.appendChild(fg);
+      stage.appendChild(wrap);
+      requestAnimationFrame(() => wrap.classList.add('visible'));
+      limpiarAnteriores();
+      advanceTimer = setTimeout(mostrarSiguiente, PHOTO_DURATION);
+    } else {
+      const url = await obtenerVideo(entry.item).catch(() => null);
+      if (!url) { mostrarSiguiente(); return; }
+      const video = document.createElement('video');
+      video.className = 'fg';
+      video.src = url;
+      video.playsInline = true;
+      video.autoplay = true;
+      wrap.appendChild(video);
+      stage.appendChild(wrap);
+      requestAnimationFrame(() => { wrap.classList.add('visible'); caption.classList.add('visible'); });
+      limpiarAnteriores();
+      video.addEventListener('ended', mostrarSiguiente);
+      video.play().catch(() => { advanceTimer = setTimeout(mostrarSiguiente, 5000); });
+    }
+  }
+
+  let wakeLock = null;
+  async function pedirWakeLock() {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLock = await navigator.wakeLock.request('screen');
+        document.addEventListener('visibilitychange', async () => {
+          if (wakeLock !== null && document.visibilityState === 'visible') {
+            wakeLock = await navigator.wakeLock.request('screen').catch(() => null);
+          }
+        });
+      }
+    } catch (err) {}
+  }
+
+  document.getElementById('start-overlay').addEventListener('click', async function empezar() {
+    const hint = this.querySelector('.hint');
+    hint.textContent = 'Cargando...';
+    try { await document.documentElement.requestFullscreen?.(); } catch (err) {}
+    pedirWakeLock();
+    await cargarDatos();
+    playlist = construirPlaylist();
+    idx = 0;
+    if (playlist.length) {
+      await Promise.all([
+        precargar(playlist[0]),
+        precargar(playlist[1 % playlist.length])
+      ]);
+    }
+    this.style.display = 'none';
+    mostrarSiguiente();
+  }, { once: true });
+</script>
+</body>
+</html>
