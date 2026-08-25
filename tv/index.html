@@ -148,7 +148,7 @@
   <div id="stage"></div>
   <div class="branding">Julieta &amp; Gabriel</div>
   <div class="caption" id="caption">Mensaje de un invitado</div>
-  <div id="empty-msg">Todavía no hay fotos ni mensajes para mostrar.<br>Van a empezar a aparecer apenas los invitados suban contenido.</div>
+  <div id="empty-msg"></div>
 
   <div id="start-overlay">
     <p class="kicker">Julieta &amp; Gabriel</p>
@@ -161,10 +161,16 @@
   const PHOTO_DURATION = 6500;
   const REFRESH_INTERVAL = 2 * 60 * 1000;
   const PRECARGA_ADELANTE = 2;
+  const MODO = new URLSearchParams(location.search).get('modo'); // 'fotos' | 'videos' | null (ambos)
 
   const stage = document.getElementById('stage');
   const caption = document.getElementById('caption');
   const emptyMsg = document.getElementById('empty-msg');
+  emptyMsg.innerHTML = MODO === 'fotos'
+    ? 'Todavía no hay fotos para mostrar.<br>Van a empezar a aparecer apenas los invitados suban.'
+    : MODO === 'videos'
+      ? 'Todavía no hay mensajes para mostrar.<br>Van a empezar a aparecer apenas los invitados graben uno.'
+      : 'Todavía no hay fotos ni mensajes para mostrar.<br>Van a empezar a aparecer apenas los invitados suban contenido.';
 
   let fotos = [];
   let mensajes = [];
@@ -198,10 +204,17 @@
   }
 
   function construirPlaylist() {
-    const todos = [
-      ...fotos.map(f => ({ type: 'foto', item: f })),
-      ...mensajes.map(m => ({ type: 'video', item: m }))
-    ];
+    let todos;
+    if (MODO === 'fotos') {
+      todos = fotos.map(f => ({ type: 'foto', item: f }));
+    } else if (MODO === 'videos') {
+      todos = mensajes.map(m => ({ type: 'video', item: m }));
+    } else {
+      todos = [
+        ...fotos.map(f => ({ type: 'foto', item: f })),
+        ...mensajes.map(m => ({ type: 'video', item: m }))
+      ];
+    }
     return barajar(todos);
   }
 

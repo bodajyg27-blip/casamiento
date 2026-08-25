@@ -351,6 +351,12 @@
       </div>
       <div class="topbar-actions">
         <span class="count-badge hidden" id="count-badge">0</span>
+        <a class="icon-btn" href="../tv/?modo=fotos" aria-label="Ver solo fotos" title="Ver solo fotos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        </a>
+        <a class="icon-btn" href="../tv/?modo=videos" aria-label="Ver solo mensajes" title="Ver solo mensajes">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        </a>
         <a class="icon-btn" href="../tv/" aria-label="Ver fotos y videos" title="Ver fotos y videos">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
         </a>
@@ -456,12 +462,6 @@
     if (/^[0-9]$/.test(e.key)) keypad.querySelector(`[data-k="${e.key}"]`)?.click();
     if (e.key === 'Backspace') keypad.querySelector('[data-k="back"]')?.click();
   });
-
-  if (sessionStorage.getItem('mensajes-admin-ok') === '1') {
-    gate.classList.add('hidden');
-    panel.classList.remove('hidden');
-    cargarMensajes();
-  }
 
   // ---------- Toast ----------
 
@@ -615,6 +615,12 @@
     });
 
     listEl.appendChild(item);
+  }
+
+  if (sessionStorage.getItem('mensajes-admin-ok') === '1') {
+    gate.classList.add('hidden');
+    panel.classList.remove('hidden');
+    cargarMensajes();
   }
 </script>
 </body>
