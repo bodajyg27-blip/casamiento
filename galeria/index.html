@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Julieta & Gabriel — Galería de fotos</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap');
@@ -15,191 +15,323 @@
     font-display: swap;
   }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  html, body {
-    min-height: 100%;
+  :root {
+    --olive: #4b5320;
+    --olive-dark: #3a4118;
+    --cream: #f9f8ec;
+    --bg: #eeecd4;
+    --border: #ddd9ae;
+    --muted: #8a8757;
   }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body { min-height: 100%; }
 
   body {
-    background-color: #eeecd4;
-    background-image:
-      radial-gradient(circle at 15% 10%, rgba(156,163,82,0.18), transparent 40%),
-      radial-gradient(circle at 85% 30%, rgba(139,150,80,0.14), transparent 45%),
-      radial-gradient(circle at 30% 90%, rgba(108,128,68,0.12), transparent 40%),
-      linear-gradient(135deg, #f2f1de 0%, #e7e6c6 100%);
-    background-attachment: fixed;
+    background: var(--bg);
     font-family: 'Cormorant Garamond', serif;
-    color: #48472e;
-    padding: 30px 15px;
+    color: #3f3e28;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .hidden { display: none !important; }
+
+  /* ---------- Header ---------- */
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--olive);
+    color: var(--cream);
+    padding: max(16px, env(safe-area-inset-top)) 18px 16px;
     display: flex;
-    justify-content: center;
-    position: relative;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
   }
-
-  .wrap { max-width: 640px; width: 100%; }
-
-  .reveal {
-    opacity: 0;
-    transform: translateY(40px);
-    transition: opacity 0.9s ease, transform 0.9s ease;
-  }
-  .reveal.visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  .card {
-    background-image: url('../img/fondo.jpg');
-    background-size: cover;
-    background-position: center;
-    border-radius: 4px;
-    padding: 40px 30px;
-    text-align: center;
-    box-shadow: 0 15px 40px rgba(0,0,0,0.10);
-    position: relative;
-    margin-bottom: 22px;
-  }
-
-  h2.section-title {
-    font-family: 'Edwardian Script ITC', cursive;
-    font-weight: normal;
-    font-size: 52px;
-    color: #f2f1de;
-    letter-spacing: 1px;
-    margin-bottom: 6px;
-  }
-
-  .section-sub {
-    font-family: 'Edwardian Script ITC', cursive;
-    font-weight: normal;
-    font-size: 30px;
-    color: #d6d8ba;
-    margin-bottom: 20px;
-  }
-
-  .btn {
-    display: inline-block;
-    margin-top: 14px;
-    padding: 11px 30px;
-    background: #4b5320;
-    color: #f9f8ec;
+  .icon-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
     border: none;
-    font-size: 15px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    border-radius: 2px;
+    background: rgba(255,255,255,0.14);
+    color: var(--cream);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    font-family: 'Cormorant Garamond', serif;
-    transition: background 0.2s ease;
-  }
-  .btn:hover { background: #3a4118; }
-  .btn:disabled { opacity: 0.6; cursor: default; }
-
-  .back-link {
-    display: inline-block;
-    margin-bottom: 18px;
-    font-size: 14px;
-    color: #7d7a3f;
+    flex-shrink: 0;
+    transition: background 0.15s ease;
     text-decoration: none;
-    letter-spacing: 0.5px;
   }
-  .back-link:hover { color: #4b5320; }
+  .icon-btn:active { background: rgba(255,255,255,0.28); }
+  .icon-btn svg { width: 18px; height: 18px; }
+  .topbar-title { flex: 1; min-width: 0; }
+  .topbar-title .kicker { font-style: italic; font-size: 14px; opacity: 0.85; line-height: 1; }
+  .topbar-title h1 {
+    font-size: 20px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .count-badge {
+    background: rgba(255,255,255,0.16);
+    color: var(--cream);
+    font-size: 14px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    flex-shrink: 0;
+  }
+
+  .content {
+    max-width: 720px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 18px 14px calc(100px + env(safe-area-inset-bottom));
+  }
+  .intro { text-align: center; color: var(--muted); font-size: 17px; margin-bottom: 18px; }
+
+  /* ---------- Grid ---------- */
 
   .gallery-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
-    margin-top: 18px;
-    text-align: left;
   }
   .gallery-item {
     position: relative;
     aspect-ratio: 1;
-    border-radius: 4px;
+    border-radius: 12px;
     overflow: hidden;
-    border: 1px solid #c7c894;
-    background: #f2f1de;
+    border: 1px solid var(--border);
+    background: linear-gradient(100deg, #ece9cf 30%, #f5f3e2 50%, #ece9cf 70%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite linear;
+    cursor: pointer;
   }
+  .gallery-item.loaded { animation: none; background: #f2f1de; }
+  @keyframes shimmer { to { background-position: -200% 0; } }
   .gallery-item img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
+    opacity: 0;
+    transition: opacity 0.25s ease;
   }
-  .gallery-download {
-    position: absolute;
-    bottom: 6px;
-    right: 6px;
-    width: 28px;
-    height: 28px;
+  .gallery-item img.ready { opacity: 1; }
+
+  .state-msg {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: var(--muted);
+    padding: 50px 10px;
+    font-size: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .state-msg svg { width: 42px; height: 42px; color: var(--border); }
+
+  /* ---------- FAB ---------- */
+
+  .fab {
+    position: fixed;
+    right: calc(20px + env(safe-area-inset-right));
+    bottom: calc(24px + env(safe-area-inset-bottom));
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
-    background: rgba(75,83,32,0.85);
-    color: #f9f8ec;
+    background: var(--olive);
+    color: var(--cream);
+    border: none;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.25);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 15px;
-    text-decoration: none;
-    line-height: 1;
+    cursor: pointer;
+    z-index: 10;
+    transition: background 0.15s ease, transform 0.15s ease;
   }
-  .gallery-empty {
-    grid-column: 1 / -1;
-    font-size: 15px;
-    color: #d6d8ba;
-    padding: 20px 0;
-  }
+  .fab:active { background: var(--olive-dark); transform: scale(0.94); }
+  .fab svg { width: 26px; height: 26px; }
+  .fab.busy svg { animation: spin 0.9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 
-  .upload-progress {
+  .upload-pill {
+    position: fixed;
+    right: calc(20px + env(safe-area-inset-right));
+    bottom: calc(92px + env(safe-area-inset-bottom));
+    background: #2e2c18;
+    color: var(--cream);
+    padding: 8px 16px;
+    border-radius: 20px;
     font-size: 14px;
-    color: #d6d8ba;
-    margin-top: 10px;
-    min-height: 20px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .upload-pill.show { opacity: 1; transform: translateY(0); }
+
+  /* ---------- Lightbox ---------- */
+
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(10,9,2,0.94);
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  .lightbox.open { opacity: 1; pointer-events: auto; }
+  .lightbox img {
+    max-width: min(92vw, 900px);
+    max-height: 78vh;
+    object-fit: contain;
+    border-radius: 6px;
+  }
+  .lightbox-top {
+    position: absolute;
+    top: max(16px, env(safe-area-inset-top));
+    right: 16px;
+    left: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .lightbox-counter { color: var(--cream); font-size: 15px; opacity: 0.85; }
+  .lightbox-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    color: var(--cream);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .lightbox-nav:active { background: rgba(255,255,255,0.24); }
+  .lightbox-nav svg { width: 20px; height: 20px; }
+  .lightbox-prev { left: 12px; }
+  .lightbox-next { right: 12px; }
+  .lightbox-bottom {
+    position: absolute;
+    bottom: max(20px, env(safe-area-inset-bottom));
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+  }
+  .lightbox-download {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--cream);
+    color: var(--olive);
+    padding: 11px 22px;
+    border-radius: 30px;
+    border: none;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 15px;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+  }
+  .lightbox-download svg { width: 17px; height: 17px; }
+  .lightbox-spinner {
+    width: 30px; height: 30px;
+    border: 3px solid rgba(255,255,255,0.25);
+    border-top-color: var(--cream);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
   }
 
   .toast {
     position: fixed;
     left: 50%;
-    bottom: 30px;
-    transform: translate(-50%, 20px);
-    background: #4b5320;
-    color: #f9f8ec;
-    padding: 13px 26px;
+    bottom: calc(24px + env(safe-area-inset-bottom));
+    transform: translateX(-50%) translateY(20px);
+    background: #2e2c18;
+    color: var(--cream);
+    padding: 12px 22px;
     border-radius: 30px;
-    font-size: 16px;
-    letter-spacing: 0.5px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    font-size: 15px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.25);
     opacity: 0;
+    transition: opacity 0.25s ease, transform 0.25s ease;
     pointer-events: none;
-    transition: opacity 0.35s ease, transform 0.35s ease;
-    z-index: 50;
+    z-index: 40;
   }
-  .toast.show {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 </style>
 </head>
 <body>
 
-<div class="wrap">
-  <a class="back-link" href="../index.html">&larr; Volver a la invitación</a>
+  <div class="topbar">
+    <a class="icon-btn" href="../index.html" aria-label="Volver">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </a>
+    <div class="topbar-title">
+      <span class="kicker">Julieta &amp; Gabriel</span>
+      <h1>Galería</h1>
+    </div>
+    <span class="count-badge hidden" id="count-badge">0</span>
+  </div>
 
-  <div class="card reveal visible">
-    <h2 class="section-title">Fotos del casamiento</h2>
-    <div class="section-sub">Subí las tuyas y mirá las que van subiendo los demás invitados</div>
-
-    <input type="file" id="photoInput" accept="image/*" multiple style="display:none">
-    <button class="btn" id="uploadBtn" onclick="document.getElementById('photoInput').click()">Subir fotos</button>
-    <div class="upload-progress" id="uploadProgress"></div>
-
+  <div class="content">
+    <p class="intro">Subí tus fotos y mirá las que van subiendo los demás invitados</p>
     <div class="gallery-grid" id="galleryGrid">
-      <div class="gallery-empty">Cargando fotos...</div>
+      <div class="state-msg">
+        <div class="lightbox-spinner" style="border-color:var(--border); border-top-color:var(--olive);"></div>
+        <span>Cargando fotos...</span>
+      </div>
     </div>
   </div>
-</div>
 
-<div class="toast" id="toast"></div>
+  <input type="file" id="photoInput" accept="image/*" multiple style="display:none">
+  <div class="upload-pill" id="uploadPill"></div>
+  <button class="fab" id="uploadBtn" aria-label="Subir fotos">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/></svg>
+  </button>
+
+  <div class="lightbox" id="lightbox">
+    <div class="lightbox-top">
+      <span class="lightbox-counter" id="lightbox-counter"></span>
+      <button class="icon-btn" id="lightbox-close" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <button class="lightbox-nav lightbox-prev" id="lightbox-prev" aria-label="Anterior">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <img id="lightbox-img" alt="Foto del casamiento">
+    <div class="lightbox-spinner hidden" id="lightbox-spinner"></div>
+    <button class="lightbox-nav lightbox-next" id="lightbox-next" aria-label="Siguiente">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+    <div class="lightbox-bottom">
+      <button class="lightbox-download" id="lightbox-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Descargar
+      </button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
 
 <script>
   const GAS_URL = "https://script.google.com/macros/s/AKfycbz-sc2l5jW1oMN6Dkr-s3gduTSbTTlL2gRiPlw_khEQ6GzTCkJHlnqpgvrvD0b2sBOo/exec";
@@ -214,43 +346,111 @@
     toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
   }
 
+  const countBadge = document.getElementById('count-badge');
+  let fotosCache = [];
+
   async function loadGaleria() {
     const grid = document.getElementById('galleryGrid');
     try {
       const res = await fetch(GAS_URL + "?tipo=galeria");
       const fotos = await res.json();
+      fotosCache = fotos;
       if (!fotos.length) {
-        grid.innerHTML = '<div class="gallery-empty">Todavía no hay fotos. ¡Subí la primera!</div>';
+        grid.innerHTML = `<div class="state-msg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          <span>Todavía no hay fotos. ¡Subí la primera!</span>
+        </div>`;
+        countBadge.classList.add('hidden');
         return;
       }
-      grid.innerHTML = fotos.map(f => `
-        <div class="gallery-item">
+      countBadge.textContent = fotos.length;
+      countBadge.classList.remove('hidden');
+      grid.innerHTML = fotos.map((f, i) => `
+        <div class="gallery-item" data-index="${i}">
           <img data-src="${f.url}" alt="Foto del casamiento">
-          <a class="gallery-download" data-id="${f.id}" title="Descargar">&#8681;</a>
         </div>
       `).join('');
-      grid.querySelectorAll('img[data-src]').forEach(loadFotoInto);
-      grid.querySelectorAll('.gallery-download').forEach(a => {
-        a.addEventListener('click', (e) => {
-          e.preventDefault();
-          downloadFoto(a.dataset.id);
-        });
+      grid.querySelectorAll('.gallery-item').forEach(el => {
+        const img = el.querySelector('img');
+        loadFotoInto(img, el);
+        el.addEventListener('click', () => openLightbox(Number(el.dataset.index)));
       });
     } catch (err) {
-      grid.innerHTML = '<div class="gallery-empty">No se pudieron cargar las fotos. Reintentá más tarde.</div>';
+      grid.innerHTML = `<div class="state-msg">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>No se pudieron cargar las fotos. Reintentá más tarde.</span>
+      </div>`;
     }
   }
   loadGaleria();
 
-  async function loadFotoInto(imgEl) {
+  async function loadFotoInto(imgEl, itemEl) {
     try {
       const res = await fetch(imgEl.dataset.src);
       const data = await res.json();
       imgEl.src = 'data:' + data.mimeType + ';base64,' + data.data;
+      imgEl.classList.add('ready');
+      itemEl.classList.add('loaded');
     } catch (err) {
       console.error('No se pudo cargar una foto', err);
     }
   }
+
+  // ---------- Lightbox ----------
+
+  const lightbox = document.getElementById('lightbox');
+  const lightboxImg = document.getElementById('lightbox-img');
+  const lightboxSpinner = document.getElementById('lightbox-spinner');
+  const lightboxCounter = document.getElementById('lightbox-counter');
+  let lightboxIndex = 0;
+
+  function openLightbox(index) {
+    lightboxIndex = index;
+    lightbox.classList.add('open');
+    showLightboxPhoto();
+  }
+
+  function showLightboxPhoto() {
+    const foto = fotosCache[lightboxIndex];
+    lightboxCounter.textContent = `${lightboxIndex + 1} / ${fotosCache.length}`;
+    lightboxImg.classList.add('hidden');
+    lightboxSpinner.classList.remove('hidden');
+    const loadedImg = document.querySelector(`.gallery-item[data-index="${lightboxIndex}"] img.ready`);
+    if (loadedImg) {
+      lightboxImg.src = loadedImg.src;
+      lightboxImg.classList.remove('hidden');
+      lightboxSpinner.classList.add('hidden');
+    } else {
+      fetch(foto.url).then(r => r.json()).then(data => {
+        lightboxImg.src = 'data:' + data.mimeType + ';base64,' + data.data;
+        lightboxImg.classList.remove('hidden');
+        lightboxSpinner.classList.add('hidden');
+      });
+    }
+  }
+
+  function closeLightbox() { lightbox.classList.remove('open'); }
+
+  document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+  lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeLightbox(); });
+  document.getElementById('lightbox-prev').addEventListener('click', () => {
+    lightboxIndex = (lightboxIndex - 1 + fotosCache.length) % fotosCache.length;
+    showLightboxPhoto();
+  });
+  document.getElementById('lightbox-next').addEventListener('click', () => {
+    lightboxIndex = (lightboxIndex + 1) % fotosCache.length;
+    showLightboxPhoto();
+  });
+  window.addEventListener('keydown', (e) => {
+    if (!lightbox.classList.contains('open')) return;
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowLeft') document.getElementById('lightbox-prev').click();
+    if (e.key === 'ArrowRight') document.getElementById('lightbox-next').click();
+  });
+
+  document.getElementById('lightbox-download').addEventListener('click', () => {
+    downloadFoto(fotosCache[lightboxIndex].id);
+  });
 
   async function downloadFoto(id) {
     try {
@@ -266,6 +466,8 @@
       showToast('No se pudo descargar la foto');
     }
   }
+
+  // ---------- Subida ----------
 
   function resizeImage(file, maxDim) {
     return new Promise((resolve, reject) => {
@@ -312,12 +514,14 @@
 
     const input = document.getElementById('photoInput');
     const btn = document.getElementById('uploadBtn');
-    const progress = document.getElementById('uploadProgress');
+    const pill = document.getElementById('uploadPill');
     btn.disabled = true;
+    btn.classList.add('busy');
+    pill.classList.add('show');
 
     let ok = 0;
     for (let i = 0; i < files.length; i++) {
-      progress.textContent = `Subiendo ${i + 1} de ${files.length}...`;
+      pill.textContent = `Subiendo ${i + 1} de ${files.length}...`;
       try {
         const resized = await resizeImage(files[i], MAX_DIM);
         const base64 = await blobToBase64(resized);
@@ -333,8 +537,9 @@
       }
     }
 
-    progress.textContent = '';
+    pill.classList.remove('show');
     btn.disabled = false;
+    btn.classList.remove('busy');
     input.value = '';
 
     if (ok > 0) {
@@ -345,6 +550,7 @@
     }
   }
 
+  document.getElementById('uploadBtn').addEventListener('click', () => document.getElementById('photoInput').click());
   document.getElementById('photoInput').addEventListener('change', (e) => handleFiles(e.target.files));
 </script>
 </body>
