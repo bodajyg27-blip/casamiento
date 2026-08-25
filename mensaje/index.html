@@ -32,7 +32,8 @@
     align-items: center;
     justify-content: center;
     padding: 24px 16px;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .wrap { max-width: 420px; width: 100%; }
@@ -176,14 +177,64 @@
   .status-text { font-size: 17px; color: #5b5a3a; margin-top: 22px; }
 
   .hidden { display: none !important; }
+
+  /* iPad y pantallas grandes */
+  @media (min-width: 700px) {
+    .wrap { max-width: 720px; }
+    .card { padding: 40px 48px; }
+    .card::before, .card::after { width: 34px; height: 34px; }
+    .kicker { font-size: 56px; margin-bottom: 8px; }
+    h1 { font-size: 30px; letter-spacing: 2px; }
+    .divider { width: 70px; margin: 26px auto; }
+    .intro { font-size: 21px; margin-bottom: 10px; }
+    .oval-wrap { height: min(420px, calc(100vh - 420px)); width: auto; aspect-ratio: 11 / 15; margin: 24px auto 0; }
+    .oval { border-width: 4px; }
+    .play-toggle { width: 84px; height: 84px; font-size: 34px; }
+    .rec-indicator { font-size: 17px; padding: 7px 18px; top: 22px; }
+    .rec-dot { width: 12px; height: 12px; }
+    .btn { font-size: 19px; padding: 16px 44px; margin-top: 26px; }
+    .actions { gap: 16px; }
+    .status-text { font-size: 22px; margin-top: 28px; }
+
+    /* Durante grabación/preview, el header se esconde y el óvalo pasa a ser lo principal */
+    .card.stage-record #header-block,
+    .card.stage-preview #header-block {
+      display: none;
+    }
+    .card.stage-record,
+    .card.stage-preview {
+      padding-top: 24px;
+      padding-bottom: 24px;
+    }
+    .card.stage-record .oval-wrap,
+    .card.stage-preview .oval-wrap {
+      height: min(560px, calc(100vh - 280px));
+      width: auto;
+      margin-top: 4px;
+    }
+  }
+
+  /* Pantallas grandes pero bajas (iPad en horizontal) */
+  @media (min-width: 700px) and (max-height: 750px) {
+    .oval-wrap { height: calc(100vh - 420px); width: auto; }
+    .card.stage-record .oval-wrap,
+    .card.stage-preview .oval-wrap {
+      height: calc(100vh - 260px);
+      width: auto;
+    }
+    .kicker { font-size: 44px; }
+    .card { padding: 28px 48px; }
+  }
 </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="card">
-      <p class="kicker">Julieta &amp; Gabriel</p>
-      <h1>Dejanos tu mensaje</h1>
-      <div class="divider"></div>
+    <div class="card" id="card">
+      <div id="header-block">
+        <p class="kicker">Julieta &amp; Gabriel</p>
+        <h1>Dejanos tu mensaje</h1>
+        <div class="divider"></div>
+      </div>
 
       <div id="stage-idle">
         <p class="intro">Grabá un video corto contándonos algo lindo, un consejo o tus mejores deseos para nuestro casamiento.</p>
@@ -233,7 +284,7 @@
 
 <script>
   const GAS_URL = "https://script.google.com/macros/s/AKfycbz-sc2l5jW1oMN6Dkr-s3gduTSbTTlL2gRiPlw_khEQ6GzTCkJHlnqpgvrvD0b2sBOo/exec";
-  const MAX_SECONDS = 180;
+  const MAX_SECONDS = 30;
 
   const stages = {
     idle: document.getElementById('stage-idle'),
@@ -243,6 +294,7 @@
     done: document.getElementById('stage-done'),
     error: document.getElementById('stage-error'),
   };
+  const card = document.getElementById('card');
   const liveVideo = document.getElementById('live-video');
   const previewVideo = document.getElementById('preview-video');
   const playToggle = document.getElementById('btn-play-toggle');
@@ -259,6 +311,7 @@
   function showStage(name) {
     Object.values(stages).forEach(el => el.classList.add('hidden'));
     stages[name].classList.remove('hidden');
+    card.className = 'card stage-' + name;
   }
 
   function showError(message) {
@@ -297,7 +350,7 @@
   async function startCapture() {
     try {
       mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user' },
+        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 1280 } },
         audio: true,
       });
     } catch (err) {
@@ -312,8 +365,10 @@
   function startRecording() {
     chunks = [];
     const mimeType = pickMimeType();
+    const options = { videoBitsPerSecond: 2500000, audioBitsPerSecond: 128000 };
+    if (mimeType) options.mimeType = mimeType;
     try {
-      mediaRecorder = new MediaRecorder(mediaStream, mimeType ? { mimeType } : undefined);
+      mediaRecorder = new MediaRecorder(mediaStream, options);
     } catch (err) {
       showError('Este dispositivo no puede grabar video. Probá con otro navegador.');
       return;
@@ -389,21 +444,95 @@
     });
   }
 
+  // ---------- Cola local (IndexedDB): guarda el video hasta confirmar la subida ----------
+
+  const DB_NAME = 'mensajes-casamiento';
+  const STORE_NAME = 'pendientes';
+
+  function openDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = () => req.result.createObjectStore(STORE_NAME, { keyPath: 'id' });
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function savePending(record) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).put(record);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  async function getAllPending() {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const req = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).getAll();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function deletePending(id) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).delete(id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  async function uploadRecord(record) {
+    const base64 = await blobToBase64(record.blob);
+    await fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: JSON.stringify({ tipo: 'mensaje', file: base64, mimeType: record.mimeType, filename: record.filename }),
+    });
+  }
+
+  let uploadingQueue = false;
+  async function tryUploadPending() {
+    if (uploadingQueue || !navigator.onLine) return;
+    uploadingQueue = true;
+    try {
+      const pending = await getAllPending();
+      for (const record of pending) {
+        try {
+          await uploadRecord(record);
+          await deletePending(record.id);
+        } catch (err) {
+          break; // probablemente se cortó la conexión de nuevo; se reintenta más tarde
+        }
+      }
+    } catch (err) {
+      // IndexedDB no disponible o falló la lectura; se reintenta en el próximo trigger
+    } finally {
+      uploadingQueue = false;
+    }
+  }
+
+  window.addEventListener('online', tryUploadPending);
+  setInterval(tryUploadPending, 30000);
+  tryUploadPending();
+
   async function sendMessage() {
     showStage('sending');
     try {
-      const base64 = await blobToBase64(recordedBlob);
       const ext = recordedBlob.type.includes('mp4') ? 'mp4' : 'webm';
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const filename = `mensaje-${Date.now()}.${ext}`;
-      await fetch(GAS_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        body: JSON.stringify({ tipo: 'mensaje', file: base64, mimeType: recordedBlob.type, filename }),
-      });
+      await savePending({ id, blob: recordedBlob, mimeType: recordedBlob.type, filename, createdAt: Date.now() });
       showStage('done');
       setTimeout(() => showStage('idle'), 3000);
+      tryUploadPending();
     } catch (err) {
-      showError('No pudimos enviar tu mensaje. Probá de nuevo.');
+      showError('No pudimos guardar tu mensaje. Probá de nuevo.');
     }
   }
 
