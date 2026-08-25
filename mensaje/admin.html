@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mensajes — Administración</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap');
+
+  :root {
+    --olive: #4b5320;
+    --olive-dark: #3a4118;
+    --cream: #f9f8ec;
+    --bg: #eeecd4;
+    --border: #ddd9ae;
+    --muted: #8a8757;
+    --danger: #b8453f;
+    --danger-dark: #9c3a35;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body { height: 100%; }
+
+  body {
+    background: var(--bg);
+    font-family: 'Cormorant Garamond', serif;
+    color: #3f3e28;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .hidden { display: none !important; }
+
+  /* ---------- Passcode gate ---------- */
+
+  #gate {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .gate-kicker {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 22px;
+    color: var(--olive);
+    margin-bottom: 4px;
+  }
+  .gate-title {
+    font-size: 15px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #6b6942;
+    margin-bottom: 32px;
+  }
+  .gate-dots { display: flex; gap: 16px; margin-bottom: 40px; }
+  .gate-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid var(--olive);
+    background: transparent;
+    transition: background 0.15s ease, transform 0.15s ease;
+  }
+  .gate-dot.filled { background: var(--olive); transform: scale(1.1); }
+  .gate-dots.shake { animation: shake 0.4s ease; }
+  @keyframes shake {
+    10%, 90% { transform: translateX(-6px); }
+    20%, 80% { transform: translateX(6px); }
+    30%, 50%, 70% { transform: translateX(-10px); }
+    40%, 60% { transform: translateX(10px); }
+  }
+  .gate-error {
+    color: var(--danger);
+    font-size: 15px;
+    height: 20px;
+    margin-top: -20px;
+    margin-bottom: 20px;
+  }
+  .keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 72px);
+    gap: 16px;
+  }
+  .key {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--cream);
+    color: var(--olive);
+    font-size: 26px;
+    font-family: 'Cormorant Garamond', serif;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.12s ease, transform 0.08s ease;
+  }
+  .key:active { background: #eceed6; transform: scale(0.94); }
+  .key.ghost { background: transparent; border: none; cursor: default; }
+  .key.backspace { color: #8a8757; }
+  .key svg { width: 22px; height: 22px; }
+
+  /* ---------- Panel ---------- */
+
+  #panel { min-height: 100dvh; display: flex; flex-direction: column; }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--olive);
+    color: var(--cream);
+    padding: max(16px, env(safe-area-inset-top)) 20px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+  }
+  .topbar-title { display: flex; flex-direction: column; }
+  .topbar-title .kicker { font-style: italic; font-size: 15px; opacity: 0.85; line-height: 1; }
+  .topbar-title h1 {
+    font-size: 21px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .topbar-actions { display: flex; align-items: center; gap: 10px; }
+  .count-badge {
+    background: rgba(255,255,255,0.16);
+    color: var(--cream);
+    font-size: 14px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    min-width: 20px;
+    text-align: center;
+  }
+  .icon-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.14);
+    color: var(--cream);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.4s ease;
+  }
+  .icon-btn:active { background: rgba(255,255,255,0.28); }
+  .icon-btn svg { width: 19px; height: 19px; }
+  .icon-btn.spinning svg { animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .content {
+    flex: 1;
+    max-width: 640px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 18px 16px calc(40px + env(safe-area-inset-bottom));
+  }
+
+  .state-msg {
+    text-align: center;
+    color: var(--muted);
+    margin-top: 60px;
+    font-size: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+  .spinner {
+    width: 30px;
+    height: 30px;
+    border: 3px solid var(--border);
+    border-top-color: var(--olive);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  .state-msg svg { width: 46px; height: 46px; color: var(--border); }
+
+  #list { display: flex; flex-direction: column; gap: 12px; }
+
+  .item {
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px 16px;
+    box-shadow: 0 2px 8px rgba(75,83,32,0.06);
+    transition: opacity 0.25s ease, transform 0.25s ease, max-height 0.3s ease;
+    overflow: hidden;
+  }
+  .item.removing { opacity: 0; transform: scale(0.96); max-height: 0; padding-top: 0; padding-bottom: 0; margin: 0; border-width: 0; }
+
+  .item-row { display: flex; align-items: center; gap: 12px; }
+  .item-icon {
+    flex-shrink: 0;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: #eceed6;
+    color: var(--olive);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .item-icon svg { width: 21px; height: 21px; }
+  .item-info { flex: 1; min-width: 0; }
+  .item-name { font-size: 17px; font-weight: 600; color: #3f3e28; }
+  .item-date { color: var(--muted); font-size: 14px; margin-top: 1px; }
+  .item-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+  .icon-btn.small {
+    width: 38px;
+    height: 38px;
+    background: #eceed6;
+    color: var(--olive);
+  }
+  .icon-btn.small:active { background: #dfe1c2; }
+  .icon-btn.small svg { width: 17px; height: 17px; }
+  .icon-btn.danger-outline { color: var(--danger); }
+  .icon-btn.danger-outline:active { background: #f3dedc; }
+  .icon-btn.small:disabled { opacity: 0.5; }
+
+  .player-wrap {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, margin-top 0.3s ease;
+  }
+  .player-wrap.open { max-height: 640px; margin-top: 12px; }
+  video.player {
+    width: 100%;
+    border-radius: 12px;
+    display: block;
+    background: #000;
+  }
+
+  /* ---------- Modal de confirmación ---------- */
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(30,28,10,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 20;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: auto; }
+  .modal {
+    background: var(--cream);
+    border-radius: 18px;
+    max-width: 320px;
+    width: 100%;
+    padding: 26px 24px 20px;
+    text-align: center;
+    transform: translateY(10px) scale(0.97);
+    transition: transform 0.2s ease;
+  }
+  .modal-overlay.open .modal { transform: translateY(0) scale(1); }
+  .modal-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: #f3dedc;
+    color: var(--danger);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 14px;
+  }
+  .modal-icon svg { width: 24px; height: 24px; }
+  .modal-title { font-size: 19px; font-weight: 600; margin-bottom: 6px; }
+  .modal-text { font-size: 15px; color: var(--muted); margin-bottom: 20px; }
+  .modal-actions { display: flex; gap: 10px; }
+  .modal-btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    font-size: 15px;
+    font-family: 'Cormorant Garamond', serif;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+  }
+  .modal-btn.cancel { background: #eceed6; color: #3f3e28; }
+  .modal-btn.confirm { background: var(--danger); color: #fff; }
+  .modal-btn.confirm:active { background: var(--danger-dark); }
+  .modal-btn.cancel:active { background: #dfe1c2; }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(24px + env(safe-area-inset-bottom));
+    transform: translateX(-50%) translateY(20px);
+    background: #2e2c18;
+    color: #f9f8ec;
+    padding: 12px 20px;
+    border-radius: 30px;
+    font-size: 15px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+    opacity: 0;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    pointer-events: none;
+    z-index: 30;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+  <div id="gate">
+    <p class="gate-kicker">Julieta &amp; Gabriel</p>
+    <p class="gate-title">Ingresá la clave</p>
+    <div class="gate-dots" id="gate-dots">
+      <span class="gate-dot"></span><span class="gate-dot"></span><span class="gate-dot"></span><span class="gate-dot"></span>
+    </div>
+    <p class="gate-error" id="gate-error"></p>
+    <div class="keypad" id="keypad">
+      <button class="key" data-k="1">1</button>
+      <button class="key" data-k="2">2</button>
+      <button class="key" data-k="3">3</button>
+      <button class="key" data-k="4">4</button>
+      <button class="key" data-k="5">5</button>
+      <button class="key" data-k="6">6</button>
+      <button class="key" data-k="7">7</button>
+      <button class="key" data-k="8">8</button>
+      <button class="key" data-k="9">9</button>
+      <button class="key ghost" tabindex="-1"></button>
+      <button class="key" data-k="0">0</button>
+      <button class="key backspace" data-k="back" aria-label="Borrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1Z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div id="panel" class="hidden">
+    <div class="topbar">
+      <div class="topbar-title">
+        <span class="kicker">Julieta &amp; Gabriel</span>
+        <h1>Mensajes</h1>
+      </div>
+      <div class="topbar-actions">
+        <span class="count-badge hidden" id="count-badge">0</span>
+        <button class="icon-btn" id="btn-refresh" aria-label="Actualizar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="content">
+      <div id="loading" class="state-msg">
+        <div class="spinner"></div>
+        <span>Cargando mensajes...</span>
+      </div>
+
+      <div id="empty" class="state-msg hidden">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Todavía no hay mensajes.</span>
+      </div>
+
+      <div id="list"></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <div class="modal-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      </div>
+      <div class="modal-title">Borrar mensaje</div>
+      <div class="modal-text">Esta acción no se puede deshacer.</div>
+      <div class="modal-actions">
+        <button class="modal-btn cancel" id="modal-cancel">Cancelar</button>
+        <button class="modal-btn confirm" id="modal-confirm">Borrar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbz-sc2l5jW1oMN6Dkr-s3gduTSbTTlL2gRiPlw_khEQ6GzTCkJHlnqpgvrvD0b2sBOo/exec";
+  const CLAVE = "2358";
+
+  const ICON_PLAY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+  const ICON_STOP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>';
+  const ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
+  const ICON_VIDEO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>';
+
+  // ---------- Passcode gate ----------
+
+  const gate = document.getElementById('gate');
+  const panel = document.getElementById('panel');
+  const gateDots = document.getElementById('gate-dots');
+  const gateError = document.getElementById('gate-error');
+  const keypad = document.getElementById('keypad');
+  let entrada = '';
+
+  function pintarDots() {
+    [...gateDots.children].forEach((dot, i) => dot.classList.toggle('filled', i < entrada.length));
+  }
+
+  function unlockOk() {
+    sessionStorage.setItem('mensajes-admin-ok', '1');
+    gate.classList.add('hidden');
+    panel.classList.remove('hidden');
+    cargarMensajes();
+  }
+
+  function unlockFail() {
+    gateError.textContent = 'Clave incorrecta';
+    gateDots.classList.add('shake');
+    setTimeout(() => {
+      gateDots.classList.remove('shake');
+      entrada = '';
+      pintarDots();
+    }, 400);
+  }
+
+  keypad.addEventListener('click', (e) => {
+    const btn = e.target.closest('.key');
+    if (!btn || !btn.dataset.k) return;
+    const k = btn.dataset.k;
+    if (k === 'back') {
+      entrada = entrada.slice(0, -1);
+      pintarDots();
+      return;
+    }
+    if (entrada.length >= 4) return;
+    entrada += k;
+    pintarDots();
+    if (entrada.length === 4) {
+      gateError.textContent = '';
+      setTimeout(() => {
+        if (entrada === CLAVE) unlockOk();
+        else unlockFail();
+      }, 120);
+    }
+  });
+
+  window.addEventListener('keydown', (e) => {
+    if (gate.classList.contains('hidden')) return;
+    if (/^[0-9]$/.test(e.key)) keypad.querySelector(`[data-k="${e.key}"]`)?.click();
+    if (e.key === 'Backspace') keypad.querySelector('[data-k="back"]')?.click();
+  });
+
+  if (sessionStorage.getItem('mensajes-admin-ok') === '1') {
+    gate.classList.add('hidden');
+    panel.classList.remove('hidden');
+    cargarMensajes();
+  }
+
+  // ---------- Toast ----------
+
+  let toastTimer = null;
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+  }
+
+  // ---------- Modal de confirmación ----------
+
+  const modalOverlay = document.getElementById('modal-overlay');
+  let modalResolver = null;
+
+  function pedirConfirmacion() {
+    modalOverlay.classList.add('open');
+    return new Promise((resolve) => { modalResolver = resolve; });
+  }
+  document.getElementById('modal-cancel').addEventListener('click', () => {
+    modalOverlay.classList.remove('open');
+    if (modalResolver) modalResolver(false);
+  });
+  document.getElementById('modal-confirm').addEventListener('click', () => {
+    modalOverlay.classList.remove('open');
+    if (modalResolver) modalResolver(true);
+  });
+  modalOverlay.addEventListener('click', (e) => {
+    if (e.target === modalOverlay) {
+      modalOverlay.classList.remove('open');
+      if (modalResolver) modalResolver(false);
+    }
+  });
+
+  // ---------- Lista de mensajes ----------
+
+  const listEl = document.getElementById('list');
+  const loadingEl = document.getElementById('loading');
+  const emptyEl = document.getElementById('empty');
+  const countBadge = document.getElementById('count-badge');
+  const btnRefresh = document.getElementById('btn-refresh');
+
+  btnRefresh.addEventListener('click', () => cargarMensajes());
+
+  async function cargarMensajes() {
+    btnRefresh.classList.add('spinning');
+    loadingEl.classList.remove('hidden');
+    loadingEl.querySelector('span').textContent = 'Cargando mensajes...';
+    emptyEl.classList.add('hidden');
+    listEl.innerHTML = '';
+    countBadge.classList.add('hidden');
+    try {
+      const res = await fetch(GAS_URL + '?tipo=mensajes');
+      const mensajes = await res.json();
+      loadingEl.classList.add('hidden');
+      if (!mensajes.length) {
+        emptyEl.classList.remove('hidden');
+        return;
+      }
+      countBadge.textContent = mensajes.length;
+      countBadge.classList.remove('hidden');
+      mensajes.forEach(renderItem);
+    } catch (err) {
+      loadingEl.querySelector('span').textContent = 'No pudimos cargar los mensajes. Probá actualizar.';
+    } finally {
+      btnRefresh.classList.remove('spinning');
+    }
+  }
+
+  function renderItem(msg) {
+    const item = document.createElement('div');
+    item.className = 'item';
+    const fecha = new Date(msg.fecha).toLocaleString('es-AR', { dateStyle: 'medium', timeStyle: 'short' });
+    item.innerHTML = `
+      <div class="item-row">
+        <div class="item-icon">${ICON_VIDEO}</div>
+        <div class="item-info">
+          <div class="item-name">${msg.nombre}</div>
+          <div class="item-date">${fecha}</div>
+        </div>
+        <div class="item-actions">
+          <button class="icon-btn small btn-ver" aria-label="Ver">${ICON_PLAY}</button>
+          <button class="icon-btn small danger-outline btn-borrar" aria-label="Borrar">${ICON_TRASH}</button>
+        </div>
+      </div>
+      <div class="player-wrap"><video class="player" controls playsinline></video></div>
+    `;
+    const video = item.querySelector('video');
+    const playerWrap = item.querySelector('.player-wrap');
+    const btnVer = item.querySelector('.btn-ver');
+    const btnBorrar = item.querySelector('.btn-borrar');
+
+    btnVer.addEventListener('click', async () => {
+      if (playerWrap.classList.contains('open')) {
+        playerWrap.classList.remove('open');
+        video.pause();
+        btnVer.innerHTML = ICON_PLAY;
+        return;
+      }
+      if (!video.src) {
+        btnVer.disabled = true;
+        btnVer.innerHTML = ICON_STOP;
+        try {
+          const res = await fetch(GAS_URL + '?tipo=mensajeVideo&id=' + msg.id);
+          const data = await res.json();
+          video.src = 'data:' + data.mimeType + ';base64,' + data.data;
+        } catch (err) {
+          toast('No se pudo cargar el video');
+          btnVer.disabled = false;
+          btnVer.innerHTML = ICON_PLAY;
+          return;
+        }
+        btnVer.disabled = false;
+      }
+      playerWrap.classList.add('open');
+      btnVer.innerHTML = ICON_STOP;
+      video.play();
+    });
+
+    video.addEventListener('pause', () => { if (video.currentTime === video.duration) btnVer.innerHTML = ICON_PLAY; });
+
+    btnBorrar.addEventListener('click', async () => {
+      const ok = await pedirConfirmacion();
+      if (!ok) return;
+      btnBorrar.disabled = true;
+      btnVer.disabled = true;
+      try {
+        await fetch(GAS_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          body: JSON.stringify({ tipo: 'borrarMensaje', id: msg.id })
+        });
+        item.classList.add('removing');
+        toast('Mensaje borrado');
+        setTimeout(() => {
+          item.remove();
+          const restantes = listEl.children.length;
+          countBadge.textContent = restantes;
+          if (!restantes) {
+            countBadge.classList.add('hidden');
+            emptyEl.classList.remove('hidden');
+          }
+        }, 280);
+      } catch (err) {
+        btnBorrar.disabled = false;
+        btnVer.disabled = false;
+        toast('No se pudo borrar, probá de nuevo');
+      }
+    });
+
+    listEl.appendChild(item);
+  }
+</script>
+</body>
+</html>

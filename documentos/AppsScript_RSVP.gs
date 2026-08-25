@@ -19,21 +19,45 @@ function doGet(e) {
   if (tipo === "foto") {
     return getFotoBlob(e.parameter.id);
   }
+  if (tipo === "mensajes") {
+    return getMensajes();
+  }
+  if (tipo === "mensajeVideo") {
+    return getMensajeBlob(e.parameter.id);
+  }
   return getInvitados();
 }
 
 function doPost(e) {
-  const params = JSON.parse(e.postData.contents);
-  if (params.tipo === "cancion") {
-    return addCancion(params);
+  try {
+    const params = JSON.parse(e.postData.contents);
+    if (params.tipo === "cancion") {
+      return addCancion(params);
+    }
+    if (params.tipo === "foto") {
+      return addFoto(params);
+    }
+    if (params.tipo === "mensaje") {
+      return addMensaje(params);
+    }
+    if (params.tipo === "borrarMensaje") {
+      return borrarMensaje(params);
+    }
+    return confirmarInvitado(params);
+  } catch (err) {
+    logError(err);
+    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: err.message }))
+      .setMimeType(ContentService.MimeType.JSON);
   }
-  if (params.tipo === "foto") {
-    return addFoto(params);
-  }
-  if (params.tipo === "mensaje") {
-    return addMensaje(params);
-  }
-  return confirmarInvitado(params);
+}
+
+function logError(err) {
+  try {
+    const folder = DriveApp.getFolderById(MENSAJES_FOLDER_ID);
+    const existentes = folder.getFilesByName("ULTIMO_ERROR.txt");
+    while (existentes.hasNext()) existentes.next().setTrashed(true);
+    folder.createFile("ULTIMO_ERROR.txt", String((err && err.stack) || err), MimeType.PLAIN_TEXT);
+  } catch (e2) {}
 }
 
 // ---------- INVITADOS ----------
@@ -200,6 +224,51 @@ function addMensaje(params) {
   const blob = Utilities.newBlob(bytes, mimeType, nombre);
   folder.createFile(blob);
 
+  return ContentService.createTextOutput(JSON.stringify({ ok: true }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// Lista los mensajes de video guardados (para el panel de administración).
+function getMensajes() {
+  const folder = DriveApp.getFolderById(MENSAJES_FOLDER_ID);
+  const files = folder.getFiles();
+  const mensajes = [];
+  while (files.hasNext()) {
+    const file = files.next();
+    if (file.getName() === "ULTIMO_ERROR.txt") continue;
+    mensajes.push({
+      id: file.getId(),
+      nombre: file.getName(),
+      fecha: file.getDateCreated(),
+      mimeType: file.getMimeType()
+    });
+  }
+  mensajes.sort((a, b) => b.fecha - a.fecha);
+  return ContentService.createTextOutput(JSON.stringify(mensajes))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// Sirve un video de mensaje codificado en base64, mismo patrón que getFotoBlob.
+function getMensajeBlob(id) {
+  if (!id) {
+    return ContentService.createTextOutput(JSON.stringify({ error: "Falta el id" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  const file = DriveApp.getFileById(id);
+  const blob = file.getBlob();
+  return ContentService.createTextOutput(JSON.stringify({
+    mimeType: blob.getContentType(),
+    data: Utilities.base64Encode(blob.getBytes())
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+function borrarMensaje(params) {
+  const id = params.id || "";
+  if (!id) {
+    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: "Falta el id" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  DriveApp.getFileById(id).setTrashed(true);
   return ContentService.createTextOutput(JSON.stringify({ ok: true }))
     .setMimeType(ContentService.MimeType.JSON);
 }
