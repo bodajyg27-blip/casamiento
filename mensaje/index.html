@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Julieta & Gabriel — Dejanos un mensaje</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap');
+
+  @font-face {
+    font-family: 'Edwardian Script ITC';
+    src: url('../fonts/Edwardian.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body { height: 100%; }
+
+  body {
+    background-color: #eeecd4;
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(156,163,82,0.18), transparent 40%),
+      radial-gradient(circle at 85% 30%, rgba(139,150,80,0.14), transparent 45%),
+      radial-gradient(circle at 30% 90%, rgba(108,128,68,0.12), transparent 40%),
+      linear-gradient(135deg, #f2f1de 0%, #e7e6c6 100%);
+    font-family: 'Cormorant Garamond', serif;
+    color: #48472e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    overflow: hidden;
+  }
+
+  .wrap { max-width: 420px; width: 100%; }
+
+  .card {
+    background: #f9f8ec;
+    border: 1px solid #c7c894;
+    border-radius: 4px;
+    padding: 40px 30px;
+    text-align: center;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.10);
+    position: relative;
+  }
+  .card::before, .card::after {
+    content: "";
+    position: absolute;
+    width: 26px;
+    height: 26px;
+    border: 1px solid #9c9a52;
+  }
+  .card::before { top: 10px; left: 10px; border-right: none; border-bottom: none; }
+  .card::after { bottom: 10px; right: 10px; border-left: none; border-top: none; }
+
+  .kicker {
+    font-family: 'Edwardian Script ITC', cursive;
+    font-size: 40px;
+    color: #4b5320;
+    margin-bottom: 4px;
+  }
+  h1 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #4b5320;
+  }
+  .divider {
+    width: 56px;
+    height: 1px;
+    background: #9c9a52;
+    margin: 18px auto;
+  }
+  .intro {
+    font-size: 18px;
+    line-height: 1.5;
+    color: #5b5a3a;
+    margin-bottom: 8px;
+  }
+
+  .oval-wrap { margin: 26px auto 0; position: relative; width: 220px; height: 300px; }
+  .oval {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #2b2b1f;
+    border: 3px solid #9c9a52;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.25);
+    position: relative;
+  }
+  .oval video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+  }
+  .oval video.preview { transform: none; }
+
+  .play-toggle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.5);
+    border: 2px solid #f9f8ec;
+    color: #f9f8ec;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: opacity 0.2s ease, background 0.2s ease;
+  }
+  .play-toggle:hover { background: rgba(0,0,0,0.65); }
+  .play-toggle.hidden { display: none; }
+
+  .rec-indicator {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    font-size: 13px;
+    letter-spacing: 1px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Cormorant Garamond', serif;
+  }
+  .rec-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #d43d3d;
+    animation: pulse 1s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.25; }
+  }
+
+  .btn {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 11px 30px;
+    background: #4b5320;
+    color: #f9f8ec;
+    border: none;
+    font-size: 15px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border-radius: 2px;
+    cursor: pointer;
+    font-family: 'Cormorant Garamond', serif;
+    transition: background 0.2s ease;
+  }
+  .btn:hover { background: #3a4118; }
+  .btn.secondary { background: transparent; color: #4b5320; border: 1px solid #4b5320; }
+  .btn.secondary:hover { background: #eceed6; }
+  .btn.stop { background: #a63a3a; }
+  .btn.stop:hover { background: #8a2f2f; }
+
+  .actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+  .status-text { font-size: 17px; color: #5b5a3a; margin-top: 22px; }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <p class="kicker">Julieta &amp; Gabriel</p>
+      <h1>Dejanos tu mensaje</h1>
+      <div class="divider"></div>
+
+      <div id="stage-idle">
+        <p class="intro">Grabá un video corto contándonos algo lindo, un consejo o tus mejores deseos para nuestro casamiento.</p>
+        <button class="btn" id="btn-start">Dejar un mensaje</button>
+      </div>
+
+      <div id="stage-record" class="hidden">
+        <div class="oval-wrap">
+          <div class="oval">
+            <video id="live-video" autoplay muted playsinline></video>
+            <div class="rec-indicator" id="rec-indicator"><span class="rec-dot"></span><span id="timer">00:00</span></div>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn secondary" id="btn-cancel">Cancelar</button>
+          <button class="btn stop" id="btn-stop">Detener</button>
+        </div>
+      </div>
+
+      <div id="stage-preview" class="hidden">
+        <div class="oval-wrap">
+          <div class="oval">
+            <video id="preview-video" class="preview" playsinline></video>
+            <button class="play-toggle" id="btn-play-toggle" aria-label="Reproducir">▶</button>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn secondary" id="btn-retry">Regrabar</button>
+          <button class="btn" id="btn-send">Enviar</button>
+        </div>
+      </div>
+
+      <div id="stage-sending" class="hidden">
+        <p class="status-text">Enviando tu mensaje…</p>
+      </div>
+
+      <div id="stage-done" class="hidden">
+        <p class="status-text">Mensaje enviado 💌</p>
+      </div>
+
+      <div id="stage-error" class="hidden">
+        <p class="status-text" id="error-text"></p>
+        <button class="btn secondary" id="btn-error-retry">Reintentar</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbz-sc2l5jW1oMN6Dkr-s3gduTSbTTlL2gRiPlw_khEQ6GzTCkJHlnqpgvrvD0b2sBOo/exec";
+  const MAX_SECONDS = 180;
+
+  const stages = {
+    idle: document.getElementById('stage-idle'),
+    record: document.getElementById('stage-record'),
+    preview: document.getElementById('stage-preview'),
+    sending: document.getElementById('stage-sending'),
+    done: document.getElementById('stage-done'),
+    error: document.getElementById('stage-error'),
+  };
+  const liveVideo = document.getElementById('live-video');
+  const previewVideo = document.getElementById('preview-video');
+  const playToggle = document.getElementById('btn-play-toggle');
+  const timerEl = document.getElementById('timer');
+  const errorText = document.getElementById('error-text');
+
+  let mediaStream = null;
+  let mediaRecorder = null;
+  let chunks = [];
+  let recordedBlob = null;
+  let timerInterval = null;
+  let seconds = 0;
+
+  function showStage(name) {
+    Object.values(stages).forEach(el => el.classList.add('hidden'));
+    stages[name].classList.remove('hidden');
+  }
+
+  function showError(message) {
+    stopStream();
+    errorText.textContent = message;
+    showStage('error');
+  }
+
+  function stopStream() {
+    if (mediaStream) {
+      mediaStream.getTracks().forEach(t => t.stop());
+      mediaStream = null;
+    }
+  }
+
+  function pickMimeType() {
+    const candidates = [
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm',
+      'video/mp4;codecs=h264,aac',
+      'video/mp4',
+    ];
+    for (const c of candidates) {
+      if (window.MediaRecorder && MediaRecorder.isTypeSupported(c)) return c;
+    }
+    return '';
+  }
+
+  function updateTimer() {
+    const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+    const s = String(seconds % 60).padStart(2, '0');
+    timerEl.textContent = `${m}:${s}`;
+  }
+
+  async function startCapture() {
+    try {
+      mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user' },
+        audio: true,
+      });
+    } catch (err) {
+      showError('No pudimos acceder a la cámara. Revisá los permisos e intentá de nuevo.');
+      return;
+    }
+    liveVideo.srcObject = mediaStream;
+    showStage('record');
+    startRecording();
+  }
+
+  function startRecording() {
+    chunks = [];
+    const mimeType = pickMimeType();
+    try {
+      mediaRecorder = new MediaRecorder(mediaStream, mimeType ? { mimeType } : undefined);
+    } catch (err) {
+      showError('Este dispositivo no puede grabar video. Probá con otro navegador.');
+      return;
+    }
+    mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+    mediaRecorder.onstop = onRecordingStop;
+    mediaRecorder.start();
+
+    seconds = 0;
+    updateTimer();
+    timerInterval = setInterval(() => {
+      seconds++;
+      updateTimer();
+      if (seconds >= MAX_SECONDS) stopRecording();
+    }, 1000);
+  }
+
+  function stopRecording() {
+    clearInterval(timerInterval);
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+  }
+
+  function cancelRecording() {
+    clearInterval(timerInterval);
+    if (mediaRecorder) {
+      mediaRecorder.onstop = null;
+      if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+    }
+    stopStream();
+    chunks = [];
+    showStage('idle');
+  }
+
+  function onRecordingStop() {
+    stopStream();
+    recordedBlob = new Blob(chunks, { type: mediaRecorder.mimeType || 'video/webm' });
+    previewVideo.src = URL.createObjectURL(recordedBlob);
+    previewVideo.volume = 1;
+    playToggle.textContent = '▶';
+    playToggle.classList.remove('hidden');
+    showStage('preview');
+  }
+
+  previewVideo.addEventListener('play', () => playToggle.classList.add('hidden'));
+  previewVideo.addEventListener('pause', () => {
+    playToggle.textContent = '▶';
+    playToggle.classList.remove('hidden');
+  });
+  previewVideo.addEventListener('ended', () => {
+    playToggle.textContent = '↻';
+    playToggle.classList.remove('hidden');
+  });
+
+  playToggle.addEventListener('click', () => {
+    previewVideo.volume = 1;
+    if (previewVideo.paused || previewVideo.ended) {
+      previewVideo.play();
+    } else {
+      previewVideo.pause();
+    }
+  });
+
+  function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const marker = ';base64,';
+        const idx = reader.result.indexOf(marker);
+        resolve(reader.result.slice(idx + marker.length));
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  async function sendMessage() {
+    showStage('sending');
+    try {
+      const base64 = await blobToBase64(recordedBlob);
+      const ext = recordedBlob.type.includes('mp4') ? 'mp4' : 'webm';
+      const filename = `mensaje-${Date.now()}.${ext}`;
+      await fetch(GAS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: JSON.stringify({ tipo: 'mensaje', file: base64, mimeType: recordedBlob.type, filename }),
+      });
+      showStage('done');
+      setTimeout(() => showStage('idle'), 3000);
+    } catch (err) {
+      showError('No pudimos enviar tu mensaje. Probá de nuevo.');
+    }
+  }
+
+  document.getElementById('btn-start').addEventListener('click', startCapture);
+  document.getElementById('btn-stop').addEventListener('click', stopRecording);
+  document.getElementById('btn-cancel').addEventListener('click', cancelRecording);
+  document.getElementById('btn-retry').addEventListener('click', startCapture);
+  document.getElementById('btn-send').addEventListener('click', sendMessage);
+  document.getElementById('btn-error-retry').addEventListener('click', () => showStage('idle'));
+</script>
+</body>
+</html>

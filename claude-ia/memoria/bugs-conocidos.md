@@ -16,6 +16,14 @@ El usuario fue pasando imágenes de referencia y se fueron reemplazando seccione
 
 Cada vez que se edita `documentos/AppsScript_RSVP.gs`, el usuario tiene que pegar el código actualizado en el editor de Apps Script y hacer un nuevo **Deploy** (Manage deployments → editar → New version) para que el cambio tome efecto en el `GAS_URL` real. Si se agrega código que usa un servicio nuevo (ej. `DriveApp` cuando antes solo se usaba `SpreadsheetApp`), además hay que **re-autorizar permisos manualmente** — Apps Script no vuelve a pedir autorización solo porque el código cambió; hay que correr la función nueva manualmente una vez desde el editor (o revocar el acceso previo en myaccount.google.com/permissions y volver a autorizar) para que el popup de permisos aparezca.
 
+## Resuelto — Base64 de video cortado mal por comas en el códec (mensaje/index.html)
+
+Al subir el video grabado en `mensaje/index.html`, `Utilities.base64Decode` fallaba en Apps Script con "No se pudo descifrar la cadena". Causa: `blobToBase64()` extraía el contenido de la Data URL con `.split(',')[1]`, pero el `mimeType` real de la grabación (ej. `video/webm;codecs=vp8,opus`) ya tiene una coma adentro, así que la Data URL completa (`data:video/webm;codecs=vp8,opus;base64,XXXX`) se cortaba en el lugar equivocado. Se arregló buscando el marcador literal `;base64,` con `indexOf` en vez de la primera coma. Ver [[decisiones-tecnicas]].
+
+## Resuelto — CORS bloqueaba la respuesta del `fetch` a Apps Script (mensaje/index.html)
+
+El navegador bloqueaba la lectura de la respuesta del `fetch(GAS_URL, {method:'POST', ...})` con "No 'Access-Control-Allow-Origin' header is present", aunque el mismo request probado con `curl` (incluso simulando el header `Origin`) sí traía `access-control-allow-origin: *`. La petición SÍ llegaba y se ejecutaba del lado de Apps Script (confirmado escribiendo el archivo en Drive), el problema era solo que Chrome no dejaba leer el `Response` en JS. Se resolvió agregando `mode: 'no-cors'` al fetch — el request se sigue enviando y ejecutando igual, solo se pierde la posibilidad de leer el `{ok:true/false}` de vuelta (por eso el cliente asume éxito si el `fetch` no tira excepción de red). Ver [[decisiones-tecnicas]].
+
 ## Abierto — Archivos congelados que no reciben más cambios
 
 Estos archivos quedaron fuera del flujo de trabajo activo y no se tocan más (ver [[decisiones-tecnicas]]):

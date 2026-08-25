@@ -1,6 +1,9 @@
 // ID de la carpeta de Google Drive donde se guardan las fotos de la galería.
 // Se toma del ID en la URL de la carpeta: drive.google.com/drive/folders/ESTE_ID
-const GALERIA_FOLDER_ID = "PEGAR_AQUI_ID_DE_CARPETA_DRIVE";
+const GALERIA_FOLDER_ID = "1QYVFOCSnEKjwwPsz23O1sdYEFdrQ8QRz";
+
+// ID de la carpeta de Google Drive donde se guardan los videos de "Dejanos un mensaje".
+const MENSAJES_FOLDER_ID = "1apKNUF3hWw8F4q-8EUd69j7gsSbD3YMJ";
 
 function doGet(e) {
   const tipo = e.parameter.tipo || "invitados";
@@ -26,6 +29,9 @@ function doPost(e) {
   }
   if (params.tipo === "foto") {
     return addFoto(params);
+  }
+  if (params.tipo === "mensaje") {
+    return addMensaje(params);
   }
   return confirmarInvitado(params);
 }
@@ -176,5 +182,24 @@ function addFoto(params) {
   const file = folder.createFile(blob);
 
   return ContentService.createTextOutput(JSON.stringify({ success: true, id: file.getId() }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ---------- MENSAJES (video, Google Drive) ----------
+
+function addMensaje(params) {
+  const base64 = params.file || "";
+  if (!base64) {
+    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: "Falta el archivo" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  const folder = DriveApp.getFolderById(MENSAJES_FOLDER_ID);
+  const nombre = (params.filename || "mensaje").replace(/[^a-zA-Z0-9._-]/g, "_");
+  const mimeType = params.mimeType || "video/webm";
+  const bytes = Utilities.base64Decode(base64);
+  const blob = Utilities.newBlob(bytes, mimeType, nombre);
+  folder.createFile(blob);
+
+  return ContentService.createTextOutput(JSON.stringify({ ok: true }))
     .setMimeType(ContentService.MimeType.JSON);
 }

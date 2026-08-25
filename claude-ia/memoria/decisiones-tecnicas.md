@@ -33,6 +33,22 @@
 
 **Por qué:** pedido explícito del usuario ("aplica el punto 2 nomas pero a 50 caracteres"). Se replicó el mismo límite en el cliente (`maxlength="50"` en el input) para que la UI ya refleje la restricción antes de llegar al servidor.
 
+## `fetch` a Apps Script con `mode: 'no-cors'` en mensaje/index.html
+
+**Decisión:** el envío del video grabado a Drive (`mensaje/index.html` → `GAS_URL`) usa `fetch(GAS_URL, {method:'POST', mode:'no-cors', body: JSON.stringify(...)})`, sin leer la respuesta. El cliente muestra "Mensaje enviado" apenas el `fetch` resuelve sin tirar excepción, no en base a un `{ok:true}` del servidor.
+
+**Por qué:** con `fetch` normal (sin `mode:'no-cors'`), Chrome bloqueaba la lectura de la respuesta del redirect que usa Apps Script para servir el resultado (`script.google.com/.../exec` → 302 → `script.googleusercontent.com/macros/echo?...`), aunque el request llegaba y se ejecutaba bien (confirmado con `curl` y viendo el archivo creado en Drive). Ver bug resuelto en [[bugs-conocidos]].
+
+**Cómo aplicarlo:** cualquier otro `fetch` nuevo hacia `GAS_URL` que necesite un POST desde esta página va a tener el mismo problema. Si en el futuro hace falta leer la respuesta real (por ejemplo, para saber si `addMensaje` falló y mostrar un error específico), la alternativa es hacer que Apps Script escriba el resultado en otro lado (Sheet, o un archivo en Drive) y consultarlo aparte, no depender de leer el body del `fetch` original.
+
+## `mimeType` de MediaRecorder: preferir webm/opus antes que mp4/aac (mensaje/index.html)
+
+**Decisión:** `pickMimeType()` en `mensaje/index.html` prueba primero `video/webm;codecs=vp9,opus`, `vp8,opus` y `webm` a secas, y recién después `video/mp4;codecs=h264,aac` / `video/mp4`.
+
+**Por qué:** con `video/mp4;codecs=h264,aac` primero en la lista, Chrome en Mac elegía ese formato y el video grababa bien pero sin audio (bug de codificación de audio en esa combinación). `webm`+`opus` es la combinación más probada para audio+video simultáneo en navegadores Chromium. `mp4` se deja como último recurso para Safari/iOS, que no soporta grabar en `webm`.
+
+**Cómo aplicarlo:** si en el futuro aparece un reporte de "video sin audio" en iPad/Safari, no alcanza con este orden (ahí sí va a usar `mp4`) — habría que investigar puntualmente si Safari tiene el mismo problema con `h264,aac`, es un caso no probado todavía.
+
 ## `index.html` como archivo de trabajo (histórico, superado en parte)
 
 **Decisión original:** a partir del 2026-07-10 se edita solo `documentos/index.html`. `documentos/invitacion_casamiento.html` queda congelado como archivo histórico.
