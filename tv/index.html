@@ -339,22 +339,39 @@
     } catch (err) {}
   }
 
-  document.getElementById('start-overlay').addEventListener('click', async function empezar() {
-    const hint = this.querySelector('.hint');
+  document.getElementById('start-overlay').addEventListener('click', function empezar() {
+    const overlay = this;
+    const hint = overlay.querySelector('.hint');
     hint.textContent = 'Cargando...';
-    try { await document.documentElement.requestFullscreen?.(); } catch (err) {}
-    pedirWakeLock();
-    await cargarDatos();
-    playlist = construirPlaylist();
-    idx = 0;
-    if (playlist.length) {
-      await Promise.all([
-        precargar(playlist[0]),
-        precargar(playlist[1 % playlist.length])
-      ]);
+    let arrancado = false;
+
+    function arrancar() {
+      if (arrancado) return;
+      arrancado = true;
+      clearTimeout(forzarInicio);
+      overlay.style.display = 'none';
+      mostrarSiguiente();
     }
-    this.style.display = 'none';
-    mostrarSiguiente();
+
+    // Red de seguridad: pase lo que pase (permiso de pantalla completa
+    // colgado, red lenta, etc.), el slideshow arranca igual a los 20s.
+    const forzarInicio = setTimeout(arrancar, 20000);
+
+    document.documentElement.requestFullscreen?.().catch(() => {});
+    pedirWakeLock();
+
+    (async () => {
+      await cargarDatos();
+      playlist = construirPlaylist();
+      idx = 0;
+      if (playlist.length) {
+        await Promise.all([
+          precargar(playlist[0]),
+          precargar(playlist[1 % playlist.length])
+        ]);
+      }
+      arrancar();
+    })();
   }, { once: true });
 </script>
 </body>
