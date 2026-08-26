@@ -205,9 +205,11 @@ function getGaleria() {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-// Sirve el archivo de Drive codificado en base64 (doGet no admite devolver
-// un blob binario crudo), sin depender de que el archivo esté compartido
-// públicamente — el script siempre tiene acceso como su dueño.
+// Sirve el archivo de Drive codificado en base64 (doGet solo admite
+// devolver TextOutput/HtmlOutput, NO un Blob binario crudo — confirmado
+// probando: "el valor que muestra no es un valor de retorno admitido"),
+// sin depender de que el archivo esté compartido públicamente — el
+// script siempre tiene acceso como su dueño.
 function getFotoBlob(id) {
   if (!id) {
     return ContentService.createTextOutput(JSON.stringify({ error: "Falta el id" }))

@@ -74,6 +74,14 @@
 
 **Cómo aplicarlo:** si en el futuro se agrega otra acción de admin (por ejemplo, descargar todos los mensajes de una), hay que sumarle el mismo chequeo `claveValida()` en el `doGet`/`doPost` del Apps Script — no alcanza con que la pantalla pida la clave, cada endpoint sensible tiene que validarla por su cuenta.
 
+## Probado y descartado: `doGet` no puede devolver un Blob binario crudo
+
+**Intento:** para achicar el peso de fotos/videos servidos (evitar el ~33% extra de base64 + el parseo de JSON gigante), se probó cambiar `getFotoBlob`/`getMensajeBlob` para que `doGet` devolviera directamente `DriveApp.getFileById(id).getBlob()` en vez de `ContentService.createTextOutput(JSON.stringify({mimeType, data: base64}))`.
+
+**Resultado:** falla. Apps Script devuelve una página de error genérica: *"La secuencia de comandos se completó pero el valor que muestra no es un valor de retorno admitido."* Confirmado probando en producción con `curl` contra el deployment real — `doGet`/`doPost` solo aceptan devolver `TextOutput` o `HtmlOutput`, nunca un `Blob` crudo, pese a que hay ejemplos dando vueltas por internet que sugieren que sí se puede (puede haber cambiado, o depender de la versión del runtime).
+
+**No volver a intentarlo** sin antes buscar si existe otra vía (por ejemplo, subir los archivos a una carpeta con permisos de "cualquiera con el link" y devolver la URL directa de Drive en vez de servir el contenido a través del script — cambia el modelo de privacidad, así que no es un reemplazo directo).
+
 ## `index.html` como archivo de trabajo (histórico, superado en parte)
 
 **Decisión original:** a partir del 2026-07-10 se edita solo `documentos/index.html`. `documentos/invitacion_casamiento.html` queda congelado como archivo histórico.
