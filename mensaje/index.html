@@ -100,7 +100,6 @@
     object-fit: cover;
     transform: scaleX(-1);
   }
-  .oval video.preview { transform: none; }
 
   .play-toggle {
     position: absolute;
@@ -321,6 +320,7 @@
   let recordedBlob = null;
   let timerInterval = null;
   let seconds = 0;
+  let mirrorRafId = null;
 
   function showStage(name) {
     Object.values(stages).forEach(el => el.classList.add('hidden'));
@@ -388,14 +388,50 @@
     startRecording();
   }
 
+  function obtenerStreamParaGrabar() {
+    const videoTrack = mediaStream.getVideoTracks()[0];
+    if (!videoTrack || typeof HTMLCanvasElement.prototype.captureStream !== 'function') {
+      return mediaStream;
+    }
+    const settings = videoTrack.getSettings ? videoTrack.getSettings() : {};
+    const w = settings.width || 1280;
+    const h = settings.height || 1280;
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+
+    function dibujarCuadro() {
+      ctx.save();
+      ctx.scale(-1, 1);
+      ctx.drawImage(liveVideo, -w, 0, w, h);
+      ctx.restore();
+      mirrorRafId = requestAnimationFrame(dibujarCuadro);
+    }
+    dibujarCuadro();
+
+    const canvasStream = canvas.captureStream(30);
+    return new MediaStream([
+      ...canvasStream.getVideoTracks(),
+      ...mediaStream.getAudioTracks()
+    ]);
+  }
+
+  function detenerEspejoCanvas() {
+    if (mirrorRafId) cancelAnimationFrame(mirrorRafId);
+    mirrorRafId = null;
+  }
+
   function startRecording() {
     chunks = [];
     const mimeType = pickMimeType();
     const options = { videoBitsPerSecond: 2500000, audioBitsPerSecond: 128000 };
     if (mimeType) options.mimeType = mimeType;
+    const streamParaGrabar = obtenerStreamParaGrabar();
     try {
-      mediaRecorder = new MediaRecorder(mediaStream, options);
+      mediaRecorder = new MediaRecorder(streamParaGrabar, options);
     } catch (err) {
+      detenerEspejoCanvas();
       showError('Este dispositivo no puede grabar video. Probá con otro navegador.');
       return;
     }
@@ -423,12 +459,14 @@
       mediaRecorder.onstop = null;
       if (mediaRecorder.state !== 'inactive') mediaRecorder.stop();
     }
+    detenerEspejoCanvas();
     stopStream();
     chunks = [];
     showStage('idle');
   }
 
   function onRecordingStop() {
+    detenerEspejoCanvas();
     stopStream();
     recordedBlob = new Blob(chunks, { type: mediaRecorder.mimeType || 'video/webm' });
     previewVideo.src = URL.createObjectURL(recordedBlob);

@@ -49,6 +49,21 @@
 
 **Cómo aplicarlo:** si en el futuro aparece un reporte de "video sin audio" en iPad/Safari, no alcanza con este orden (ahí sí va a usar `mp4`) — habría que investigar puntualmente si Safari tiene el mismo problema con `h264,aac`, es un caso no probado todavía.
 
+## Grabar el video de "Dejanos tu mensaje" en espejo (mensaje/index.html)
+
+**Decisión:** el video que se sube a Drive queda espejado (igual a como se ve en pantalla mientras el invitado se graba), en vez de la orientación real de la cámara. Se logra dibujando cada cuadro del `<video>` en vivo sobre un `<canvas>` invertido (`ctx.scale(-1, 1)` + `drawImage`) y grabando el stream de ese canvas (`canvas.captureStream(30)`) combinado con el audio original del micrófono, en vez de pasarle a `MediaRecorder` el `mediaStream` de la cámara directo.
+
+**Por qué:** originalmente el espejo (`transform: scaleX(-1)`) era solo un efecto visual CSS en el `<video>` en vivo — no afecta lo que graba `MediaRecorder`, que siempre captura la orientación real de la cámara. Eso hacía que el preview (y el archivo final) se vieran "dados vuelta" respecto a lo que el invitado veía mientras grababa, un salto visual que pidieron sacar. Sacar el espejo del CSS del preview no alcanzaba porque el archivo real seguía sin espejo; hubo que espejar el contenido real grabado, no solo la vista en pantalla.
+
+**Código relevante:** `obtenerStreamParaGrabar()` y `detenerEspejoCanvas()` en `mensaje/index.html`. Se llama a `obtenerStreamParaGrabar()` dentro de `startRecording()` en vez de pasar `mediaStream` directo a `new MediaRecorder(...)`.
+
+**Cómo volver atrás:** si se pide revertir a grabar sin espejo (orientación real de cámara, como estaba en el commit `d7de69a` y anteriores), hay que:
+1. En `startRecording()`, volver a `mediaRecorder = new MediaRecorder(mediaStream, options)` (sacar el `obtenerStreamParaGrabar()`).
+2. Borrar las funciones `obtenerStreamParaGrabar()` y `detenerEspejoCanvas()`, y las llamadas a `detenerEspejoCanvas()` en `cancelRecording()` y `onRecordingStop()`.
+3. Opcional: si además se quiere que el preview vuelva a mostrarse sin espejo (mostrando la orientación real), reagregar `.oval video.preview { transform: none; }` en el CSS (se sacó en el mismo cambio).
+
+**Costo a tener en cuenta:** dibujar cada cuadro en un canvas vía `requestAnimationFrame` consume más CPU/batería que grabar directo desde la cámara. Para los 30 segundos máximos de grabación no debería notarse, pero es la primera sospecha si en algún momento se reporta que el iPad se calienta o se traba durante la grabación.
+
 ## `index.html` como archivo de trabajo (histórico, superado en parte)
 
 **Decisión original:** a partir del 2026-07-10 se edita solo `documentos/index.html`. `documentos/invitacion_casamiento.html` queda congelado como archivo histórico.
