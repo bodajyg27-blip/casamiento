@@ -180,6 +180,12 @@
   let lastRefresh = 0;
   let advanceTimer = null;
 
+  function fetchConTimeout(url, ms) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ms || 15000);
+    return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timer));
+  }
+
   function barajar(arr) {
     const a = arr.slice();
     for (let i = a.length - 1; i > 0; i--) {
@@ -192,8 +198,8 @@
   async function cargarDatos() {
     try {
       const [resF, resM] = await Promise.all([
-        fetch(GAS_URL + '?tipo=galeria'),
-        fetch(GAS_URL + '?tipo=mensajes')
+        fetchConTimeout(GAS_URL + '?tipo=galeria', 15000),
+        fetchConTimeout(GAS_URL + '?tipo=mensajes', 15000)
       ]);
       fotos = await resF.json();
       mensajes = await resM.json();
@@ -220,7 +226,7 @@
 
   async function obtenerFoto(foto) {
     if (cache.has(foto.id)) return cache.get(foto.id);
-    const res = await fetch(foto.url);
+    const res = await fetchConTimeout(foto.url, 15000);
     const data = await res.json();
     const url = 'data:' + data.mimeType + ';base64,' + data.data;
     cache.set(foto.id, url);
@@ -229,7 +235,7 @@
 
   async function obtenerVideo(msg) {
     if (cache.has(msg.id)) return cache.get(msg.id);
-    const res = await fetch(GAS_URL + '?tipo=mensajeVideo&id=' + msg.id);
+    const res = await fetchConTimeout(GAS_URL + '?tipo=mensajeVideo&id=' + msg.id, 25000);
     const data = await res.json();
     const url = 'data:' + data.mimeType + ';base64,' + data.data;
     cache.set(msg.id, url);
@@ -250,8 +256,18 @@
     }
   }
 
+  let watchdogTimer = null;
+  function resetWatchdog() {
+    clearTimeout(watchdogTimer);
+    watchdogTimer = setTimeout(() => {
+      console.warn('TV: sin avance en 45s, forzando recuperación');
+      mostrarSiguiente();
+    }, 45000);
+  }
+
   async function mostrarSiguiente() {
     clearTimeout(advanceTimer);
+    resetWatchdog();
     if (!playlist.length) {
       emptyMsg.style.display = 'flex';
       setTimeout(async () => { await cargarDatos(); playlist = construirPlaylist(); mostrarSiguiente(); }, 15000);
@@ -279,7 +295,7 @@
     if (entry.type === 'foto') {
       caption.classList.remove('visible');
       const url = await obtenerFoto(entry.item).catch(() => null);
-      if (!url) { mostrarSiguiente(); return; }
+      if (!url) { advanceTimer = setTimeout(mostrarSiguiente, 3000); return; }
       const bg = document.createElement('img');
       bg.className = 'bg-blur';
       bg.src = url;
@@ -294,7 +310,7 @@
       advanceTimer = setTimeout(mostrarSiguiente, PHOTO_DURATION);
     } else {
       const url = await obtenerVideo(entry.item).catch(() => null);
-      if (!url) { mostrarSiguiente(); return; }
+      if (!url) { advanceTimer = setTimeout(mostrarSiguiente, 3000); return; }
       const video = document.createElement('video');
       video.className = 'fg';
       video.src = url;
