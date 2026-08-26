@@ -160,7 +160,7 @@
   const GAS_URL = "https://script.google.com/macros/s/AKfycbz-sc2l5jW1oMN6Dkr-s3gduTSbTTlL2gRiPlw_khEQ6GzTCkJHlnqpgvrvD0b2sBOo/exec";
   const PHOTO_DURATION = 6500;
   const REFRESH_INTERVAL = 2 * 60 * 1000;
-  const PRECARGA_ADELANTE = 2;
+  const PRECARGA_ADELANTE = 3;
   const MODO = new URLSearchParams(location.search).get('modo'); // 'fotos' | 'videos' | null (ambos)
 
   const stage = document.getElementById('stage');
@@ -247,6 +247,13 @@
     return (entry.type === 'foto' ? obtenerFoto(entry.item) : obtenerVideo(entry.item)).catch(() => {});
   }
 
+  // Los videos pesan mucho más que las fotos: apenas arranca una vuelta
+  // de la playlist, se disparan todos en paralelo en segundo plano, para
+  // que tengan el máximo tiempo posible de bajar antes de que les toque.
+  function precargarTodosLosVideos(lista) {
+    lista.forEach(entry => { if (entry.type === 'video') precargar(entry); });
+  }
+
   function limpiarAnteriores() {
     const wraps = stage.querySelectorAll('.slide-wrap');
     if (wraps.length > 1) {
@@ -281,6 +288,7 @@
         await cargarDatos();
       }
       playlist = construirPlaylist();
+      precargarTodosLosVideos(playlist);
     }
 
     const entry = playlist[idx];
@@ -365,6 +373,7 @@
       playlist = construirPlaylist();
       idx = 0;
       if (playlist.length) {
+        precargarTodosLosVideos(playlist);
         await Promise.all([
           precargar(playlist[0]),
           precargar(playlist[1 % playlist.length])
