@@ -20,9 +20,11 @@ function doGet(e) {
     return getFotoBlob(e.parameter.id);
   }
   if (tipo === "mensajes") {
+    if (!claveValida(e.parameter.clave)) return errorNoAutorizado();
     return getMensajes();
   }
   if (tipo === "mensajeVideo") {
+    if (!claveValida(e.parameter.clave)) return errorNoAutorizado();
     return getMensajeBlob(e.parameter.id);
   }
   return getInvitados();
@@ -41,6 +43,7 @@ function doPost(e) {
       return addMensaje(params);
     }
     if (params.tipo === "borrarMensaje") {
+      if (!claveValida(params.clave)) return errorNoAutorizado();
       return borrarMensaje(params);
     }
     return confirmarInvitado(params);
@@ -58,6 +61,32 @@ function logError(err) {
     while (existentes.hasNext()) existentes.next().setTrashed(true);
     folder.createFile("ULTIMO_ERROR.txt", String((err && err.stack) || err), MimeType.PLAIN_TEXT);
   } catch (e2) {}
+}
+
+// ---------- Clave del panel de administración ----------
+// Pestaña "Config" en el mismo Sheet: columna A = nombre del campo,
+// columna B = valor. Fila esperada: ClaveAdmin | 2358 (sin encabezado).
+
+function getClaveAdmin() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Config");
+  if (!sheet) return "";
+  const data = sheet.getDataRange().getValues();
+  for (let i = 0; i < data.length; i++) {
+    if (String(data[i][0]).trim().toLowerCase() === "claveadmin") {
+      return String(data[i][1]).trim();
+    }
+  }
+  return "";
+}
+
+function claveValida(clave) {
+  const real = getClaveAdmin();
+  return real !== "" && String(clave || "").trim() === real;
+}
+
+function errorNoAutorizado() {
+  return ContentService.createTextOutput(JSON.stringify({ error: "No autorizado" }))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 // ---------- INVITADOS ----------

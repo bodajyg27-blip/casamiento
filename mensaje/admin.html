@@ -399,7 +399,7 @@
 
 <script>
   const GAS_URL = "https://script.google.com/macros/s/AKfycbz-sc2l5jW1oMN6Dkr-s3gduTSbTTlL2gRiPlw_khEQ6GzTCkJHlnqpgvrvD0b2sBOo/exec";
-  const CLAVE = "2358";
+  let claveActual = sessionStorage.getItem('mensajes-admin-clave') || '';
 
   const ICON_PLAY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
   const ICON_STOP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>';
@@ -419,21 +419,28 @@
     [...gateDots.children].forEach((dot, i) => dot.classList.toggle('filled', i < entrada.length));
   }
 
-  function unlockOk() {
-    sessionStorage.setItem('mensajes-admin-ok', '1');
+  function unlockOk(clave) {
+    claveActual = clave;
+    sessionStorage.setItem('mensajes-admin-clave', clave);
     gate.classList.add('hidden');
     panel.classList.remove('hidden');
     cargarMensajes();
   }
 
-  function unlockFail() {
-    gateError.textContent = 'Clave incorrecta';
+  function unlockFail(mensaje) {
+    gateError.textContent = mensaje || 'Clave incorrecta';
     gateDots.classList.add('shake');
     setTimeout(() => {
       gateDots.classList.remove('shake');
       entrada = '';
       pintarDots();
     }, 400);
+  }
+
+  async function verificarClave(clave) {
+    const res = await fetch(GAS_URL + '?tipo=mensajes&clave=' + encodeURIComponent(clave));
+    const data = await res.json();
+    return Array.isArray(data);
   }
 
   keypad.addEventListener('click', (e) => {
@@ -450,10 +457,16 @@
     pintarDots();
     if (entrada.length === 4) {
       gateError.textContent = '';
-      setTimeout(() => {
-        if (entrada === CLAVE) unlockOk();
+      keypad.style.pointerEvents = 'none';
+      const intento = entrada;
+      verificarClave(intento).then(ok => {
+        keypad.style.pointerEvents = '';
+        if (ok) unlockOk(intento);
         else unlockFail();
-      }, 120);
+      }).catch(() => {
+        keypad.style.pointerEvents = '';
+        unlockFail('Error de conexión, probá de nuevo');
+      });
     }
   });
 
@@ -516,8 +529,15 @@
     listEl.innerHTML = '';
     countBadge.classList.add('hidden');
     try {
-      const res = await fetch(GAS_URL + '?tipo=mensajes');
+      const res = await fetch(GAS_URL + '?tipo=mensajes&clave=' + encodeURIComponent(claveActual));
       const mensajes = await res.json();
+      if (!Array.isArray(mensajes)) {
+        sessionStorage.removeItem('mensajes-admin-clave');
+        panel.classList.add('hidden');
+        gate.classList.remove('hidden');
+        unlockFail('La clave cambió, ingresala de nuevo');
+        return;
+      }
       loadingEl.classList.add('hidden');
       if (!mensajes.length) {
         emptyEl.classList.remove('hidden');
@@ -567,7 +587,7 @@
         btnVer.disabled = true;
         btnVer.innerHTML = ICON_STOP;
         try {
-          const res = await fetch(GAS_URL + '?tipo=mensajeVideo&id=' + msg.id);
+          const res = await fetch(GAS_URL + '?tipo=mensajeVideo&id=' + msg.id + '&clave=' + encodeURIComponent(claveActual));
           const data = await res.json();
           video.src = 'data:' + data.mimeType + ';base64,' + data.data;
         } catch (err) {
@@ -594,7 +614,7 @@
         await fetch(GAS_URL, {
           method: 'POST',
           mode: 'no-cors',
-          body: JSON.stringify({ tipo: 'borrarMensaje', id: msg.id })
+          body: JSON.stringify({ tipo: 'borrarMensaje', id: msg.id, clave: claveActual })
         });
         item.classList.add('removing');
         toast('Mensaje borrado');
@@ -617,7 +637,7 @@
     listEl.appendChild(item);
   }
 
-  if (sessionStorage.getItem('mensajes-admin-ok') === '1') {
+  if (claveActual) {
     gate.classList.add('hidden');
     panel.classList.remove('hidden');
     cargarMensajes();

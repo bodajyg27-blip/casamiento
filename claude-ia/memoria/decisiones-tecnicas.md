@@ -64,6 +64,16 @@
 
 **Costo a tener en cuenta:** dibujar cada cuadro en un canvas vía `requestAnimationFrame` consume más CPU/batería que grabar directo desde la cámara. Para los 30 segundos máximos de grabación no debería notarse, pero es la primera sospecha si en algún momento se reporta que el iPad se calienta o se traba durante la grabación.
 
+## Clave del panel de mensajes validada en el servidor, guardada en el Sheet (mensaje/admin.html)
+
+**Decisión:** la clave de 4 dígitos para entrar a `mensaje/admin.html` ya no está hardcodeada en el HTML (`const CLAVE = "2358"`). Ahora vive en una pestaña `Config` del mismo Google Sheet (celda A1 `ClaveAdmin`, B1 el valor), y las funciones `getMensajes`, `getMensajeVideo` y `borrarMensaje` en `documentos/AppsScript_RSVP.gs` la exigen como parámetro (`clave`) y la validan del lado del servidor con `claveValida()` antes de devolver o borrar nada.
+
+**Por qué:** antes, aunque la clave estuviera escondida, cualquiera que descubriera las URLs `?tipo=mensajes` / `?tipo=mensajeVideo&id=...` o el POST `tipo:"borrarMensaje"` podía ver o borrar mensajes sin conocerla — la clave solo gateaba la pantalla, no los datos. Ahora el servidor rechaza esas llamadas si no viene la clave correcta (`errorNoAutorizado()`), sea cual sea el camino por el que lleguen.
+
+**Cómo funciona del lado del cliente:** `mensaje/admin.html` ya no compara el código tipeado contra una constante local — llama a `?tipo=mensajes&clave=XXXX` y si la respuesta es un array (no `{error:...}`), la clave es correcta. La clave que funcionó se guarda en `sessionStorage` (`mensajes-admin-clave`) y se manda en cada pedido posterior (listar, ver video, borrar). Si el servidor la rechaza en algún momento (por ejemplo, porque alguien cambió el valor en el Sheet), se limpia el `sessionStorage` y vuelve a pedir la clave.
+
+**Cómo aplicarlo:** si en el futuro se agrega otra acción de admin (por ejemplo, descargar todos los mensajes de una), hay que sumarle el mismo chequeo `claveValida()` en el `doGet`/`doPost` del Apps Script — no alcanza con que la pantalla pida la clave, cada endpoint sensible tiene que validarla por su cuenta.
+
 ## `index.html` como archivo de trabajo (histórico, superado en parte)
 
 **Decisión original:** a partir del 2026-07-10 se edita solo `documentos/index.html`. `documentos/invitacion_casamiento.html` queda congelado como archivo histórico.
