@@ -28,8 +28,11 @@ cargado en `MENSAJES_FOLDER_ID` dentro de `documentos/AppsScript_RSVP.gs`.
 
 La clave **no** está en el código — se guarda en el mismo Google Sheet que
 usan Invitados/Canciones/Regalo, para que no quede visible mirando el
-código fuente de la página, y el servidor la exige antes de listar, ver o
-borrar mensajes (no solo la pantalla de admin.html).
+código fuente de la página. El servidor la exige solo para **borrar**
+mensajes (`borrarMensaje`); listar y ver mensajes (`getMensajes`,
+`getMensajeVideo`) son públicos a propósito, porque `tv/index.html`
+también los necesita sin clave para mostrarlos en el slideshow — no tiene
+sentido proteger algo que se muestra igual en la TV del salón.
 
 1. En el Sheet, crear una pestaña nueva llamada exactamente **`Config`**.
 2. Celda **A1**: `ClaveAdmin`. Celda **B1**: el código de 4 dígitos que se

@@ -1,5 +1,13 @@
 # Bugs / pendientes conocidos — Invitación de casamiento
 
+## Resuelto — tv/index.html se quedaba en "Todavía no hay fotos ni mensajes"
+
+Al proteger `mensaje/admin.html` con clave (ver [[decisiones-tecnicas]]), se le agregó el chequeo `claveValida()` a `getMensajes`/`getMensajeVideo` en `doGet` — pero `tv/index.html` usa esos mismos endpoints para armar el slideshow y nunca mandaba clave, así que empezó a recibir `{"error":"No autorizado"}` en vez de la lista real. Eso rompía `construirPlaylist()` (`mensajes.map is not a function` al no ser un array), la playlist quedaba vacía y la pantalla mostraba el estado de "no hay contenido" aunque sí hubiera fotos y mensajes.
+
+**Fix:** se sacó el chequeo de clave de listar/ver (son públicos a propósito, se muestran igual en la TV) y se dejó **solo** en `borrarMensaje`, que es la única acción realmente destructiva. Se agregó una ruta `tipo: "verificarClave"` separada para que `mensaje/admin.html` siga pudiendo validar el código al entrar sin depender de que `getMensajes` rechace claves incorrectas.
+
+**Lección:** antes de agregarle auth a un endpoint compartido, buscar **todos** los archivos que lo llaman (`grep` por `tipo=mensajes` en el repo), no solo el que motivó el cambio.
+
 ## Resuelto — Divergencia git local/remoto
 
 `main` local y `origin/main` (`bodajyg27-blip/casamiento`) divergieron varias veces durante el 2026-07-10/11 porque alguien seguía editando una copia de la invitación directo en GitHub (raíz del repo: `index.html`, `invitacion/index.html`, `.github/workflows/static.yml`) mientras se trabajaba local en `documentos/`. Se resolvió con merges sucesivos (sin conflictos reales, porque las rutas tocadas por cada lado no se superponían) y quedó todo sincronizado. Ver la decisión de consolidar el trabajo en los archivos de la raíz en [[decisiones-tecnicas]].

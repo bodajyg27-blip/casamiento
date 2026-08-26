@@ -20,12 +20,14 @@ function doGet(e) {
     return getFotoBlob(e.parameter.id);
   }
   if (tipo === "mensajes") {
-    if (!claveValida(e.parameter.clave)) return errorNoAutorizado();
     return getMensajes();
   }
   if (tipo === "mensajeVideo") {
-    if (!claveValida(e.parameter.clave)) return errorNoAutorizado();
     return getMensajeBlob(e.parameter.id);
+  }
+  if (tipo === "verificarClave") {
+    return ContentService.createTextOutput(JSON.stringify({ ok: claveValida(e.parameter.clave) }))
+      .setMimeType(ContentService.MimeType.JSON);
   }
   return getInvitados();
 }
