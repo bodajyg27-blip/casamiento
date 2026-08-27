@@ -338,6 +338,30 @@
 <script>
   const GAS_URL = "https://script.google.com/macros/s/AKfycbz-sc2l5jW1oMN6Dkr-s3gduTSbTTlL2gRiPlw_khEQ6GzTCkJHlnqpgvrvD0b2sBOo/exec";
 
+  // Precarga en segundo plano las fotos del carrusel "Nuestra historia"
+  // (se ve igual en familiar/index.html e invitacion/index.html) mientras
+  // el invitado abre el sobre y busca su nombre acá, así llegan ya
+  // guardadas en sessionStorage y no hay que esperarlas de nuevo en la
+  // página de destino. sessionStorage sobrevive la navegación (a
+  // diferencia de una variable JS, que se pierde al cambiar de página).
+  async function precargarCarrusel() {
+    try {
+      const res = await fetch(GAS_URL + "?tipo=carrusel");
+      const fotos = await res.json();
+      if (!Array.isArray(fotos) || !fotos.length) return;
+      const mapa = {};
+      await Promise.all(fotos.map(async f => {
+        try {
+          const r = await fetch(GAS_URL + "?tipo=foto&id=" + f.id);
+          const d = await r.json();
+          mapa[f.id] = 'data:' + d.mimeType + ';base64,' + d.data;
+        } catch (err) {}
+      }));
+      sessionStorage.setItem('carruselCache', JSON.stringify({ ts: Date.now(), fotos: mapa }));
+    } catch (err) {}
+  }
+  precargarCarrusel();
+
   // ---------- Modo Invitación (código existente) ----------
 
   let guestList = [];

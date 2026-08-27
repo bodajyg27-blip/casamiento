@@ -714,10 +714,16 @@
   <!-- CANCIÓN -->
   <div class="card card-fondo reveal">
     <h2 class="section-title">Dejá tu canción</h2>
-    <div class="section-sub">Ayudanos a armar la playlist de la noche</div>
-    <input type="text" id="songInput" placeholder="Nombre de la canción y artista..." maxlength="50">
-    <button class="btn" onclick="addSong()">Agregar canción</button>
-    <div class="song-list" id="songList"></div>
+    <div id="songAbierto">
+      <div class="section-sub">Ayudanos a armar la playlist de la noche</div>
+      <input type="text" id="songInput" placeholder="Nombre de la canción y artista..." maxlength="50">
+      <button class="btn" onclick="addSong()">Agregar canción</button>
+      <div class="song-list" id="songList"></div>
+    </div>
+    <div id="songCerrado" style="display:none;">
+      <div class="section-sub">El plazo para sugerir canciones ya cerró</div>
+      <p style="font-size:16px;">Ya armamos la playlist con lo que nos dejaron. ¡Gracias!</p>
+    </div>
   </div>
 
   <!-- GALERÍA -->
@@ -782,12 +788,39 @@
     }
   })();
 
+  // Sugerir canciones también se cierra 15 días antes de la boda (tiempo
+  // para armar la playlist con lo que dejaron los invitados).
+  (function chequearPlazoCanciones() {
+    const fechaBoda = new Date(2027, 9, 23, 19, 0, 0);
+    const cierreCanciones = new Date(fechaBoda.getTime() - 15 * 24 * 60 * 60 * 1000);
+    if (new Date() >= cierreCanciones) {
+      document.getElementById('songAbierto').style.display = 'none';
+      document.getElementById('songCerrado').style.display = 'block';
+    }
+  })();
+
   // Carrusel de fotos ("Nuestra historia") — trae la lista de una carpeta
   // de Drive aparte (CARRUSEL_FOLDER_ID en el Apps Script) y reutiliza el
   // mismo endpoint tipo=foto que ya usa la galería para traer cada imagen.
+  // Fotos ya bajadas por index.html antes de redirigir acá (ver
+  // precargarCarrusel en index.html). Si están y no son viejas, se usan
+  // directo sin volver a pedirlas.
+  function leerCacheCarrusel() {
+    try {
+      const raw = sessionStorage.getItem('carruselCache');
+      if (!raw) return {};
+      const data = JSON.parse(raw);
+      if (Date.now() - data.ts > 5 * 60 * 1000) return {};
+      return data.fotos || {};
+    } catch (err) {
+      return {};
+    }
+  }
+
   async function loadCarrusel() {
     const track = document.getElementById('carruselTrack');
     const dotsEl = document.getElementById('carruselDots');
+    const cache = leerCacheCarrusel();
     try {
       const res = await fetch(GAS_URL + "?tipo=carrusel");
       const fotos = await res.json();
@@ -797,7 +830,7 @@
       }
       track.innerHTML = fotos.map(() => '<div class="carrusel-slide"><img class="carrusel-img" alt="Julieta y Gabriel"></div>').join('');
       const slides = track.querySelectorAll('.carrusel-slide');
-      fotos.forEach((f, i) => loadCarruselFoto(f, slides[i]));
+      fotos.forEach((f, i) => loadCarruselFoto(f, slides[i], cache[f.id]));
 
       dotsEl.innerHTML = fotos.map((_, i) => `<span class="carrusel-dot${i === 0 ? ' active' : ''}"></span>`).join('');
       const dots = dotsEl.querySelectorAll('.carrusel-dot');
@@ -828,11 +861,17 @@
     }
   }
 
-  async function loadCarruselFoto(foto, slideEl) {
+  async function loadCarruselFoto(foto, slideEl, dataUrlCacheada) {
+    const img = slideEl.querySelector('img');
+    if (dataUrlCacheada) {
+      img.src = dataUrlCacheada;
+      img.classList.add('ready');
+      slideEl.classList.add('loaded');
+      return;
+    }
     try {
       const res = await fetch(GAS_URL + "?tipo=foto&id=" + foto.id);
       const data = await res.json();
-      const img = slideEl.querySelector('img');
       img.src = 'data:' + data.mimeType + ';base64,' + data.data;
       img.classList.add('ready');
       slideEl.classList.add('loaded');
