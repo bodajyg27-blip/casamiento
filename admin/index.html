@@ -164,6 +164,45 @@
     padding: 18px 16px calc(40px + env(safe-area-inset-bottom));
   }
 
+  .modo-switch-card {
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px 16px;
+    box-shadow: 0 2px 8px rgba(75,83,32,0.06);
+    margin-bottom: 16px;
+  }
+  .modo-switch-label {
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  .modo-switch {
+    display: flex;
+    background: #eceed6;
+    border-radius: 10px;
+    padding: 4px;
+    gap: 4px;
+  }
+  .modo-btn {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #6b6942;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .modo-btn.active {
+    background: var(--olive);
+    color: var(--cream);
+  }
+  .modo-btn:disabled { opacity: 0.6; cursor: default; }
+
   .state-msg {
     text-align: center;
     color: var(--muted);
@@ -367,6 +406,14 @@
     </div>
 
     <div class="content">
+      <div class="modo-switch-card">
+        <div class="modo-switch-label">Qué se muestra en la web principal</div>
+        <div class="modo-switch" id="modoSwitch">
+          <button class="modo-btn" data-modo="savethedate">Save the Date</button>
+          <button class="modo-btn" data-modo="invitacion">Invitación</button>
+        </div>
+      </div>
+
       <div id="loading" class="state-msg">
         <div class="spinner"></div>
         <span>Cargando mensajes...</span>
@@ -425,6 +472,7 @@
     gate.classList.add('hidden');
     panel.classList.remove('hidden');
     cargarMensajes();
+    cargarModoSwitch();
   }
 
   function unlockFail(mensaje) {
@@ -634,7 +682,45 @@
     gate.classList.add('hidden');
     panel.classList.remove('hidden');
     cargarMensajes();
+    cargarModoSwitch();
   }
+
+  // ---------- Switch de modo (Save the Date / Invitación) ----------
+
+  const modoSwitch = document.getElementById('modoSwitch');
+  const modoBtns = modoSwitch.querySelectorAll('.modo-btn');
+
+  async function cargarModoSwitch() {
+    try {
+      const res = await fetch(GAS_URL + '?tipo=modoIndex');
+      const data = await res.json();
+      pintarModoActivo(data.modo);
+    } catch (err) {}
+  }
+
+  function pintarModoActivo(modo) {
+    modoBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.modo === modo));
+  }
+
+  modoBtns.forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (btn.classList.contains('active')) return;
+      modoBtns.forEach(b => b.disabled = true);
+      try {
+        await fetch(GAS_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          body: JSON.stringify({ tipo: 'setModoIndex', modo: btn.dataset.modo, clave: claveActual })
+        });
+        pintarModoActivo(btn.dataset.modo);
+        toast(btn.dataset.modo === 'savethedate' ? 'Ahora se muestra el Save the Date' : 'Ahora se muestra la invitación');
+      } catch (err) {
+        toast('No se pudo cambiar el modo, probá de nuevo');
+      } finally {
+        modoBtns.forEach(b => b.disabled = false);
+      }
+    });
+  });
 </script>
 </body>
 </html>

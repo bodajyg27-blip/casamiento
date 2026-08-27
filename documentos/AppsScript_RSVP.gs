@@ -5,6 +5,14 @@ const GALERIA_FOLDER_ID = "1QYVFOCSnEKjwwPsz23O1sdYEFdrQ8QRz";
 // ID de la carpeta de Google Drive donde se guardan los videos de "Dejanos un mensaje".
 const MENSAJES_FOLDER_ID = "1apKNUF3hWw8F4q-8EUd69j7gsSbD3YMJ";
 
+// ID de la carpeta de Google Drive con las fotos del carrusel "Nuestra historia"
+// en la portada. Se toma del ID en la URL de la carpeta.
+const CARRUSEL_FOLDER_ID = "1krOS3o8mvyNX3N_cvydD32PDI6ng83TO";
+
+// ID de la carpeta de Google Drive con el video de "Save the date" que se
+// muestra en index.html cuando ModoIndex (pestaña Config) = "savethedate".
+const SAVETHEDATE_FOLDER_ID = "1Z5_sw5Hu7L3D7hrvJnlf-U-SJ4YEvU1J";
+
 function doGet(e) {
   const tipo = e.parameter.tipo || "invitados";
   if (tipo === "canciones") {
@@ -15,6 +23,9 @@ function doGet(e) {
   }
   if (tipo === "galeria") {
     return getGaleria();
+  }
+  if (tipo === "carrusel") {
+    return getCarrusel();
   }
   if (tipo === "foto") {
     return getFotoBlob(e.parameter.id);
@@ -28,6 +39,13 @@ function doGet(e) {
   if (tipo === "verificarClave") {
     return ContentService.createTextOutput(JSON.stringify({ ok: claveValida(e.parameter.clave) }))
       .setMimeType(ContentService.MimeType.JSON);
+  }
+  if (tipo === "modoIndex") {
+    return ContentService.createTextOutput(JSON.stringify({ modo: getModoIndex() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  if (tipo === "saveTheDate") {
+    return getSaveTheDate();
   }
   return getInvitados();
 }
@@ -47,6 +65,10 @@ function doPost(e) {
     if (params.tipo === "borrarMensaje") {
       if (!claveValida(params.clave)) return errorNoAutorizado();
       return borrarMensaje(params);
+    }
+    if (params.tipo === "setModoIndex") {
+      if (!claveValida(params.clave)) return errorNoAutorizado();
+      return setModoIndex(params);
     }
     return confirmarInvitado(params);
   } catch (err) {
@@ -91,7 +113,64 @@ function errorNoAutorizado() {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+// ---------- Modo de index.html (Save the date / Invitación) ----------
+// Misma pestaña "Config" que la clave: fila "ModoIndex" | "savethedate" o
+// "invitacion". Si no existe la fila, se asume "invitacion" por default.
+
+function getModoIndex() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Config");
+  if (!sheet) return "invitacion";
+  const data = sheet.getDataRange().getValues();
+  for (let i = 0; i < data.length; i++) {
+    if (String(data[i][0]).trim().toLowerCase() === "modoindex") {
+      const valor = String(data[i][1] || "").trim().toLowerCase();
+      return valor === "savethedate" ? "savethedate" : "invitacion";
+    }
+  }
+  return "invitacion";
+}
+
+function setModoIndex(params) {
+  const modo = params.modo === "savethedate" ? "savethedate" : "invitacion";
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Config");
+  if (!sheet) {
+    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: "Falta la pestaña Config" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  const data = sheet.getDataRange().getValues();
+  for (let i = 0; i < data.length; i++) {
+    if (String(data[i][0]).trim().toLowerCase() === "modoindex") {
+      sheet.getRange(i + 1, 2).setValue(modo);
+      return ContentService.createTextOutput(JSON.stringify({ ok: true }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+  sheet.appendRow(["ModoIndex", modo]);
+  return ContentService.createTextOutput(JSON.stringify({ ok: true }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// Devuelve el id/nombre del primer video de la carpeta de "Save the date".
+// El contenido en sí se pide después con ?tipo=foto&id=... (reutiliza el
+// mismo endpoint que sirve fotos y videos en el resto del sitio).
+function getSaveTheDate() {
+  const folder = DriveApp.getFolderById(SAVETHEDATE_FOLDER_ID);
+  const files = folder.getFiles();
+  if (!files.hasNext()) {
+    return ContentService.createTextOutput(JSON.stringify({ error: "No hay video cargado" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  const file = files.next();
+  return ContentService.createTextOutput(JSON.stringify({
+    id: file.getId(),
+    nombre: file.getName()
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
 // ---------- INVITADOS ----------
+// Columnas: A=nombre, B=confirmado, C=fecha confirmación, D=restricciones,
+// E=detalle restricción, F=(sin uso), G=Tipo ("Familiar" o "Invitado") —
+// define a qué variante de invitación redirige el buscador de index.html.
 
 function getInvitados() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Invitados");
@@ -101,7 +180,8 @@ function getInvitados() {
     if (!data[i][0]) continue;
     guests.push({
       nombre: data[i][0],
-      confirmado: data[i][1] === true || data[i][1] === "TRUE"
+      confirmado: data[i][1] === true || data[i][1] === "TRUE",
+      tipo: String(data[i][6] || "").trim()
     });
   }
   return ContentService.createTextOutput(JSON.stringify(guests))
@@ -202,6 +282,42 @@ function getGaleria() {
   otrosTipos.forEach(tipo => agregar(folder.getFilesByType(tipo)));
 
   fotos.sort((a, b) => b.fecha - a.fecha);
+
+  return ContentService.createTextOutput(JSON.stringify(fotos))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// Fotos del carrusel "Nuestra historia" de la portada. A diferencia de
+// getGaleria(), se ordena por NOMBRE de archivo (no por fecha) para que
+// la pareja controle el orden nombrando los archivos "1.jpg", "2.jpg", etc.
+// Reutiliza el mismo endpoint tipo=foto que ya usa la galería para traer
+// cada imagen — no hace falta una función de blob aparte.
+function getCarrusel() {
+  const folder = DriveApp.getFolderById(CARRUSEL_FOLDER_ID);
+  const files = folder.getFilesByType(MimeType.JPEG);
+  const otrosTipos = [MimeType.PNG, MimeType.GIF, MimeType.BMP];
+  const fotos = [];
+  const vistos = {};
+  const baseUrl = ScriptApp.getService().getUrl();
+
+  function agregar(iter) {
+    while (iter.hasNext()) {
+      const file = iter.next();
+      const id = file.getId();
+      if (vistos[id]) continue;
+      vistos[id] = true;
+      fotos.push({
+        id: id,
+        nombre: file.getName(),
+        url: baseUrl + "?tipo=foto&id=" + id
+      });
+    }
+  }
+
+  agregar(files);
+  otrosTipos.forEach(tipo => agregar(folder.getFilesByType(tipo)));
+
+  fotos.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { numeric: true }));
 
   return ContentService.createTextOutput(JSON.stringify(fotos))
     .setMimeType(ContentService.MimeType.JSON);

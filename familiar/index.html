@@ -166,9 +166,6 @@
   .card-fondo .btn.secondary:hover {
     background: rgba(255,255,255,0.12);
   }
-  .card-fondo .gift-amount {
-    color: #f2f1de;
-  }
   .card-fondo .itinerario-item {
     border-bottom-color: rgba(255,255,255,0.2);
   }
@@ -183,9 +180,6 @@
   }
   .card-fondo .dresscode-text {
     color: #e3e4c4;
-  }
-  .card-fondo .copy-note {
-    color: #d6d8ba;
   }
 
   .divider {
@@ -563,23 +557,19 @@
     transform: translate(-50%, 0);
   }
 
-  /* Los datos de cada sección (horas, lugar, contador, pago) aparecen con
-     un leve fundido/desplazamiento escalonado justo cuando la sección se
+  /* Los datos de cada sección (horas, lugar, contador) aparecen con un
+     leve fundido/desplazamiento escalonado justo cuando la sección se
      centra en pantalla, en vez de mostrarse ya puestos de una. */
   .reveal .countdown-unit,
   .reveal .hora-lugar-ceremonia,
-  .reveal .hora-fiesta,
-  .reveal .gift-amount,
-  .reveal .bank-box {
+  .reveal .hora-fiesta {
     opacity: 0;
     transform: translateY(10px);
     transition: opacity 0.6s ease, transform 0.6s ease;
   }
   .reveal.centered .countdown-unit,
   .reveal.centered .hora-lugar-ceremonia,
-  .reveal.centered .hora-fiesta,
-  .reveal.centered .gift-amount,
-  .reveal.centered .bank-box {
+  .reveal.centered .hora-fiesta {
     opacity: 1;
     transform: translateY(0);
   }
@@ -589,12 +579,9 @@
   .reveal.centered .countdown-unit:nth-child(4) { transition-delay: 0.45s; }
   .reveal.centered .hora-lugar-ceremonia { transition-delay: 0.2s; }
   .reveal.centered .hora-fiesta { transition-delay: 0.35s; }
-  .reveal.centered .gift-amount { transition-delay: 0.15s; }
-  .reveal.centered .bank-box { transition-delay: 0.3s; }
 </style>
 </head>
 <body>
-
 
 <svg class="bg-pattern" xmlns="http://www.w3.org/2000/svg">
   <defs>
@@ -727,20 +714,6 @@
     <div class="song-list" id="songList"></div>
   </div>
 
-  <!-- REGALO / TARJETA -->
-  <div class="card card-fondo reveal">
-    <h2 class="section-title">Nuestro regalo de bodas</h2>
-    <div class="section-sub">Si querés colaborar con nuestra luna de miel, este es el valor sugerido de la tarjeta</div>
-    <div class="gift-amount" id="giftAmount">Cargando...</div>
-    <div class="bank-box">
-      <div><b>Titular:</b> <span id="giftTitular">—</span></div>
-      <div><b>Banco:</b> <span id="giftBanco">—</span></div>
-      <div><b>CBU:</b> <span id="giftCbu">—</span></div>
-      <div><b>Alias:</b> <span id="giftAlias">—</span></div>
-    </div>
-    <button class="btn secondary" onclick="copyAlias()">Copiar alias</button>
-  </div>
-
   <!-- GALERÍA -->
   <div class="card card-fondo reveal">
     <h2 class="section-title">Fotos del casamiento</h2>
@@ -855,6 +828,11 @@
 
   let revealObserver;
 
+  // La animación de los nombres de la primera sección empieza a
+  // observarse recién cuando se abre el sobre (si no, se reproduciría
+  // entera detrás del sobre todavía opaco). A partir de ahí se comporta
+  // como cualquier otra sección: se repite cada vez que vuelve a
+  // centrarse en pantalla.
   function revealFirstSection() {
     const first = document.querySelector('.reveal');
     if (first && revealObserver) revealObserver.observe(first);
@@ -1041,36 +1019,6 @@
     list.innerHTML = songs.map(s => `<div class="song-item"><span>🎵 ${s}</span></div>`).join('');
   }
 
-  // Datos de la tarjeta de regalo, traídos desde la pestaña "Regalo" del Sheet
-  let giftAlias = '';
-
-  async function loadRegalo() {
-    if (GAS_URL.startsWith("PEGAR_AQUI")) return;
-    try {
-      const res = await fetch(GAS_URL + "?tipo=regalo");
-      const data = await res.json();
-      if (data.Monto) {
-        const monto = Number(data.Monto);
-        document.getElementById('giftAmount').textContent = '$ ' + monto.toLocaleString('es-AR') + ' ARS';
-      }
-      document.getElementById('giftTitular').textContent = data.Titular || '';
-      document.getElementById('giftBanco').textContent = data.Banco || '';
-      document.getElementById('giftCbu').textContent = data.CBU || '';
-      document.getElementById('giftAlias').textContent = data.Alias || '';
-      giftAlias = data.Alias || '';
-    } catch (err) {
-      console.error('No se pudo cargar la info del regalo', err);
-    }
-  }
-  loadRegalo();
-
-  function copyAlias() {
-    if (!giftAlias) return;
-    navigator.clipboard.writeText(giftAlias).then(() => {
-      alert('Alias copiado: ' + giftAlias);
-    });
-  }
-
   // Animación de aparición al scrollear.
   // El observer arranca recién cuando se abre el sobre: si se registrara antes,
   // cualquier sección que ya estuviera dentro del viewport (aunque tapada por
@@ -1102,5 +1050,4 @@
   }
 </script>
 </body>
-</html>
-
+</html> 

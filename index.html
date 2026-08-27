@@ -17,9 +17,7 @@
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
-  html, body {
-    min-height: 100%;
-  }
+  html, body { min-height: 100%; }
 
   body {
     background-color: #eeecd4;
@@ -33,9 +31,13 @@
     color: #48472e;
     padding: 30px 15px;
     display: flex;
+    align-items: center;
     justify-content: center;
+    min-height: 100vh;
     position: relative;
   }
+
+  .hidden { display: none !important; }
 
   .bg-pattern {
     position: fixed;
@@ -46,62 +48,7 @@
     pointer-events: none;
   }
 
-  .wrap { max-width: 520px; width: 100%; position: relative; z-index: 1; }
-
-  .reveal {
-    opacity: 0;
-    transform: translateY(40px);
-    transition: opacity 0.9s ease, transform 0.9s ease;
-  }
-  .reveal.visible {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  .lugares-wrap {
-    position: relative;
-  }
-  .lugares-link {
-    position: absolute;
-    left: 30%;
-    width: 40%;
-    height: 3.6%;
-    display: block;
-    border-radius: 30px;
-    transition: background 0.2s ease;
-  }
-  .lugares-link:hover {
-    background: rgba(255,255,255,0.15);
-  }
-  .lugares-link-ceremonia { top: 43%; }
-  .lugares-link-fiesta { top: 81.5%; }
-
-  .hora-fiesta, .hora-lugar-ceremonia {
-    position: absolute;
-    left: 30%;
-    right: 30%;
-    background: #676d64;
-    color: #f2f1de;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 19px;
-    font-weight: 600;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    pointer-events: none;
-  }
-  .hora-fiesta {
-    top: 73.4%;
-    height: 3.4%;
-  }
-  .hora-lugar-ceremonia {
-    left: 27%;
-    right: 27%;
-    top: 37.3%;
-    height: 3.2%;
-  }
+  .wrap { max-width: 480px; width: 100%; position: relative; z-index: 1; }
 
   .card {
     background: #f9f8ec;
@@ -111,9 +58,7 @@
     text-align: center;
     box-shadow: 0 15px 40px rgba(0,0,0,0.10);
     position: relative;
-    margin-bottom: 22px;
   }
-
   .card::before, .card::after {
     content: "";
     position: absolute;
@@ -124,47 +69,28 @@
   .card::before { top: 10px; left: 10px; border-right: none; border-bottom: none; }
   .card::after { bottom: 10px; right: 10px; border-left: none; border-top: none; }
 
-  .card-fondo {
-    background-image: url('img/fondo.jpg');
-    background-size: cover;
-    background-position: center;
-    border: none;
+  .kicker {
+    font-family: 'Edwardian Script ITC', cursive;
+    font-weight: normal;
+    font-size: 52px;
+    color: #4b5320;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
   }
-  .card-fondo::before,
-  .card-fondo::after {
-    content: none;
+  h1 {
+    font-size: 17px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: #4b5320;
+    margin-bottom: 2px;
   }
-  .card-fondo h2.section-title {
-    color: #f2f1de;
-  }
-  .card-fondo .section-sub {
-    color: #d6d8ba;
-  }
-  .card-fondo .no-results {
-    color: #d6d8ba;
-  }
-  .card-fondo .selected-name {
-    color: #f2f1de;
-  }
-  .card-fondo .restriction-options label {
-    color: #f2f1de;
-  }
-  .card-fondo .divider {
-    background: #d6d8ba;
-  }
-  .card-fondo .song-item {
-    color: #f2f1de;
-    border-bottom-color: rgba(255,255,255,0.2);
-  }
-  .card-fondo .song-item span.by {
-    color: #d6d8ba;
-  }
-  .card-fondo .btn.secondary {
-    color: #f2f1de;
-    border-color: #f2f1de;
-  }
-  .card-fondo .btn.secondary:hover {
-    background: rgba(255,255,255,0.12);
+  .intro {
+    font-family: 'Edwardian Script ITC', cursive;
+    font-weight: normal;
+    font-size: 26px;
+    color: #71724a;
+    margin-bottom: 20px;
   }
 
   .divider {
@@ -174,116 +100,37 @@
     margin: 22px auto;
   }
 
-  .portada-image {
-    margin-bottom: 22px;
-    border-radius: 4px;
-    overflow: hidden;
-    box-shadow: 0 15px 40px rgba(0,0,0,0.10);
-  }
-  .portada-image img {
-    display: block;
+  input[type="text"] {
     width: 100%;
-    height: auto;
+    padding: 12px 14px;
+    border: 1px solid #c7c894;
+    border-radius: 3px;
+    background: #f6f5e6;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 17px;
+    color: #48472e;
+    outline: none;
   }
+  input[type="text"]:focus { border-color: #7d7a3f; }
 
-  .hero-first {
-    min-height: calc(100vh - 60px);
+  .guest-results { margin-top: 16px; text-align: left; }
+  .guest-item {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
+    padding: 12px 14px;
+    border: 1px solid #dcdcb0;
+    border-radius: 3px;
+    margin-bottom: 8px;
+    background: #f6f5e6;
+    cursor: pointer;
+    transition: background 0.15s ease;
   }
-  .hero-first .portada-image {
-    margin-bottom: 0;
-    width: 100%;
-  }
+  .guest-item:hover { background: #eceed6; }
+  .guest-item span { font-family: 'Edwardian Script ITC', cursive; font-weight: normal; font-size: 30px; }
+  .no-results, .buscando { font-size: 15px; color: #7d7a3f; margin-top: 10px; }
 
-  .details strong {
-    display: block;
-    font-size: 23px;
-    letter-spacing: 1px;
-    margin-bottom: 4px;
-  }
-
-  .countdown {
-    display: flex;
-    justify-content: center;
-    gap: 16px;
-    margin-top: 14px;
-  }
-  .countdown-unit {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-width: 44px;
-  }
-  .countdown-num {
-    font-size: 24px;
-    font-weight: 600;
-    color: #4b5320;
-    font-variant-numeric: tabular-nums;
-  }
-  .countdown-label {
-    font-size: 11px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: #7d7a3f;
-    margin-top: 2px;
-  }
-
-  .calendario-wrap {
-    position: relative;
-  }
-  .nombres-wrap {
-    position: relative;
-  }
-  .nombres-overlay {
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    transform: translateY(-50%);
-    text-align: center;
-    font-family: 'Edwardian Script ITC', cursive;
-    color: #4b5320;
-  }
-  .nombres-part {
-    display: block;
-    font-size: 64px;
-    line-height: 1.15;
-    opacity: 0;
-    transform: translateY(14px);
-    transition: opacity 0.7s ease, transform 0.7s ease;
-  }
-  .nombres-amp {
-    display: block;
-    font-size: 30px;
-    margin: 4px 0;
-    color: #9c9a52;
-    opacity: 0;
-    transform: translateY(14px);
-    transition: opacity 0.7s ease, transform 0.7s ease;
-  }
-  .reveal.centered .nombres-part,
-  .reveal.centered .nombres-amp {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  .reveal.centered .nombres-part:nth-child(1) { transition-delay: 0.2s; }
-  .reveal.centered .nombres-amp { transition-delay: 0.5s; }
-  .reveal.centered .nombres-part:nth-child(3) { transition-delay: 0.8s; }
-  .countdown-overlay {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 77%;
-  }
-  .countdown-overlay .countdown-num {
-    color: #f2f1de;
-  }
-  .countdown-overlay .countdown-label {
-    color: #c9cba3;
-  }
-
+  /* SOBRE DE APERTURA */
   .envelope {
     position: fixed;
     inset: 0;
@@ -357,589 +204,235 @@
     animation-delay: 1.75s;
   }
   @keyframes envelopeTextIn {
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    to { opacity: 1; transform: translateY(0); }
   }
 
-  h2.section-title {
-    font-family: 'Edwardian Script ITC', cursive;
-    font-weight: normal;
-    font-size: 52px;
-    color: #4b5320;
-    letter-spacing: 1px;
-    margin-bottom: 6px;
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.9s ease, transform 0.9s ease;
   }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
 
-  .section-sub {
-    font-family: 'Edwardian Script ITC', cursive;
-    font-weight: normal;
-    font-size: 30px;
-    color: #71724a;
-    margin-bottom: 20px;
+  /* SAVE THE DATE */
+  .std-wrap {
+    position: fixed;
+    inset: 0;
+    background: #14130a;
+    background-image:
+      radial-gradient(circle at 20% 20%, rgba(156,163,82,0.25), transparent 45%),
+      radial-gradient(circle at 80% 80%, rgba(108,128,68,0.2), transparent 45%);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
   }
-
-  input[type="text"] {
+  .std-video {
     width: 100%;
-    padding: 12px 14px;
-    border: 1px solid #c7c894;
-    border-radius: 3px;
-    background: #f6f5e6;
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 17px;
-    color: #48472e;
-    outline: none;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
   }
-  input[type="text"]:focus { border-color: #7d7a3f; }
-
-  .btn {
-    display: inline-block;
-    margin-top: 14px;
-    padding: 11px 30px;
-    background: #4b5320;
-    color: #f9f8ec;
-    border: none;
-    font-size: 15px;
+  .std-start {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #f2f1de;
+    cursor: pointer;
+    text-align: center;
+    padding: 20px;
+  }
+  .std-start .kicker {
+    font-family: 'Edwardian Script ITC', cursive;
+    font-size: clamp(48px, 10vw, 90px);
+    margin-bottom: 14px;
+    color: #f2f1de;
+  }
+  .std-start .std-sub {
+    font-size: clamp(15px, 2vw, 20px);
     letter-spacing: 2px;
     text-transform: uppercase;
-    border-radius: 2px;
-    cursor: pointer;
-    font-family: 'Cormorant Garamond', serif;
-    transition: background 0.2s ease;
+    color: #d6d8ba;
+    margin-bottom: 40px;
   }
-  .btn:hover { background: #3a4118; }
-  .btn.secondary { background: transparent; color: #4b5320; border: 1px solid #4b5320; }
-  .btn.secondary:hover { background: #eceed6; }
-
-  .guest-results { margin-top: 16px; text-align: left; }
-  .guest-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 14px;
-    border: 1px solid #dcdcb0;
-    border-radius: 3px;
-    margin-bottom: 8px;
-    background: #f6f5e6;
-  }
-  .guest-item span { font-family: 'Edwardian Script ITC', cursive; font-weight: normal; font-size: 32px; }
-  .guest-actions button {
-    font-size: 13px;
-    padding: 6px 12px;
-    margin-left: 6px;
-    border-radius: 3px;
-    border: 1px solid #7d7a3f;
-    background: #f9f8ec;
-    color: #4b5320;
-    cursor: pointer;
-    font-family: 'Cormorant Garamond', serif;
-  }
-  .guest-actions button.confirmed { background: #4b5320; color: #f9f8ec; }
-  .no-results { font-size: 15px; color: #7d7a3f; margin-top: 10px; }
-
-  .guest-item.selectable { cursor: pointer; transition: background 0.15s ease; }
-  .guest-item.selectable:hover { background: #eceed6; }
-  .guest-item .status-tag { font-size: 13px; color: #6b7a3a; }
-
-  .restriction-panel { text-align: left; margin-top: 8px; }
-  .selected-name {
-    font-family: 'Edwardian Script ITC', cursive;
-    font-size: 34px;
-    color: #4b5320;
-    font-weight: normal;
-    margin-bottom: 14px;
-  }
-  .restriction-options {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px 18px;
-    margin-bottom: 6px;
-  }
-  .restriction-options label {
-    font-size: 17px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-  }
-  .restriction-options input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    accent-color: #4b5320;
-  }
-  .detail-field { margin-top: 10px; }
-  .restriction-panel .btn { display: block; width: 100%; text-align: center; }
-
-  .song-list { margin-top: 18px; text-align: left; max-height: 180px; overflow-y: auto; }
-  .song-item {
-    padding: 10px 14px;
-    border-bottom: 1px solid #e4e4c4;
-    font-size: 16px;
-    display: flex;
-    justify-content: space-between;
-  }
-  .song-item span.by { color: #7d7a3f; font-size: 14px; }
-
-  .gift-amount {
-    font-size: 30px;
-    color: #4b5320;
-    font-weight: 600;
-    margin: 8px 0 18px;
-  }
-
-  .bank-box {
-    background: #f2f1de;
-    border: 1px dashed #9c9a52;
-    border-radius: 4px;
-    padding: 18px;
-    text-align: left;
-    font-size: 16px;
-    line-height: 1.9;
-    margin-top: 10px;
-  }
-  .bank-box b { color: #4b5320; }
-
-  .copy-note { font-size: 13px; color: #7d7a3f; margin-top: 8px; }
-
-  footer { text-align: center; font-size: 13px; color: #7d7a3f; padding: 10px 0 20px; }
-  .footer-rings {
-    height: 1.6em;
-    width: auto;
-    vertical-align: middle;
-    margin: 0 6px;
-    position: relative;
-    top: -1px;
-  }
-
-  .toast {
-    position: fixed;
-    left: 50%;
-    bottom: 30px;
-    transform: translate(-50%, 20px);
-    background: #4b5320;
-    color: #f9f8ec;
-    padding: 13px 26px;
+  .std-start .hint {
+    font-size: clamp(13px, 1.5vw, 16px);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 13px 32px;
+    border: 1px solid rgba(242,241,222,0.5);
     border-radius: 30px;
-    font-size: 16px;
-    letter-spacing: 0.5px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.35s ease, transform 0.35s ease;
-    z-index: 50;
+    animation: pulseHint 1.8s ease-in-out infinite;
   }
-  .toast.show {
-    opacity: 1;
-    transform: translate(-50%, 0);
+  @keyframes pulseHint {
+    0%, 100% { opacity: 0.65; }
+    50% { opacity: 1; }
   }
-
-  /* Los datos de cada sección (horas, lugar, contador) aparecen con un
-     leve fundido/desplazamiento escalonado justo cuando la sección se
-     centra en pantalla, en vez de mostrarse ya puestos de una. */
-  .reveal .countdown-unit,
-  .reveal .hora-lugar-ceremonia,
-  .reveal .hora-fiesta {
-    opacity: 0;
-    transform: translateY(10px);
-    transition: opacity 0.6s ease, transform 0.6s ease;
-  }
-  .reveal.centered .countdown-unit,
-  .reveal.centered .hora-lugar-ceremonia,
-  .reveal.centered .hora-fiesta {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  .reveal.centered .countdown-unit:nth-child(1) { transition-delay: 0.15s; }
-  .reveal.centered .countdown-unit:nth-child(2) { transition-delay: 0.25s; }
-  .reveal.centered .countdown-unit:nth-child(3) { transition-delay: 0.35s; }
-  .reveal.centered .countdown-unit:nth-child(4) { transition-delay: 0.45s; }
-  .reveal.centered .hora-lugar-ceremonia { transition-delay: 0.2s; }
-  .reveal.centered .hora-fiesta { transition-delay: 0.35s; }
 </style>
 </head>
 <body>
 
-<div class="envelope" id="envelope">
-  <div class="envelope-content">
-    <div class="envelope-kicker">Nos casamos</div>
-    <div class="envelope-names">
-      <span class="envelope-name-part">Julieta</span>
-      <span class="envelope-amp">&amp;</span>
-      <span class="envelope-name-part">Gabriel</span>
-    </div>
-  </div>
-  <div class="envelope-hint">Tocá para abrir la invitación</div>
-</div>
+<div id="loadingGate"></div>
 
-<svg class="bg-pattern" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <pattern id="floral" width="200" height="200" patternUnits="userSpaceOnUse" patternTransform="rotate(8)">
-      <g stroke="#9c9a52" stroke-width="1.1" fill="none" opacity="0.35">
-        <path d="M20 180 C 40 140, 30 100, 60 70 C 90 40, 130 50, 150 20" />
-        <circle cx="60" cy="70" r="9" />
-        <circle cx="150" cy="20" r="7" />
-        <path d="M60 70 q 15 -10 25 5" />
-        <path d="M150 20 q 12 -8 20 2" />
-        <path d="M100 150 c 10 -20 30 -20 40 -5" />
-        <circle cx="140" cy="140" r="5" />
-        <path d="M10 40 q 20 15 15 35" />
-        <circle cx="10" cy="40" r="4" />
-      </g>
-    </pattern>
-  </defs>
-  <rect width="100%" height="100%" fill="url(#floral)" />
-</svg>
-
-<div class="wrap">
-
-  <!-- PORTADA -->
-  <div class="hero-first reveal">
-    <div class="portada-image nombres-wrap">
-      <img src="img/TARJETA.jpg" width="1561" height="2056" alt="Nos casamos — Julieta &amp; Gabriel. Con inmensa alegría queremos invitarte a celebrar el día en que unimos nuestras vidas.">
-      <div class="nombres-overlay">
-        <span class="nombres-part">Julieta</span>
-        <span class="nombres-amp">&amp;</span>
-        <span class="nombres-part">Gabriel</span>
+<!-- MODO: INVITACIÓN (sobre + buscador) -->
+<div id="modoInvitacion" class="hidden">
+  <div class="envelope" id="envelope">
+    <div class="envelope-content">
+      <div class="envelope-kicker">Nos casamos</div>
+      <div class="envelope-names">
+        <span class="envelope-name-part">Julieta</span>
+        <span class="envelope-amp">&amp;</span>
+        <span class="envelope-name-part">Gabriel</span>
       </div>
     </div>
+    <div class="envelope-hint">Tocá para abrir la invitación</div>
   </div>
 
-  <!-- GUARDÁ LA FECHA -->
-  <div class="portada-image reveal calendario-wrap">
-    <img src="img/calendario.jpg" width="1561" height="2056" loading="lazy" alt="Guardá la fecha — Sábado 23 de octubre de 2027">
-    <div class="countdown countdown-overlay" id="countdown">
-      <div class="countdown-unit"><span class="countdown-num" id="cdDays">0</span><span class="countdown-label">días</span></div>
-      <div class="countdown-unit"><span class="countdown-num" id="cdHours">00</span><span class="countdown-label">hs</span></div>
-      <div class="countdown-unit"><span class="countdown-num" id="cdMins">00</span><span class="countdown-label">min</span></div>
-      <div class="countdown-unit"><span class="countdown-num" id="cdSecs">00</span><span class="countdown-label">seg</span></div>
-    </div>
-  </div>
+  <svg class="bg-pattern" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <pattern id="floral" width="200" height="200" patternUnits="userSpaceOnUse" patternTransform="rotate(8)">
+        <g stroke="#9c9a52" stroke-width="1.1" fill="none" opacity="0.35">
+          <path d="M20 180 C 40 140, 30 100, 60 70 C 90 40, 130 50, 150 20" />
+          <circle cx="60" cy="70" r="9" />
+          <circle cx="150" cy="20" r="7" />
+          <path d="M60 70 q 15 -10 25 5" />
+          <path d="M150 20 q 12 -8 20 2" />
+          <path d="M100 150 c 10 -20 30 -20 40 -5" />
+          <circle cx="140" cy="140" r="5" />
+          <path d="M10 40 q 20 15 15 35" />
+          <circle cx="10" cy="40" r="4" />
+        </g>
+      </pattern>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#floral)" />
+  </svg>
 
-  <!-- LUGAR -->
-  <div class="portada-image reveal lugares-wrap">
-    <img src="img/lugares.jpg" width="1561" height="2056" loading="lazy" alt="Ceremonia y fiesta — cómo llegar">
-    <div class="hora-lugar-ceremonia">19:00 - Iglesia</div>
-    <div class="hora-fiesta">20:30 hs</div>
-    <a class="lugares-link lugares-link-ceremonia" href="https://www.google.com/maps/search/?api=1&query=Calle+Espejo+1940+Maip%C3%BA+Mendoza" target="_blank" rel="noopener" aria-label="Cómo llegar a la ceremonia"></a>
-    <a class="lugares-link lugares-link-fiesta" href="https://www.google.com/maps/search/?api=1&query=Calle+Espejo+1940+Maip%C3%BA+Mendoza" target="_blank" rel="noopener" aria-label="Cómo llegar a la fiesta"></a>
-  </div>
-
-  <!-- RSVP -->
-  <div class="card card-fondo reveal">
-    <h2 class="section-title">Confirmar asistencia</h2>
-    <div class="section-sub">Buscá tu nombre en la lista de invitados</div>
-    <input type="text" id="rsvpSearch" placeholder="Escribí tu nombre..." oninput="searchGuest()">
-    <div class="guest-results" id="guestResults"></div>
-
-    <div class="restriction-panel" id="restrictionPanel" style="display:none;">
+  <div class="wrap">
+    <div class="card reveal">
+      <p class="kicker">Julieta &amp; Gabriel</p>
+      <h1>Nos casamos</h1>
       <div class="divider"></div>
-      <div class="selected-name" id="selectedName"></div>
-      <div class="section-sub">¿Tenés alguna restricción alimentaria?</div>
-      <div class="restriction-options">
-        <label><input type="checkbox" value="Celiaquía" class="restriction-check"> Celiaquía</label>
-        <label><input type="checkbox" value="Diabetes" class="restriction-check"> Diabetes</label>
-        <label><input type="checkbox" value="Vegetariano" class="restriction-check"> Vegetariano</label>
-        <label><input type="checkbox" value="Intolerancia" class="restriction-check" onchange="toggleDetailField('intolerancia', this)"> Intolerancia</label>
-        <label><input type="checkbox" value="Otros" class="restriction-check" onchange="toggleDetailField('otros', this)"> Otros</label>
-      </div>
-      <input type="text" id="intoleranciaDetail" class="detail-field" placeholder="¿A qué sos intolerante?" style="display:none;">
-      <input type="text" id="otrosDetail" class="detail-field" placeholder="Especificá tu restricción..." style="display:none;">
-      <button class="btn" id="confirmBtn" onclick="submitConfirmation()">Confirmar asistencia</button>
+      <p class="intro">Buscá tu nombre para ver tu invitación</p>
+      <input type="text" id="nameSearch" placeholder="Escribí tu nombre..." oninput="searchGuest()" autocomplete="off">
+      <div class="guest-results" id="guestResults"></div>
     </div>
   </div>
-
-  <!-- CANCIÓN -->
-  <div class="card card-fondo reveal">
-    <h2 class="section-title">Dejá tu canción</h2>
-    <div class="section-sub">Ayudanos a armar la playlist de la noche</div>
-    <input type="text" id="songInput" placeholder="Nombre de la canción y artista..." maxlength="50">
-    <button class="btn" onclick="addSong()">Agregar canción</button>
-    <div class="song-list" id="songList"></div>
-  </div>
-
-  <!-- GALERÍA -->
-  <div class="card card-fondo reveal">
-    <h2 class="section-title">Fotos del casamiento</h2>
-    <div class="section-sub">Subí tus fotos y mirá las que van compartiendo los demás invitados</div>
-    <a class="btn secondary" href="galeria/index.html">Ver galería</a>
-  </div>
-
-  <footer>Julieta &amp; Gabriel <img src="img/alianzas.webp" width="500" height="624" loading="lazy" alt="" class="footer-rings"> 23.10.2027</footer>
 </div>
 
-<div class="toast" id="toast"></div>
+<!-- MODO: SAVE THE DATE -->
+<div id="modoSaveTheDate" class="hidden">
+  <div class="std-wrap">
+    <video class="std-video hidden" id="stdVideo" playsinline controls></video>
+    <div class="std-start" id="stdStart">
+      <p class="kicker">Julieta &amp; Gabriel</p>
+      <p class="std-sub">Save the date</p>
+      <p class="hint">Tocá para reproducir</p>
+    </div>
+  </div>
+</div>
 
 <script>
-  // Evita que el navegador restaure el scroll de la visita anterior al
-  // recargar (si no, se ve el sobre a medio abrir un instante antes de
-  // que corra el JS, como si "recargara con un mini-scroll").
-  if ('scrollRestoration' in history) {
-    history.scrollRestoration = 'manual';
-  }
-  window.scrollTo(0, 0);
-
-  // === CONEXIÓN CON GOOGLE SHEET ===
-  // 1. Deployá el Apps Script como "Aplicación web" (acceso: Cualquier usuario)
-  // 2. Pegá acá la URL que termina en /exec
   const GAS_URL = "https://script.google.com/macros/s/AKfycbz-sc2l5jW1oMN6Dkr-s3gduTSbTTlL2gRiPlw_khEQ6GzTCkJHlnqpgvrvD0b2sBOo/exec";
 
-  // Cuenta regresiva en vivo: días, horas, minutos y segundos hasta la boda
-  function renderCountdown(targetDate) {
-    const daysEl = document.getElementById('cdDays');
-    const hoursEl = document.getElementById('cdHours');
-    const minsEl = document.getElementById('cdMins');
-    const secsEl = document.getElementById('cdSecs');
-    const pad = n => String(n).padStart(2, '0');
+  // ---------- Modo Invitación (código existente) ----------
 
-    function update() {
-      const diffMs = targetDate - new Date();
-      if (diffMs <= 0) {
-        daysEl.textContent = '0';
-        hoursEl.textContent = minsEl.textContent = secsEl.textContent = '00';
-        return;
-      }
-      const totalSeconds = Math.floor(diffMs / 1000);
-      daysEl.textContent = Math.floor(totalSeconds / 86400);
-      hoursEl.textContent = pad(Math.floor((totalSeconds % 86400) / 3600));
-      minsEl.textContent = pad(Math.floor((totalSeconds % 3600) / 60));
-      secsEl.textContent = pad(totalSeconds % 60);
-    }
-    update();
-    setInterval(update, 1000);
-  }
-  renderCountdown(new Date(2027, 9, 23, 19, 0, 0));
-
-  // Sobre de apertura: se abre con un click/tap
-  const envelope = document.getElementById('envelope');
-  let revealObserver;
-
-  // La animación de los nombres de la primera sección empieza a
-  // observarse recién cuando se abre el sobre (si no, se reproduciría
-  // entera detrás del sobre todavía opaco). A partir de ahí se comporta
-  // como cualquier otra sección: se repite cada vez que vuelve a
-  // centrarse en pantalla.
-  function revealFirstSection() {
-    const first = document.querySelector('.reveal');
-    if (first && revealObserver) revealObserver.observe(first);
-  }
-
-  document.documentElement.style.overflow = 'hidden';
-  envelope.addEventListener('click', () => {
-    envelope.classList.add('open');
-    document.documentElement.style.overflow = '';
-    revealFirstSection();
-  }, { once: true });
-
-  setupReveal();
-
-  let guestList = []; // se carga desde la planilla al abrir la página
-
+  let guestList = [];
   async function loadGuests() {
-    if (GAS_URL.startsWith("PEGAR_AQUI")) return; // todavía no configurado
     try {
       const res = await fetch(GAS_URL);
-      guestList = await res.json(); // [{ nombre, confirmado }, ...]
+      guestList = await res.json(); // [{ nombre, confirmado, tipo }, ...]
     } catch (err) {
       console.error('No se pudo conectar con la planilla', err);
     }
   }
-  loadGuests();
-
-  let selectedGuestName = null;
 
   function searchGuest() {
-    const query = document.getElementById('rsvpSearch').value.trim().toLowerCase();
+    const query = document.getElementById('nameSearch').value.trim().toLowerCase();
     const resultsDiv = document.getElementById('guestResults');
     resultsDiv.innerHTML = "";
-    hideRestrictionPanel();
-
     if (query.length < 2) return;
 
-    if (GAS_URL.startsWith("PEGAR_AQUI")) {
-      resultsDiv.innerHTML = '<div class="no-results">Conectá primero la planilla (GAS_URL) para habilitar la búsqueda.</div>';
-      return;
-    }
-
     const matches = guestList.filter(g => g.nombre.toLowerCase().includes(query));
-
     if (matches.length === 0) {
-      resultsDiv.innerHTML = '<div class="no-results">No encontramos tu nombre. Contactanos directamente para confirmar.</div>';
+      resultsDiv.innerHTML = '<div class="no-results">No encontramos tu nombre. Contactanos directamente.</div>';
       return;
     }
-
     matches.forEach(g => {
       const item = document.createElement('div');
-      item.className = 'guest-item selectable';
-      item.innerHTML = `
-        <span>${g.nombre}</span>
-        <span class="status-tag">${g.confirmado ? 'Ya confirmado ✓' : ''}</span>
-      `;
-      item.onclick = () => selectGuest(g.nombre);
+      item.className = 'guest-item';
+      item.innerHTML = `<span>${g.nombre}</span>`;
+      item.onclick = () => irALaInvitacion(g);
       resultsDiv.appendChild(item);
     });
   }
 
-  function selectGuest(nombre) {
-    selectedGuestName = nombre;
-    document.getElementById('guestResults').innerHTML = '';
-    document.getElementById('rsvpSearch').value = nombre;
-
-    const guest = guestList.find(g => g.nombre === nombre);
-    document.getElementById('selectedName').textContent = nombre +
-      (guest && guest.confirmado ? ' — asistencia ya confirmada ✓' : '');
-
-    // reset panel state
-    document.querySelectorAll('.restriction-check').forEach(c => c.checked = false);
-    document.getElementById('intoleranciaDetail').style.display = 'none';
-    document.getElementById('intoleranciaDetail').value = '';
-    document.getElementById('otrosDetail').style.display = 'none';
-    document.getElementById('otrosDetail').value = '';
-
-    const confirmBtn = document.getElementById('confirmBtn');
-    confirmBtn.textContent = 'Confirmar asistencia';
-
-    document.getElementById('restrictionPanel').style.display = 'block';
+  function irALaInvitacion(guest) {
+    document.getElementById('guestResults').innerHTML = '<div class="buscando">Un momento…</div>';
+    const destino = guest.tipo === 'Familiar' ? 'familiar/index.html' : 'invitacion/index.html';
+    setTimeout(() => { window.location.href = destino; }, 300);
   }
 
-  function hideRestrictionPanel() {
-    selectedGuestName = null;
-    document.getElementById('restrictionPanel').style.display = 'none';
+  function initInvitacion() {
+    document.getElementById('modoInvitacion').classList.remove('hidden');
+    window.searchGuest = searchGuest;
+    loadGuests();
+
+    const envelope = document.getElementById('envelope');
+    document.documentElement.style.overflow = 'hidden';
+    envelope.addEventListener('click', () => {
+      envelope.classList.add('open');
+      document.documentElement.style.overflow = '';
+      document.querySelector('.reveal').classList.add('visible');
+    }, { once: true });
   }
 
-  function toggleDetailField(which, checkbox) {
-    const field = document.getElementById(which + 'Detail');
-    field.style.display = checkbox.checked ? 'block' : 'none';
-    if (!checkbox.checked) field.value = '';
+  // ---------- Modo Save the Date ----------
+
+  function initSaveTheDate() {
+    document.getElementById('modoSaveTheDate').classList.remove('hidden');
+    const overlay = document.getElementById('stdStart');
+    const video = document.getElementById('stdVideo');
+
+    overlay.addEventListener('click', async function empezar() {
+      overlay.querySelector('.hint').textContent = 'Cargando...';
+      try {
+        const res = await fetch(GAS_URL + "?tipo=saveTheDate");
+        const info = await res.json();
+        if (!info.id) throw new Error('sin video');
+        const res2 = await fetch(GAS_URL + "?tipo=foto&id=" + info.id);
+        const data = await res2.json();
+        video.src = 'data:' + data.mimeType + ';base64,' + data.data;
+        video.classList.remove('hidden');
+        overlay.classList.add('hidden');
+        video.play();
+      } catch (err) {
+        overlay.querySelector('.hint').textContent = 'No se pudo cargar el video';
+      }
+    }, { once: true });
   }
 
-  async function submitConfirmation() {
-    if (!selectedGuestName) return;
+  // ---------- Arranque: decide qué modo mostrar ----------
 
-    const restricciones = Array.from(document.querySelectorAll('.restriction-check:checked')).map(c => c.value);
-    let detalle = '';
-    if (restricciones.includes('Intolerancia')) {
-      detalle += 'Intolerancia: ' + document.getElementById('intoleranciaDetail').value.trim();
-    }
-    if (restricciones.includes('Otros')) {
-      detalle += (detalle ? ' | ' : '') + 'Otros: ' + document.getElementById('otrosDetail').value.trim();
-    }
-
-    const btn = document.getElementById('confirmBtn');
-    btn.textContent = 'Confirmando...';
+  async function iniciar() {
+    let modo = 'invitacion';
     try {
-      const res = await fetch(GAS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ nombre: selectedGuestName, restricciones, detalle })
-      });
+      const res = await fetch(GAS_URL + "?tipo=modoIndex");
       const data = await res.json();
-      if (data.success) {
-        btn.textContent = 'Asistencia confirmada ✓';
-        showToast('✅ ¡Asistencia confirmada!');
-        const g = guestList.find(g => g.nombre === selectedGuestName);
-        if (g) g.confirmado = true;
-      } else {
-        btn.textContent = 'Confirmar asistencia';
-        showToast('No encontramos tu nombre, reintentá');
-      }
-    } catch (err) {
-      btn.textContent = 'Confirmar asistencia';
-      showToast('Error de conexión, intentá de nuevo');
+      modo = data.modo === 'savethedate' ? 'savethedate' : 'invitacion';
+    } catch (err) {}
+
+    document.getElementById('loadingGate').remove();
+    if (modo === 'savethedate') {
+      initSaveTheDate();
+    } else {
+      initInvitacion();
     }
   }
-
-  // Canciones sugeridas por esta persona en esta pestaña.
-  // Se guardan en sessionStorage: sobreviven a un refresh de la misma pestaña,
-  // pero no se comparten con otra pestaña ni con lo que agregaron otros invitados.
-  let songs = JSON.parse(sessionStorage.getItem('misCanciones') || '[]');
-  renderSongs();
-
-  function saveSongs() {
-    sessionStorage.setItem('misCanciones', JSON.stringify(songs));
-  }
-
-  async function addSong() {
-    const input = document.getElementById('songInput');
-    const value = input.value.trim();
-    if (!value) return;
-
-    if (GAS_URL.startsWith("PEGAR_AQUI")) {
-      songs.unshift(value);
-      saveSongs();
-      input.value = "";
-      renderSongs();
-      showToast('🎵 ¡Canción agregada!');
-      return;
-    }
-
-    input.disabled = true;
-    try {
-      const res = await fetch(GAS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ tipo: 'cancion', cancion: value })
-      });
-      const data = await res.json();
-      if (data.success) {
-        songs.unshift(value);
-        saveSongs();
-        input.value = "";
-        renderSongs();
-        showToast('🎵 ¡Canción agregada!');
-      } else {
-        showToast('No se pudo guardar, intentá de nuevo');
-      }
-    } catch (err) {
-      showToast('Error de conexión, intentá de nuevo');
-    } finally {
-      input.disabled = false;
-    }
-  }
-
-  let toastTimer;
-  function showToast(message) {
-    const toast = document.getElementById('toast');
-    toast.textContent = message;
-    toast.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
-  }
-
-  function renderSongs() {
-    const list = document.getElementById('songList');
-    list.innerHTML = songs.map(s => `<div class="song-item"><span>🎵 ${s}</span></div>`).join('');
-  }
-
-  // Animación de aparición al scrollear.
-  // El observer arranca recién cuando se abre el sobre: si se registrara antes,
-  // cualquier sección que ya estuviera dentro del viewport (aunque tapada por
-  // el sobre) quedaría marcada "visible" de entrada, y aparecerían varias
-  // secciones juntas en vez de solo la primera al abrir.
-  function setupReveal() {
-    revealObserver = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-        }
-        // Los datos internos (horas, contador, etc.) se animan cada vez
-        // que la sección vuelve a estar bien centrada en pantalla, no
-        // solo la primera vez.
-        entry.target.classList.toggle('centered', entry.intersectionRatio >= 0.5);
-      });
-    }, { threshold: [0.15, 0.5] });
-
-    const sections = document.querySelectorAll('.reveal');
-    sections.forEach((el, i) => {
-      if (i === 0) {
-        // El "centered" (que dispara la animación de los nombres) lo agrega
-        // revealFirstSection() cuando se empieza a abrir el sobre, no acá.
-        el.classList.add('visible');
-      } else {
-        revealObserver.observe(el);
-      }
-    });
-  }
+  iniciar();
 </script>
 </body>
-</html> 
+</html>
