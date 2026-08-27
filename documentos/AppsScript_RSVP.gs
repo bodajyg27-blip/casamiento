@@ -113,9 +113,11 @@ function errorNoAutorizado() {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-// ---------- Modo de index.html (Save the date / Invitación) ----------
-// Misma pestaña "Config" que la clave: fila "ModoIndex" | "savethedate" o
-// "invitacion". Si no existe la fila, se asume "invitacion" por default.
+// ---------- Modo de index.html (Save the date / Invitación / Galería) ----------
+// Misma pestaña "Config" que la clave: fila "ModoIndex" | "savethedate",
+// "galeria" o "invitacion". Si no existe la fila, se asume "invitacion".
+
+const MODOS_INDEX_VALIDOS = ["savethedate", "invitacion", "galeria"];
 
 function getModoIndex() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Config");
@@ -124,14 +126,14 @@ function getModoIndex() {
   for (let i = 0; i < data.length; i++) {
     if (String(data[i][0]).trim().toLowerCase() === "modoindex") {
       const valor = String(data[i][1] || "").trim().toLowerCase();
-      return valor === "savethedate" ? "savethedate" : "invitacion";
+      return MODOS_INDEX_VALIDOS.includes(valor) ? valor : "invitacion";
     }
   }
   return "invitacion";
 }
 
 function setModoIndex(params) {
-  const modo = params.modo === "savethedate" ? "savethedate" : "invitacion";
+  const modo = MODOS_INDEX_VALIDOS.includes(params.modo) ? params.modo : "invitacion";
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Config");
   if (!sheet) {
     return ContentService.createTextOutput(JSON.stringify({ ok: false, error: "Falta la pestaña Config" }))

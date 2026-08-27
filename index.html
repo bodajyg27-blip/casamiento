@@ -422,8 +422,13 @@
     try {
       const res = await fetch(GAS_URL + "?tipo=modoIndex");
       const data = await res.json();
-      modo = data.modo === 'savethedate' ? 'savethedate' : 'invitacion';
+      if (['savethedate', 'invitacion', 'galeria'].includes(data.modo)) modo = data.modo;
     } catch (err) {}
+
+    if (modo === 'galeria') {
+      window.location.href = 'galeria/index.html';
+      return;
+    }
 
     document.getElementById('loadingGate').remove();
     if (modo === 'savethedate') {

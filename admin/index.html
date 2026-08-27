@@ -411,6 +411,7 @@
         <div class="modo-switch" id="modoSwitch">
           <button class="modo-btn" data-modo="savethedate">Save the Date</button>
           <button class="modo-btn" data-modo="invitacion">Invitación</button>
+          <button class="modo-btn" data-modo="galeria">Galería</button>
         </div>
       </div>
 
@@ -713,7 +714,12 @@
           body: JSON.stringify({ tipo: 'setModoIndex', modo: btn.dataset.modo, clave: claveActual })
         });
         pintarModoActivo(btn.dataset.modo);
-        toast(btn.dataset.modo === 'savethedate' ? 'Ahora se muestra el Save the Date' : 'Ahora se muestra la invitación');
+        const mensajes = {
+          savethedate: 'Ahora se muestra el Save the Date',
+          invitacion: 'Ahora se muestra la invitación',
+          galeria: 'Ahora se muestra la galería'
+        };
+        toast(mensajes[btn.dataset.modo]);
       } catch (err) {
         toast('No se pudo cambiar el modo, probá de nuevo');
       } finally {

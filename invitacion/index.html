@@ -697,24 +697,30 @@
   <!-- RSVP -->
   <div class="card card-fondo reveal">
     <h2 class="section-title">Confirmar asistencia</h2>
-    <div class="section-sub">Buscá tu nombre en la lista de invitados</div>
-    <input type="text" id="rsvpSearch" placeholder="Escribí tu nombre..." oninput="searchGuest()">
-    <div class="guest-results" id="guestResults"></div>
+    <div id="rsvpAbierto">
+      <div class="section-sub">Buscá tu nombre en la lista de invitados</div>
+      <input type="text" id="rsvpSearch" placeholder="Escribí tu nombre..." oninput="searchGuest()">
+      <div class="guest-results" id="guestResults"></div>
 
-    <div class="restriction-panel" id="restrictionPanel" style="display:none;">
-      <div class="divider"></div>
-      <div class="selected-name" id="selectedName"></div>
-      <div class="section-sub">¿Tenés alguna restricción alimentaria?</div>
-      <div class="restriction-options">
-        <label><input type="checkbox" value="Celiaquía" class="restriction-check"> Celiaquía</label>
-        <label><input type="checkbox" value="Diabetes" class="restriction-check"> Diabetes</label>
-        <label><input type="checkbox" value="Vegetariano" class="restriction-check"> Vegetariano</label>
-        <label><input type="checkbox" value="Intolerancia" class="restriction-check" onchange="toggleDetailField('intolerancia', this)"> Intolerancia</label>
-        <label><input type="checkbox" value="Otros" class="restriction-check" onchange="toggleDetailField('otros', this)"> Otros</label>
+      <div class="restriction-panel" id="restrictionPanel" style="display:none;">
+        <div class="divider"></div>
+        <div class="selected-name" id="selectedName"></div>
+        <div class="section-sub">¿Tenés alguna restricción alimentaria?</div>
+        <div class="restriction-options">
+          <label><input type="checkbox" value="Celiaquía" class="restriction-check"> Celiaquía</label>
+          <label><input type="checkbox" value="Diabetes" class="restriction-check"> Diabetes</label>
+          <label><input type="checkbox" value="Vegetariano" class="restriction-check"> Vegetariano</label>
+          <label><input type="checkbox" value="Intolerancia" class="restriction-check" onchange="toggleDetailField('intolerancia', this)"> Intolerancia</label>
+          <label><input type="checkbox" value="Otros" class="restriction-check" onchange="toggleDetailField('otros', this)"> Otros</label>
+        </div>
+        <input type="text" id="intoleranciaDetail" class="detail-field" placeholder="¿A qué sos intolerante?" style="display:none;">
+        <input type="text" id="otrosDetail" class="detail-field" placeholder="Especificá tu restricción..." style="display:none;">
+        <button class="btn" id="confirmBtn" onclick="submitConfirmation()">Confirmar asistencia</button>
       </div>
-      <input type="text" id="intoleranciaDetail" class="detail-field" placeholder="¿A qué sos intolerante?" style="display:none;">
-      <input type="text" id="otrosDetail" class="detail-field" placeholder="Especificá tu restricción..." style="display:none;">
-      <button class="btn" id="confirmBtn" onclick="submitConfirmation()">Confirmar asistencia</button>
+    </div>
+    <div id="rsvpCerrado" style="display:none;">
+      <div class="section-sub">El plazo para confirmar ya cerró</div>
+      <p style="font-size:16px;">Si necesitás avisarnos algo, contactanos directamente.</p>
     </div>
   </div>
 
@@ -792,6 +798,16 @@
     setInterval(update, 1000);
   }
   renderCountdown(new Date(2027, 9, 23, 19, 0, 0));
+
+  // Confirmar asistencia solo hasta 15 días antes de la boda (logística de catering).
+  (function chequearPlazoRSVP() {
+    const fechaBoda = new Date(2027, 9, 23, 19, 0, 0);
+    const cierreRSVP = new Date(fechaBoda.getTime() - 15 * 24 * 60 * 60 * 1000);
+    if (new Date() >= cierreRSVP) {
+      document.getElementById('rsvpAbierto').style.display = 'none';
+      document.getElementById('rsvpCerrado').style.display = 'block';
+    }
+  })();
 
   // Carrusel de fotos ("Nuestra historia") — trae la lista de una carpeta
   // de Drive aparte (CARRUSEL_FOLDER_ID en el Apps Script) y reutiliza el

@@ -282,7 +282,7 @@
 <body>
 
   <div class="topbar">
-    <a class="icon-btn" href="../index.html" aria-label="Volver">
+    <a class="icon-btn" href="../index.html" id="backLink" aria-label="Volver">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
     </a>
     <div class="topbar-title">
@@ -336,6 +336,17 @@
 <script>
   const GAS_URL = "https://script.google.com/macros/s/AKfycbz-sc2l5jW1oMN6Dkr-s3gduTSbTTlL2gRiPlw_khEQ6GzTCkJHlnqpgvrvD0b2sBOo/exec";
   const MAX_DIM = 1600;
+
+  // Si se llegó navegando desde otra página del sitio (familiar/,
+  // invitacion/, etc.), "Volver" usa el historial del navegador para
+  // regresar exactamente ahí. Si no hay de dónde volver (URL pegada
+  // directo, o vino de otro sitio), cae al ../index.html normal.
+  document.getElementById('backLink').addEventListener('click', (e) => {
+    if (document.referrer && document.referrer.startsWith(location.origin) && history.length > 1) {
+      e.preventDefault();
+      history.back();
+    }
+  });
 
   let toastTimer;
   function showToast(message) {
