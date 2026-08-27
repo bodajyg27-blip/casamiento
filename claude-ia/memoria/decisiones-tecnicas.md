@@ -82,6 +82,52 @@
 
 **No volver a intentarlo** sin antes buscar si existe otra vía (por ejemplo, subir los archivos a una carpeta con permisos de "cualquiera con el link" y devolver la URL directa de Drive en vez de servir el contenido a través del script — cambia el modelo de privacidad, así que no es un reemplazo directo).
 
+## `index.html` pasa a ser una puerta de entrada que reparte por tipo de invitado
+
+**Decisión:** `index.html` (raíz) dejó de ser una invitación completa. Ahora es una página mínima: sobre de apertura + buscador de nombre. Al elegir un nombre, redirige a `familiar/index.html` o `invitacion/index.html` según una columna nueva `Tipo` (`Familiar`/`Invitado`) en la hoja "Invitados" del Sheet (columna **G**, índice 6 — la F quedó sin uso). El contenido que antes tenía `index.html` (todas las secciones) se movió tal cual a `familiar/index.html`, ajustando las rutas relativas a `../`.
+
+**Por qué:** el usuario quería mostrarle a la familia una invitación sin la sección de regalo (`familiar/`) y al resto de los invitados la versión completa (`invitacion/`), sin que cada uno tenga que saber a qué link entrar — se busca el nombre una sola vez en la puerta de entrada y el sistema decide.
+
+**Cómo aplicarlo:** `familiar/index.html` e `invitacion/index.html` deben mantenerse **parejas** en todo lo que no sea la sección de regalo — cualquier sección nueva (carrusel, itinerario, dress code, etc.) se agrega a las dos. Si `Tipo` viene vacío o con un valor no reconocido, `index.html` manda por default a `invitacion/` (la variante completa), no a `familiar/`.
+
+**Sobre repetido:** como el sobre ya se abre una vez en `index.html`, se sacó de `familiar/` e `invitacion/` (antes cada una tenía el suyo) — al llegar ahí se ve el contenido directo, sin un segundo sobre.
+
+## Modo de `index.html`: Invitación / Save the Date / Galería, vía Config
+
+**Decisión:** además de la puerta de entrada normal, `index.html` puede mostrar otras dos cosas según una fila `ModoIndex` en la pestaña `Config` del Sheet (mismo patrón que `ClaveAdmin`): un video de "Save the date" a pantalla completa (con toque para reproducir, igual patrón que `tv/index.html`), o una redirección directa a `galeria/index.html`. Se cambia desde `admin/` (switch de tres botones), sin tocar código. `getModoIndex()`/`setModoIndex()` en el Apps Script leen/escriben ese valor; `setModoIndex` exige la clave admin, `getModoIndex` es público (lo necesita `index.html` sin login).
+
+**Por qué:** pensado para las distintas etapas del sitio — antes de mandar las invitaciones (save the date), durante (invitación normal) y la noche después de la boda (galería, para que los invitados suban/vean fotos fácil desde el link que ya tienen guardado).
+
+**Cómo aplicarlo:** el video de Save the Date sale del primer archivo que encuentre en `SAVETHEDATE_FOLDER_ID` (`getSaveTheDate()`) — si se quiere cambiar el video, alcanza con reemplazar el archivo en esa carpeta de Drive, no hace falta tocar nada más.
+
+## Carrusel "Nuestra historia": carpeta propia + orden por nombre + precarga en sessionStorage
+
+**Decisión:** el carrusel de fotos que aparece en `familiar/` e `invitacion/` usa una carpeta de Drive dedicada (`CARRUSEL_FOLDER_ID`, distinta de la galería de invitados), ordenada por **nombre de archivo** (no por fecha, a diferencia de `getGaleria()`) para que la pareja controle el orden nombrando `1.jpg`, `2.jpg`, etc. `index.html` precarga en segundo plano todas las fotos del carrusel (lista + cada base64) mientras el invitado abre el sobre y busca su nombre, y las deja en `sessionStorage` (clave `carruselCache`, con timestamp, vence a los 5 minutos). `familiar/`/`invitacion/` leen esa caché antes de pedir cada foto de nuevo.
+
+**Por qué:** como el carrusel es idéntico en las dos variantes de invitación y el usuario siempre pasa por `index.html` antes de llegar a cualquiera de las dos, tiene sentido aprovechar ese tiempo (mientras busca su nombre) para bajar las fotos, en vez de que la persona vea el shimmer de carga recién al llegar a destino. `sessionStorage` sobrevive la navegación entre páginas (a diferencia de una variable JS), que es justo lo que se necesita acá.
+
+**Cómo aplicarlo:** si se agrega un cuarto lugar donde se muestre este mismo carrusel, hay que replicar tanto `loadCarrusel()`/`loadCarruselFoto()` (con el chequeo de caché) como, idealmente, la precarga en `index.html` para que la caché exista quien sea que llegue primero.
+
+## Cierre automático de RSVP y sugerencia de canciones, 15 días antes de la boda
+
+**Decisión:** las secciones "Confirmar asistencia" y "Dejá tu canción" en `familiar/` e `invitacion/` se ocultan solas a partir del 8 de octubre de 2027 (15 días antes de la boda, 23/10/2027), reemplazadas por un cartel de "el plazo ya cerró". El chequeo (`chequearPlazoRSVP()` / `chequearPlazoCanciones()`) compara `new Date()` contra la fecha de corte calculada en JS, usando el **reloj del dispositivo del visitante** — no hay validación en el servidor.
+
+**Por qué:** pedido explícito para no seguir recibiendo confirmaciones/canciones tan cerca de la boda, por la logística de catering/playlist. Al ser una fecha fija conocida de antemano (no depende de datos externos), no se justificó agregar esta lógica al backend — el peor caso de que alguien manipule el reloj de su dispositivo para confirmar tarde no tiene ningún incentivo real detrás.
+
+**Cómo aplicarlo:** si se cambia la fecha de la boda, hay que actualizar `fechaBoda` en **cuatro** lugares de cada archivo (`renderCountdown`, `chequearPlazoRSVP`, `chequearPlazoCanciones`) — no está centralizado en una sola constante.
+
+## Botón "Volver" de la galería usa el historial del navegador, no un link fijo
+
+**Decisión:** en `galeria/index.html`, el botón de volver ya no apunta siempre a `../index.html`. Ahora, si `document.referrer` es del mismo origen y hay historial de navegación (`history.length > 1`), usa `history.back()` para volver exactamente a la página desde la que se entró (`familiar/` o `invitacion/`); si no (URL pegada directo, o vino de otro sitio), cae al link fijo de siempre.
+
+**Por qué:** con la separación en `familiar/`/`invitacion/`, un link fijo a `index.html` sacaba al invitado de la invitación que ya había encontrado, mandándolo de nuevo a buscar su nombre — un paso de más y confuso.
+
+## Panel de admin (`admin/`) reestructurado: menú + vistas bajo demanda
+
+**Decisión:** `admin/index.html` (antes `mensaje/admin.html`) ya no carga la lista de mensajes automáticamente al entrar con la clave. Ahora muestra un menú (switch de modo + dos accesos: "Fotos de la galería" y "Mensajes de video"), y cada vista (lista, ver, borrar) recién carga sus datos cuando se toca esa opción. Se agregó `borrarFoto()` en el backend (mismo patrón protegido por clave que `borrarMensaje`) para poder borrar fotos de la galería desde ahí, algo que antes no existía.
+
+**Por qué:** pedido explícito — el usuario no quería que los videos "salieran apenas entrás", y quería poder administrar también las fotos de la galería (antes el admin solo cubría mensajes de video).
+
 ## `index.html` como archivo de trabajo (histórico, superado en parte)
 
 **Decisión original:** a partir del 2026-07-10 se edita solo `documentos/index.html`. `documentos/invitacion_casamiento.html` queda congelado como archivo histórico.

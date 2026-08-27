@@ -7,10 +7,14 @@ verlos/administrarlos:
   la cámara en un óvalo, graba video+audio (grabando en espejo, igual a como
   se ve en pantalla), preview con opción de regrabar, y al enviar sube el
   archivo a Google Drive. Grabación máxima: **30 segundos**.
-- `mensaje/admin.html` — panel para ver y borrar los mensajes recibidos.
-  Protegido por una clave numérica de 4 dígitos (estilo passcode), validada
-  del lado del servidor contra un valor guardado en el Google Sheet (ver
-  abajo) — no alcanza con conocer la URL para ver/borrar mensajes.
+- `admin/index.html` (antes `mensaje/admin.html`, movida fuera de la carpeta
+  `mensaje/`) — panel con menú: switch para elegir qué muestra `index.html`
+  (invitación / Save the Date / galería), acceso a fotos de la galería
+  (ver/borrar) y a mensajes de video (ver/borrar). Nada se carga automático
+  al entrar, cada vista carga bajo demanda. Protegido por una clave numérica
+  de 4 dígitos (estilo passcode), validada del lado del servidor contra un
+  valor guardado en el Google Sheet (ver abajo) — no alcanza con conocer la
+  URL para ver/borrar contenido.
 - `tv/index.html` — pantalla pensada para transmitir por Chromecast/AirPlay:
   slideshow de fotos + mensajes de video mezclados. Soporta `?modo=fotos` y
   `?modo=videos` para ver solo uno de los dos tipos.
@@ -24,15 +28,17 @@ misma implementación web que ya usan `index.html`, `invitacion/` y
 Carpeta destino de los videos: ID `1apKNUF3hWw8F4q-8EUd69j7gsSbD3YMJ`,
 cargado en `MENSAJES_FOLDER_ID` dentro de `documentos/AppsScript_RSVP.gs`.
 
-## Clave del panel de administración (mensaje/admin.html)
+## Clave del panel de administración (admin/index.html)
 
 La clave **no** está en el código — se guarda en el mismo Google Sheet que
 usan Invitados/Canciones/Regalo, para que no quede visible mirando el
-código fuente de la página. El servidor la exige solo para **borrar**
-mensajes (`borrarMensaje`); listar y ver mensajes (`getMensajes`,
-`getMensajeVideo`) son públicos a propósito, porque `tv/index.html`
-también los necesita sin clave para mostrarlos en el slideshow — no tiene
-sentido proteger algo que se muestra igual en la TV del salón.
+código fuente de la página. El servidor la exige solo para acciones
+destructivas (`borrarMensaje`, `borrarFoto`) y para cambiar el modo de
+`index.html` (`setModoIndex`); listar y ver mensajes/fotos (`getMensajes`,
+`getMensajeVideo`, `getGaleria`, `getFotoBlob`) son públicos a propósito,
+porque `tv/index.html` también los necesita sin clave para mostrarlos en
+el slideshow — no tiene sentido proteger algo que se muestra igual en la
+TV del salón.
 
 1. En el Sheet, crear una pestaña nueva llamada exactamente **`Config`**.
 2. Celda **A1**: `ClaveAdmin`. Celda **B1**: el código de 4 dígitos que se

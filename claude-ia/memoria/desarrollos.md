@@ -2,6 +2,22 @@
 
 Historial de features completadas sobre `index.html` e `invitacion/index.html` (**raíz del repo** — archivos de trabajo actuales desde el 2026-07-11, ver [[decisiones-tecnicas]]).
 
+## 2026-08-26 — Mensajes de video, TV, split por tipo de invitado y panel de admin
+
+Sesión larga con varias features nuevas, en orden aproximado:
+
+- **`mensaje/index.html`**: página de grabación de "Dejanos un mensaje" para dejar en un iPad en modo kiosko (Acceso Guiado) durante el evento. Cámara en óvalo, grabación espejada (canvas, ver [[decisiones-tecnicas]]), tope de 30s, detección de mute de audio, cola de subida con IndexedDB para no perder mensajes sin conexión. Subida a Drive vía el Apps Script (`addMensaje`).
+- **`tv/index.html`**: slideshow a pantalla completa de fotos + mensajes de video para transmitir a la TV del salón (Chromecast/AirPlay), con `?modo=fotos`/`?modo=videos`, timeout y vigilante anti-traba (ver [[bugs-conocidos]] por la regresión que sufrió).
+- **`admin/index.html`** (originalmente `mensaje/admin.html`, luego movida a `admin/`): panel con clave para ver/borrar mensajes de video y, más tarde, también fotos de la galería (`borrarFoto` nuevo en el backend). Reestructurado a menú-primero con vistas bajo demanda — ver [[decisiones-tecnicas]].
+- **Seguridad**: la clave de admin pasó de estar hardcodeada en el JS a vivir en la pestaña `Config` del Sheet, validada server-side (`claveValida()`). Se protegió `borrarMensaje`, `borrarFoto` y `setModoIndex`; **no** se protegió `getMensajes`/`getMensajeVideo` porque `tv/` los necesita en público (ver [[bugs-conocidos]] por la regresión inicial).
+- **Split de la invitación por tipo de invitado**: `index.html` pasó de ser la invitación completa a ser una puerta de entrada (sobre + buscador) que redirige a `familiar/index.html` (sin regalo) o `invitacion/index.html` (con regalo) según la nueva columna `Tipo` del Sheet. Ver [[decisiones-tecnicas]].
+- **Modo de `index.html`**: agregado un switch en `admin/` para elegir qué muestra la puerta de entrada — invitación normal, video de "Save the Date" (toque para reproducir con sonido) o redirección directa a la galería (pensado para la noche posterior a la boda).
+- **Secciones nuevas** (sincronizadas en `familiar/` e `invitacion/`): carrusel "Nuestra historia" (fotos propias en Drive, orden por nombre de archivo, precargadas en `sessionStorage` desde `index.html`), Itinerario (mockup de horarios) y Dress Code (texto + íconos SVG dibujados a mano de vestido/traje).
+- **Cierre automático de RSVP y sugerencia de canciones**: ambas secciones se ocultan solas 15 días antes de la boda, mostrando un mensaje de "plazo cerrado" (chequeo client-side contra el reloj del dispositivo).
+- **Galería**: rediseño app-like (header, FAB de subida, lightbox) y fix del botón "Volver" para que use el historial del navegador en vez de un link fijo a `index.html`.
+
+Ver [[decisiones-tecnicas]] para el detalle de cada decisión de diseño y [[bugs-conocidos]] para los bugs encontrados y resueltos en el camino.
+
 ## 2026-07-12 — Optimización de peso de imágenes
 
 `img/` pesaba ~16.6 MB en total, con dos archivos PNG desproporcionados: `sobre.png` (2.8M, la primera imagen que carga cualquier visitante, como `background-image` del sobre a pantalla completa) y `alianzas.png` (3.3M, usada solo como ícono de 1.6em en el footer). Ninguna imagen tenía `width`/`height` ni `loading="lazy"`.

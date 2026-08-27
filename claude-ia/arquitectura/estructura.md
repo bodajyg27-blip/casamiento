@@ -2,63 +2,103 @@
 
 ## Qué es
 
-Invitación web estática de casamiento (Julieta & Gabriel, 23/10/2027) con sobre de apertura a pantalla completa (foto real), secciones armadas con imágenes de diseño + overlays HTML animados, RSVP, sugerencia de canciones, regalo de bodas dinámico y galería de fotos, publicada en GitHub Pages con dominio propio. Paleta general: verde oliva, tipografía script real Edwardian Script ITC (ver [[decisiones-tecnicas]]).
+Sitio web de casamiento (Julieta & Gabriel, 23/10/2027): puerta de entrada con buscador que separa la invitación por tipo de invitado, dos variantes de invitación (con/sin regalo), galería de fotos, mensajes de video grabados por los invitados, pantalla de TV para el salón y panel de administración — todo estático (HTML+CSS+JS por archivo, sin build), publicado en GitHub Pages. Paleta general: verde oliva, tipografía script real Edwardian Script ITC (ver [[decisiones-tecnicas]]).
 
-Sitio publicado: `https://bodajyg.site/` (dominio propio con CNAME, el `.github.io/casamiento` redirige ahí).
+**Sitio publicado:** `https://bodajyg27-blip.github.io/casamiento/` (GitHub Pages, sin dominio propio — no hay `CNAME` en el repo ni en su historial; si en algún momento se documentó un dominio `bodajyg.site`, era incorrecto/no llegó a configurarse).
 
-## Archivos activos (raíz del repo)
+## Estructura de páginas
 
-- **`index.html`** — archivo de trabajo principal. HTML + CSS + JS inline, todo en un solo archivo. Sin la sección de método de pago.
-- **`invitacion/index.html`** — segunda variante, igual a `index.html` pero **con** la sección "Nuestro regalo de bodas". Cualquier cambio de diseño/estructura se replica en ambos.
-- **`galeria/index.html`** — página de galería de fotos (subida + listado + descarga), enlazada desde las dos anteriores.
-- **`img/`** — imágenes de diseño, optimizadas para peso (~1.4M en total, ver [[decisiones-tecnicas]]): `sobre.jpg` (sobre de apertura), `TARJETA.jpg` (portada), `calendario.jpg` (guardá la fecha), `lugares.jpg` (ceremonia/fiesta/cómo llegar), `fondo.jpg` (textura de fondo para RSVP/canción/galería/regalo), `alianzas.webp` (footer, transparencia real, procesada con Python/Pillow).
-- **`fonts/Edwardian.ttf`** — tipografía script real, cargada vía `@font-face` en cada `index.html`.
-- **`documentos/AppsScript_RSVP.gs`** — backend en Google Apps Script, deployado como Web App, respaldado por un Google Sheet con pestañas: "Invitados", "Canciones", "Regalo". No se redeploya solo — cualquier cambio acá requiere que el usuario vuelva a hacer "Deploy" en el editor de Apps Script (y a veces re-autorizar permisos, ver [[bugs-conocidos]]).
+- **`index.html`** (raíz) — **puerta de entrada**, no invitación completa. Según `ModoIndex` (pestaña `Config` del Sheet):
+  - `invitacion` (default): sobre de apertura + buscador de nombre → redirige a `familiar/` o `invitacion/` según la columna `Tipo` de cada invitado.
+  - `savethedate`: video a pantalla completa con toque para reproducir (con sonido), sacado de `SAVETHEDATE_FOLDER_ID`.
+  - `galeria`: redirige directo a `galeria/index.html`.
+  - Cambia desde `admin/` (switch de tres botones), sin tocar código.
+- **`familiar/index.html`** — invitación completa **sin** sección de regalo. Antes era el contenido de `index.html`; se movió acá cuando `index.html` pasó a ser la puerta de entrada.
+- **`invitacion/index.html`** — invitación completa **con** sección "Nuestro regalo de bodas". Debe mantenerse pareja a `familiar/` en todo lo demás (carrusel, itinerario, dress code, RSVP, canciones, galería) — ver [[decisiones-tecnicas]].
+- **`galeria/index.html`** — galería de fotos: subida (FAB), grilla con shimmer de carga, visor a pantalla completa con navegación. Botón "Volver" usa `history.back()` cuando hay de dónde volver (ver [[decisiones-tecnicas]]).
+- **`mensaje/index.html`** — grabación de "Dejanos un mensaje": cámara en óvalo, graba en espejo (ver [[decisiones-tecnicas]]), sube a Drive. Pensada para dejarse en modo kiosko (Acceso Guiado de iOS) en un iPad durante el evento. Cola local con IndexedDB para no perder mensajes sin conexión.
+- **`tv/index.html`** — slideshow de fotos + mensajes para transmitir a la TV del salón (Chromecast/AirPlay). Soporta `?modo=fotos` / `?modo=videos`. Se actualiza sola cada 2 minutos, con timeout y vigilante anti-traba en las descargas.
+- **`admin/index.html`** (antes `mensaje/admin.html`) — panel protegido con clave numérica (passcode de 4 dígitos, validado en el servidor). Menú con: switch de modo de `index.html`, acceso a fotos de la galería (ver/borrar) y a mensajes de video (ver/borrar). No carga nada automático al entrar, cada vista carga bajo demanda — ver [[decisiones-tecnicas]].
 
 ## Archivos congelados (no tocar)
 
-Todo dentro de `documentos/` excepto el `.gs`, que sigue siendo el backend real:
+Todo dentro de `documentos/` excepto el `.gs`:
 - `documentos/index.html`, `documentos/invitacion/index.html` — congelados desde 2026-07-11.
 - `documentos/invitacion_casamiento.html` — congelado desde 2026-07-10.
 
-Ver [[decisiones-tecnicas]] para el porqué de la migración a la raíz.
+## Recursos compartidos
+
+- **`img/`** — imágenes de diseño optimizadas (ver [[decisiones-tecnicas]] para el criterio JPEG/WebP): `sobre.jpg`, `TARJETA.jpg`, `calendario.jpg`, `lugares.jpg`, `fondo.jpg`, `alianzas.webp`.
+- **`fonts/Edwardian.ttf`** — tipografía script, `@font-face` en cada página que la usa.
+- **`documentos/AppsScript_RSVP.gs`** — backend completo, deployado como Web App. Es una **copia local de referencia**: el que corre de verdad está pegado en script.google.com y hay que actualizarlo ahí manualmente en cada cambio (Cmd+S alcanza, no hace falta redeploy salvo que haya más de una implementación activa — confirmar cuál usa el sitio si eso pasa).
 
 ## Backend (Google Apps Script)
 
-- `doGet`:
-  - sin parámetro → lista de invitados (`{ nombre, confirmado }`)
-  - `?tipo=canciones` → lista de canciones
-  - `?tipo=regalo` → datos de la tarjeta de regalo (`{ Monto, Titular, Banco, CBU, Alias }`, pestaña "Regalo" del Sheet, formato clave/valor)
-  - `?tipo=galeria` → lista de fotos de una carpeta de Drive (metadata + URL de proxy)
-  - `?tipo=foto&id=ID` → una foto puntual, codificada en base64 dentro de un JSON (`{ mimeType, data }`) — no se devuelve blob binario directo, ver [[decisiones-tecnicas]]
-- `doPost`:
-  - `{ tipo: "cancion", cancion }` → agrega una canción (recortada a 50 caracteres en el servidor)
-  - `{ tipo: "foto", nombre, mimeType, data }` → sube una foto a la carpeta de Drive (`GALERIA_FOLDER_ID`)
-  - cualquier otro body → confirma asistencia (`{ nombre, restricciones, detalle }`), **solo si el nombre ya existe en la planilla de Invitados**
-- `GAS_URL` vive hardcodeado en el `<script>` de cada página que lo necesita (repetido). Visible en la pestaña Network — no se oculta a propósito, ver [[decisiones-tecnicas]].
+Respaldado por un Google Sheet con pestañas: `Invitados`, `Canciones`, `Regalo`, `Config`.
 
-## Interacción / UX de cada `index.html`
+**`doGet`:**
+| `?tipo=` | Devuelve | Auth |
+|---|---|---|
+| _(sin parámetro)_ | Lista de invitados `{ nombre, confirmado, tipo }` | público |
+| `canciones` | Lista de canciones | público |
+| `regalo` | Datos de la tarjeta de regalo (clave/valor, pestaña `Regalo`) | público |
+| `galeria` | Fotos de `GALERIA_FOLDER_ID` (por fecha) | público |
+| `carrusel` | Fotos de `CARRUSEL_FOLDER_ID` (por nombre de archivo) | público |
+| `foto&id=` | Una foto/archivo en base64 (`{mimeType, data}`) — genérico, sirve cualquier id de Drive | público |
+| `mensajes` | Lista de mensajes de video | público (a propósito, lo necesita `tv/`) |
+| `mensajeVideo&id=` | Un video de mensaje en base64 | público |
+| `verificarClave&clave=` | `{ok: true/false}` contra `ClaveAdmin` | — |
+| `modoIndex` | `{modo}` actual de `index.html` | público |
+| `saveTheDate` | `{id, nombre}` del video de save the date | público |
 
-1. **Sobre de apertura** (`#envelope`): overlay fijo a pantalla completa con foto real (`sobre.png`). Se abre con click/tap (no scroll — se probó y se descartó, ver [[decisiones-tecnicas]]). Nombres del sobre aparecen en secuencia (Julieta → & → Gabriel) al cargar la página.
-2. **Portada**: imagen `TARJETA.jpg` con "Julieta & Gabriel" tapado y reemplazado por HTML animado (mismo efecto `.centered` que el resto, disparado recién al abrir el sobre).
-3. **Guardá la fecha**: imagen `calendario.jpg` + cuenta regresiva en vivo (días/horas/min/seg) superpuesta como overlay HTML sobre el espacio vacío de la imagen.
-4. **Dónde celebramos**: imagen `lugares.jpg` con botones invisibles superpuestos ("cómo llegar" a Ceremonia/Fiesta → Google Maps) + overlays de texto (hora/lugar) tapando los placeholders de la imagen.
-5. **Confirmar asistencia (RSVP)**: busca contra `guestList` (cargada de la planilla), muestra restricciones alimentarias. Fondo con textura (`fondo.jpg`).
-6. **Dejá tu canción**: lista visible guardada en `sessionStorage` (por pestaña, ver [[decisiones-tecnicas]]), envío real al Sheet vía POST. Fondo con textura.
-7. **Fotos del casamiento**: enlace a `galeria/index.html`. Fondo con textura.
-8. **Nuestro regalo de bodas** — **solo en `invitacion/index.html`**, al final antes del footer. Datos dinámicos desde el Sheet (`?tipo=regalo`). Fondo con textura.
-9. **Footer**: "Julieta & Gabriel 💍 23.10.2027", con `alianzas.png` reemplazando el separador.
+**`doPost`** (`{tipo: ...}` en el body):
+| `tipo` | Acción | Auth |
+|---|---|---|
+| `cancion` | Agrega canción (recortada a 50 caracteres) | público |
+| `foto` | Sube foto a `GALERIA_FOLDER_ID` | público |
+| `mensaje` | Sube video a `MENSAJES_FOLDER_ID` | público |
+| `borrarMensaje` | Borra un mensaje (`setTrashed`) | **clave** |
+| `borrarFoto` | Borra una foto de galería | **clave** |
+| `setModoIndex` | Cambia `ModoIndex` en `Config` | **clave** |
+| _(cualquier otro)_ | Confirma asistencia — solo si el nombre existe en `Invitados` | público |
+
+Solo `borrarMensaje`, `borrarFoto` y `setModoIndex` exigen la clave admin (`claveValida()`); ver la solidaridad de esto con `getMensajes`/`getMensajeVideo` en [[decisiones-tecnicas]] y [[bugs-conocidos]] (regresión de `tv/` cuando se protegió de más).
+
+`GAS_URL` vive hardcodeado en el `<script>` de cada página que lo necesita — visible en la pestaña Network a propósito, no se oculta (ver [[decisiones-tecnicas]]).
+
+### Google Sheet — columnas relevantes
+
+- **`Invitados`**: A=nombre, B=confirmado, C=fecha confirmación, D=restricciones, E=detalle, F=*(sin uso)*, **G=Tipo** (`Familiar`/`Invitado`).
+- **`Config`**: filas clave/valor sin encabezado — `ClaveAdmin` (passcode del panel) y `ModoIndex` (`invitacion`/`savethedate`/`galeria`).
+
+### Carpetas de Google Drive
+
+| Constante | Contenido |
+|---|---|
+| `GALERIA_FOLDER_ID` | Fotos que suben los invitados |
+| `MENSAJES_FOLDER_ID` | Videos de "Dejanos un mensaje" |
+| `CARRUSEL_FOLDER_ID` | Fotos del carrusel "Nuestra historia" (orden por nombre de archivo) |
+| `SAVETHEDATE_FOLDER_ID` | Video de "Save the date" (se usa el primero que encuentre) |
+
+## Interacción / UX
+
+1. **Puerta de entrada** (`index.html`): sobre → buscador → redirige según `Tipo`. Ver arriba para los otros dos modos.
+2. **Portada**: `TARJETA.jpg` con nombres animados (mismo patrón `.reveal`/`.centered` que el resto).
+3. **Carrusel "Nuestra historia"**: precargado desde `index.html` en `sessionStorage`, ver [[decisiones-tecnicas]].
+4. **Guardá la fecha**: `calendario.jpg` + cuenta regresiva en vivo.
+5. **Dónde celebramos**: `lugares.jpg` con links a mapa + overlays de hora/lugar.
+6. **Itinerario**: horarios del día (actualmente mockup, a confirmar con datos reales).
+7. **Dress Code**: texto + dos íconos SVG originales (vestido/traje) dibujados a mano, no fotos (evita temas de licencia de stock, ver conversación).
+8. **Confirmar asistencia / Dejá tu canción**: se cierran solos 15 días antes de la boda (ver [[decisiones-tecnicas]]).
+9. **Fotos del casamiento**: link a `galeria/index.html`.
+10. **Nuestro regalo de bodas** — solo en `invitacion/index.html`.
 
 ### Sistema de animación al scrollear
 
-Dos clases independientes en cada sección `.reveal`, manejadas por un único `IntersectionObserver` con `threshold: [0.15, 0.5]`:
-- **`.visible`** (15% de intersección): fade + slide de la tarjeta entera. Se agrega una sola vez, no se saca.
-- **`.centered`** (50% de intersección): dispara la animación de los *datos internos* (contador, horas, monto, nombres) con `transition-delay` escalonado. Se agrega **y se saca** con cada cambio de intersección, así se repite cada vez que la sección se recentra.
-
-La primera sección (portada) no se observa desde el arranque — recién se empieza a observar cuando se abre el sobre (`revealFirstSection()`), para evitar que la animación de los nombres se reproduzca entera detrás del sobre todavía cerrado. Ver [[decisiones-tecnicas]] y [[bugs-conocidos]].
+`IntersectionObserver` con `threshold: [0.15, 0.5]` sobre las secciones `.reveal`: `.visible` (15%, fade+slide, una sola vez) y `.centered` (50%, anima datos internos con `transition-delay` escalonado, se agrega y saca en cada re-intersección). La primera sección no se observa hasta que se abre el sobre (`revealFirstSection()`).
 
 ## Repo remoto
 
 - `origin` → `https://github.com/bodajyg27-blip/casamiento.git`
-- Identidad git local del proyecto: `bodajyg27 <bodajyg27@gmail.com>` (no la global de la máquina, que es Gabriel Oros).
-- Deploy automático a GitHub Pages vía `.github/workflows/static.yml` en cada push a `main`. Dominio propio `bodajyg.site` configurado (CNAME), con caché de hasta 10 min — si algo no se ve actualizado después de un deploy, probar hard refresh antes de asumir que hay un bug.
+- Identidad git local del proyecto: `bodajyg27 <bodajyg27@gmail.com>` (no la global de la máquina).
+- Deploy automático a GitHub Pages vía `.github/workflows/static.yml` en cada push a `main`.
