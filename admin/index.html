@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Mensajes — Administración</title>
+<title>Panel — Administración</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap');
 
@@ -117,10 +117,11 @@
     padding: max(16px, env(safe-area-inset-top)) 20px 16px;
     display: flex;
     align-items: center;
+    gap: 10px;
     justify-content: space-between;
     box-shadow: 0 4px 14px rgba(0,0,0,0.12);
   }
-  .topbar-title { display: flex; flex-direction: column; }
+  .topbar-title { display: flex; flex-direction: column; flex: 1; min-width: 0; }
   .topbar-title .kicker { font-style: italic; font-size: 15px; opacity: 0.85; line-height: 1; }
   .topbar-title h1 {
     font-size: 21px;
@@ -128,7 +129,7 @@
     text-transform: uppercase;
     font-weight: 600;
   }
-  .topbar-actions { display: flex; align-items: center; gap: 10px; }
+  .topbar-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
   .count-badge {
     background: rgba(255,255,255,0.16);
     color: var(--cream);
@@ -149,6 +150,8 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    flex-shrink: 0;
+    text-decoration: none;
     transition: background 0.15s ease, transform 0.4s ease;
   }
   .icon-btn:active { background: rgba(255,255,255,0.28); }
@@ -203,6 +206,43 @@
   }
   .modo-btn:disabled { opacity: 0.6; cursor: default; }
 
+  /* ---------- Menú principal ---------- */
+
+  .menu-actions { display: flex; flex-direction: column; gap: 12px; }
+  .menu-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--cream);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(75,83,32,0.06);
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    font-family: 'Cormorant Garamond', serif;
+    transition: background 0.15s ease;
+  }
+  .menu-card:active { background: #f0efdc; }
+  .menu-icon {
+    flex-shrink: 0;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: #eceed6;
+    color: var(--olive);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .menu-icon svg { width: 24px; height: 24px; }
+  .menu-text { flex: 1; min-width: 0; }
+  .menu-title { font-size: 19px; font-weight: 600; color: #3f3e28; }
+  .menu-sub { font-size: 14px; color: var(--muted); margin-top: 2px; }
+  .menu-chevron { color: var(--muted); flex-shrink: 0; }
+  .menu-chevron svg { width: 18px; height: 18px; }
+
   .state-msg {
     text-align: center;
     color: var(--muted);
@@ -223,7 +263,7 @@
   }
   .state-msg svg { width: 46px; height: 46px; color: var(--border); }
 
-  #list { display: flex; flex-direction: column; gap: 12px; }
+  #list, #listFotos { display: flex; flex-direction: column; gap: 12px; }
 
   .item {
     background: var(--cream);
@@ -249,8 +289,16 @@
     justify-content: center;
   }
   .item-icon svg { width: 21px; height: 21px; }
+  .item-thumb {
+    flex-shrink: 0;
+    width: 46px;
+    height: 46px;
+    border-radius: 10px;
+    object-fit: cover;
+    background: #eceed6;
+  }
   .item-info { flex: 1; min-width: 0; }
-  .item-name { font-size: 17px; font-weight: 600; color: #3f3e28; }
+  .item-name { font-size: 17px; font-weight: 600; color: #3f3e28; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .item-date { color: var(--muted); font-size: 14px; margin-top: 1px; }
   .item-actions { display: flex; gap: 8px; flex-shrink: 0; }
 
@@ -273,6 +321,18 @@
   }
   .player-wrap.open { max-height: 640px; margin-top: 12px; }
   video.player {
+    width: 100%;
+    border-radius: 12px;
+    display: block;
+    background: #000;
+  }
+  .photo-wrap {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, margin-top 0.3s ease;
+  }
+  .photo-wrap.open { max-height: 640px; margin-top: 12px; }
+  img.photo-full {
     width: 100%;
     border-radius: 12px;
     display: block;
@@ -384,9 +444,12 @@
 
   <div id="panel" class="hidden">
     <div class="topbar">
+      <button class="icon-btn hidden" id="btn-back" aria-label="Volver">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
       <div class="topbar-title">
         <span class="kicker">Julieta &amp; Gabriel</span>
-        <h1>Mensajes</h1>
+        <h1 id="topbar-h1">Panel</h1>
       </div>
       <div class="topbar-actions">
         <span class="count-badge hidden" id="count-badge">0</span>
@@ -399,33 +462,75 @@
         <a class="icon-btn" href="../tv/" aria-label="Ver fotos y videos" title="Ver fotos y videos">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
         </a>
-        <button class="icon-btn" id="btn-refresh" aria-label="Actualizar">
+        <button class="icon-btn hidden" id="btn-refresh" aria-label="Actualizar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
         </button>
       </div>
     </div>
 
     <div class="content">
-      <div class="modo-switch-card">
-        <div class="modo-switch-label">Qué se muestra en la web principal</div>
-        <div class="modo-switch" id="modoSwitch">
-          <button class="modo-btn" data-modo="savethedate">Save the Date</button>
-          <button class="modo-btn" data-modo="invitacion">Invitación</button>
-          <button class="modo-btn" data-modo="galeria">Galería</button>
+
+      <!-- MENÚ PRINCIPAL -->
+      <div id="vistaHome">
+        <div class="modo-switch-card">
+          <div class="modo-switch-label">Qué se muestra en la web principal</div>
+          <div class="modo-switch" id="modoSwitch">
+            <button class="modo-btn" data-modo="savethedate">Save the Date</button>
+            <button class="modo-btn" data-modo="invitacion">Invitación</button>
+            <button class="modo-btn" data-modo="galeria">Galería</button>
+          </div>
+        </div>
+
+        <div class="menu-actions">
+          <button class="menu-card" id="btn-ir-fotos">
+            <div class="menu-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+            </div>
+            <div class="menu-text">
+              <div class="menu-title">Fotos de la galería</div>
+              <div class="menu-sub">Ver y borrar las fotos subidas</div>
+            </div>
+            <div class="menu-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+          </button>
+          <button class="menu-card" id="btn-ir-videos">
+            <div class="menu-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+            </div>
+            <div class="menu-text">
+              <div class="menu-title">Mensajes de video</div>
+              <div class="menu-sub">Ver y borrar los mensajes grabados</div>
+            </div>
+            <div class="menu-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+          </button>
         </div>
       </div>
 
-      <div id="loading" class="state-msg">
-        <div class="spinner"></div>
-        <span>Cargando mensajes...</span>
+      <!-- VISTA MENSAJES -->
+      <div id="vistaMensajes" class="hidden">
+        <div id="loading" class="state-msg">
+          <div class="spinner"></div>
+          <span>Cargando mensajes...</span>
+        </div>
+        <div id="empty" class="state-msg hidden">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>Todavía no hay mensajes.</span>
+        </div>
+        <div id="list"></div>
       </div>
 
-      <div id="empty" class="state-msg hidden">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        <span>Todavía no hay mensajes.</span>
+      <!-- VISTA GALERÍA -->
+      <div id="vistaGaleria" class="hidden">
+        <div id="loadingFotos" class="state-msg">
+          <div class="spinner"></div>
+          <span>Cargando fotos...</span>
+        </div>
+        <div id="emptyFotos" class="state-msg hidden">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          <span>Todavía no hay fotos.</span>
+        </div>
+        <div id="listFotos"></div>
       </div>
 
-      <div id="list"></div>
     </div>
   </div>
 
@@ -434,7 +539,7 @@
       <div class="modal-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
       </div>
-      <div class="modal-title">Borrar mensaje</div>
+      <div class="modal-title" id="modal-title">Borrar</div>
       <div class="modal-text">Esta acción no se puede deshacer.</div>
       <div class="modal-actions">
         <button class="modal-btn cancel" id="modal-cancel">Cancelar</button>
@@ -472,7 +577,7 @@
     sessionStorage.setItem('mensajes-admin-clave', clave);
     gate.classList.add('hidden');
     panel.classList.remove('hidden');
-    cargarMensajes();
+    mostrarHome();
     cargarModoSwitch();
   }
 
@@ -539,9 +644,11 @@
   // ---------- Modal de confirmación ----------
 
   const modalOverlay = document.getElementById('modal-overlay');
+  const modalTitleEl = document.getElementById('modal-title');
   let modalResolver = null;
 
-  function pedirConfirmacion() {
+  function pedirConfirmacion(titulo) {
+    modalTitleEl.textContent = titulo || 'Borrar';
     modalOverlay.classList.add('open');
     return new Promise((resolve) => { modalResolver = resolve; });
   }
@@ -560,15 +667,73 @@
     }
   });
 
+  // ---------- Navegación entre vistas ----------
+
+  const vistaHome = document.getElementById('vistaHome');
+  const vistaMensajes = document.getElementById('vistaMensajes');
+  const vistaGaleria = document.getElementById('vistaGaleria');
+  const topbarH1 = document.getElementById('topbar-h1');
+  const btnBack = document.getElementById('btn-back');
+  const btnRefresh = document.getElementById('btn-refresh');
+  const countBadge = document.getElementById('count-badge');
+
+  let vistaActual = 'home';
+  let mensajesCargados = false;
+  let fotosCargadas = false;
+
+  function mostrarHome() {
+    vistaActual = 'home';
+    vistaHome.classList.remove('hidden');
+    vistaMensajes.classList.add('hidden');
+    vistaGaleria.classList.add('hidden');
+    topbarH1.textContent = 'Panel';
+    btnBack.classList.add('hidden');
+    btnRefresh.classList.add('hidden');
+    countBadge.classList.add('hidden');
+  }
+
+  function mostrarVistaMensajes() {
+    vistaActual = 'mensajes';
+    vistaHome.classList.add('hidden');
+    vistaMensajes.classList.remove('hidden');
+    vistaGaleria.classList.add('hidden');
+    topbarH1.textContent = 'Mensajes';
+    btnBack.classList.remove('hidden');
+    btnRefresh.classList.remove('hidden');
+    if (!mensajesCargados) cargarMensajes();
+  }
+
+  function mostrarVistaGaleria() {
+    vistaActual = 'galeria';
+    vistaHome.classList.add('hidden');
+    vistaMensajes.classList.add('hidden');
+    vistaGaleria.classList.remove('hidden');
+    topbarH1.textContent = 'Fotos';
+    btnBack.classList.remove('hidden');
+    btnRefresh.classList.remove('hidden');
+    if (!fotosCargadas) cargarGaleria();
+  }
+
+  document.getElementById('btn-ir-videos').addEventListener('click', mostrarVistaMensajes);
+  document.getElementById('btn-ir-fotos').addEventListener('click', mostrarVistaGaleria);
+  btnBack.addEventListener('click', mostrarHome);
+  btnRefresh.addEventListener('click', () => {
+    if (vistaActual === 'mensajes') cargarMensajes();
+    else if (vistaActual === 'galeria') cargarGaleria();
+  });
+
+  if (claveActual) {
+    gate.classList.add('hidden');
+    panel.classList.remove('hidden');
+    mostrarHome();
+    cargarModoSwitch();
+  }
+
   // ---------- Lista de mensajes ----------
 
   const listEl = document.getElementById('list');
   const loadingEl = document.getElementById('loading');
   const emptyEl = document.getElementById('empty');
-  const countBadge = document.getElementById('count-badge');
-  const btnRefresh = document.getElementById('btn-refresh');
-
-  btnRefresh.addEventListener('click', () => cargarMensajes());
 
   async function cargarMensajes() {
     btnRefresh.classList.add('spinning');
@@ -580,13 +745,16 @@
     try {
       const res = await fetch(GAS_URL + '?tipo=mensajes');
       const mensajes = await res.json();
+      mensajesCargados = true;
       loadingEl.classList.add('hidden');
       if (!mensajes.length) {
         emptyEl.classList.remove('hidden');
         return;
       }
-      countBadge.textContent = mensajes.length;
-      countBadge.classList.remove('hidden');
+      if (vistaActual === 'mensajes') {
+        countBadge.textContent = mensajes.length;
+        countBadge.classList.remove('hidden');
+      }
       mensajes.forEach(renderItem);
     } catch (err) {
       loadingEl.querySelector('span').textContent = 'No pudimos cargar los mensajes. Probá actualizar.';
@@ -648,7 +816,7 @@
     video.addEventListener('pause', () => { if (video.currentTime === video.duration) btnVer.innerHTML = ICON_PLAY; });
 
     btnBorrar.addEventListener('click', async () => {
-      const ok = await pedirConfirmacion();
+      const ok = await pedirConfirmacion('Borrar mensaje');
       if (!ok) return;
       btnBorrar.disabled = true;
       btnVer.disabled = true;
@@ -679,14 +847,126 @@
     listEl.appendChild(item);
   }
 
-  if (claveActual) {
-    gate.classList.add('hidden');
-    panel.classList.remove('hidden');
-    cargarMensajes();
-    cargarModoSwitch();
+  // ---------- Galería de fotos ----------
+
+  const listFotosEl = document.getElementById('listFotos');
+  const loadingFotosEl = document.getElementById('loadingFotos');
+  const emptyFotosEl = document.getElementById('emptyFotos');
+
+  async function cargarGaleria() {
+    btnRefresh.classList.add('spinning');
+    loadingFotosEl.classList.remove('hidden');
+    loadingFotosEl.querySelector('span').textContent = 'Cargando fotos...';
+    emptyFotosEl.classList.add('hidden');
+    listFotosEl.innerHTML = '';
+    countBadge.classList.add('hidden');
+    try {
+      const res = await fetch(GAS_URL + '?tipo=galeria');
+      const fotos = await res.json();
+      fotosCargadas = true;
+      loadingFotosEl.classList.add('hidden');
+      if (!fotos.length) {
+        emptyFotosEl.classList.remove('hidden');
+        return;
+      }
+      if (vistaActual === 'galeria') {
+        countBadge.textContent = fotos.length;
+        countBadge.classList.remove('hidden');
+      }
+      fotos.forEach(renderFotoItem);
+    } catch (err) {
+      loadingFotosEl.querySelector('span').textContent = 'No pudimos cargar las fotos. Probá actualizar.';
+    } finally {
+      btnRefresh.classList.remove('spinning');
+    }
   }
 
-  // ---------- Switch de modo (Save the Date / Invitación) ----------
+  function renderFotoItem(foto) {
+    const item = document.createElement('div');
+    item.className = 'item';
+    const fecha = new Date(foto.fecha).toLocaleString('es-AR', { dateStyle: 'medium', timeStyle: 'short' });
+    item.innerHTML = `
+      <div class="item-row">
+        <img class="item-thumb" alt="">
+        <div class="item-info">
+          <div class="item-name">${foto.nombre}</div>
+          <div class="item-date">${fecha}</div>
+        </div>
+        <div class="item-actions">
+          <button class="icon-btn small btn-ver-foto" aria-label="Ver">${ICON_PLAY}</button>
+          <button class="icon-btn small danger-outline btn-borrar-foto" aria-label="Borrar">${ICON_TRASH}</button>
+        </div>
+      </div>
+      <div class="photo-wrap"><img class="photo-full" alt=""></div>
+    `;
+    const thumb = item.querySelector('.item-thumb');
+    const photoWrap = item.querySelector('.photo-wrap');
+    const full = item.querySelector('.photo-full');
+    const btnVer = item.querySelector('.btn-ver-foto');
+    const btnBorrar = item.querySelector('.btn-borrar-foto');
+    let dataUrl = null;
+
+    async function obtenerDataUrl() {
+      if (dataUrl) return dataUrl;
+      const res = await fetch(foto.url);
+      const data = await res.json();
+      dataUrl = 'data:' + data.mimeType + ';base64,' + data.data;
+      return dataUrl;
+    }
+
+    obtenerDataUrl().then(url => { thumb.src = url; }).catch(() => {});
+
+    btnVer.addEventListener('click', async () => {
+      if (photoWrap.classList.contains('open')) {
+        photoWrap.classList.remove('open');
+        return;
+      }
+      try {
+        if (!full.src) {
+          btnVer.disabled = true;
+          full.src = await obtenerDataUrl();
+          btnVer.disabled = false;
+        }
+        photoWrap.classList.add('open');
+      } catch (err) {
+        btnVer.disabled = false;
+        toast('No se pudo cargar la foto');
+      }
+    });
+
+    btnBorrar.addEventListener('click', async () => {
+      const ok = await pedirConfirmacion('Borrar foto');
+      if (!ok) return;
+      btnBorrar.disabled = true;
+      btnVer.disabled = true;
+      try {
+        await fetch(GAS_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          body: JSON.stringify({ tipo: 'borrarFoto', id: foto.id, clave: claveActual })
+        });
+        item.classList.add('removing');
+        toast('Foto borrada');
+        setTimeout(() => {
+          item.remove();
+          const restantes = listFotosEl.children.length;
+          countBadge.textContent = restantes;
+          if (!restantes) {
+            countBadge.classList.add('hidden');
+            emptyFotosEl.classList.remove('hidden');
+          }
+        }, 280);
+      } catch (err) {
+        btnBorrar.disabled = false;
+        btnVer.disabled = false;
+        toast('No se pudo borrar, probá de nuevo');
+      }
+    });
+
+    listFotosEl.appendChild(item);
+  }
+
+  // ---------- Switch de modo (Save the Date / Invitación / Galería) ----------
 
   const modoSwitch = document.getElementById('modoSwitch');
   const modoBtns = modoSwitch.querySelectorAll('.modo-btn');

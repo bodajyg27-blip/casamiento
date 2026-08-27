@@ -66,6 +66,10 @@ function doPost(e) {
       if (!claveValida(params.clave)) return errorNoAutorizado();
       return borrarMensaje(params);
     }
+    if (params.tipo === "borrarFoto") {
+      if (!claveValida(params.clave)) return errorNoAutorizado();
+      return borrarFoto(params);
+    }
     if (params.tipo === "setModoIndex") {
       if (!claveValida(params.clave)) return errorNoAutorizado();
       return setModoIndex(params);
@@ -357,6 +361,17 @@ function addFoto(params) {
   const file = folder.createFile(blob);
 
   return ContentService.createTextOutput(JSON.stringify({ success: true, id: file.getId() }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function borrarFoto(params) {
+  const id = params.id || "";
+  if (!id) {
+    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: "Falta el id" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  DriveApp.getFileById(id).setTrashed(true);
+  return ContentService.createTextOutput(JSON.stringify({ ok: true }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
