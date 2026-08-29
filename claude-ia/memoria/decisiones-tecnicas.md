@@ -1,5 +1,13 @@
 # Decisiones técnicas — Invitación de casamiento
 
+## Cola offline para subir fotos de la galería (mismo patrón que los mensajes)
+
+**Decisión:** `galeria/index.html` guarda cada foto en IndexedDB (`galeria-casamiento` / store `pendientes`) **antes** de subirla, y recién la borra de ahí cuando el servidor confirma `{success:true}`. Si no hay conexión al momento de sacar/elegir la foto, queda encolada localmente y se reintenta sola al reconectar (`online` event) o cada 30s (`setInterval`), igual que ya hacía `mensaje/index.html` con los videos.
+
+**Por qué:** antes, si el `fetch` fallaba (sin internet), la foto se perdía directo — no había ningún resguardo. Con un evento en vivo (boda) donde el wifi/datos pueden cortarse en cualquier momento, perder la foto sin avisar es peor que hacer esperar la subida.
+
+**Cómo aplicarlo:** a diferencia de `uploadRecord` de `mensaje/index.html` (que usa `mode:'no-cors'` y asume éxito porque no puede leer la respuesta), el de `galeria/index.html` sí lee `data.success` de la respuesta (el POST de fotos nunca tuvo problema de CORS) y solo borra el pendiente si el servidor confirmó — si en algún momento se le agrega `no-cors` a este POST por algún motivo, hay que volver a la lógica optimista (asumir éxito si el fetch no tira excepción de red), como en mensajes.
+
 ## Ocultar la galería: solo cambia qué se muestra, no bloquea nada del servidor
 
 **Decisión:** el toggle "Fotos de la galería: Visibles/Ocultas" en `admin/` (Config → `GaleriaVisible`, `true`/`false`, default visible) solo controla si `galeria/index.html` muestra la grilla de fotos o el mensaje "Seguí compartiendo tu enfoque sobre esta noche, mañana se revelará cada recuerdo subido por nuestros invitados." El endpoint `getGaleria`/`getFotoBlob` sigue siendo público y sin cambios — no se le agregó ningún chequeo de `GaleriaVisible` del lado del servidor. Subir fotos (`addFoto`) tampoco se toca: los invitados pueden seguir sacando/subiendo fotos mientras están "ocultas", solo no las ven en pantalla hasta que alguien las vuelva a mostrar.

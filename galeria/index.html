@@ -543,45 +543,135 @@
     });
   }
 
+  // ---------- Cola local (IndexedDB): guarda la foto hasta confirmar la subida ----------
+  // Mismo patrón que mensaje/index.html: la foto se resguarda localmente
+  // antes de subirse y recién se borra de la cola cuando el servidor
+  // confirma la subida. Si no hay conexión, queda pendiente y se
+  // reintenta solo al reconectar (o cada 30s).
+
+  const DB_NAME = 'galeria-casamiento';
+  const STORE_NAME = 'pendientes';
+
+  function openDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = () => req.result.createObjectStore(STORE_NAME, { keyPath: 'id' });
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function savePending(record) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).put(record);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  async function getAllPending() {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const req = db.transaction(STORE_NAME, 'readonly').objectStore(STORE_NAME).getAll();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function deletePending(id) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).delete(id);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  async function uploadRecord(record) {
+    const base64 = await blobToBase64(record.blob);
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ tipo: 'foto', nombre: record.nombre, mimeType: record.mimeType, data: base64 })
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error('El servidor no confirmó la subida');
+  }
+
+  let uploadingQueue = false;
+  async function tryUploadPending() {
+    if (uploadingQueue || !navigator.onLine) return;
+    uploadingQueue = true;
+    const btn = document.getElementById('uploadBtn');
+    const camBtn = document.getElementById('cameraBtn');
+    const pill = document.getElementById('uploadPill');
+    let subidas = 0;
+    try {
+      const pending = await getAllPending();
+      if (!pending.length) return;
+      btn.disabled = true;
+      btn.classList.add('busy');
+      camBtn.disabled = true;
+      pill.classList.add('show');
+      for (let i = 0; i < pending.length; i++) {
+        pill.textContent = `Subiendo ${i + 1} de ${pending.length}...`;
+        try {
+          await uploadRecord(pending[i]);
+          await deletePending(pending[i].id);
+          subidas++;
+        } catch (err) {
+          break; // probablemente se cortó la conexión de nuevo; se reintenta más tarde
+        }
+      }
+    } catch (err) {
+      // IndexedDB no disponible o falló la lectura; se reintenta en el próximo trigger
+    } finally {
+      uploadingQueue = false;
+      btn.disabled = false;
+      btn.classList.remove('busy');
+      camBtn.disabled = false;
+      pill.classList.remove('show');
+      if (subidas > 0) {
+        showToast(`📸 ${subidas} foto${subidas > 1 ? 's' : ''} subida${subidas > 1 ? 's' : ''}`);
+        loadGaleria();
+      }
+    }
+  }
+
+  window.addEventListener('online', tryUploadPending);
+  setInterval(tryUploadPending, 30000);
+  tryUploadPending();
+
   async function handleFiles(fileList) {
     const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
     if (!files.length) return;
 
     const input = document.getElementById('photoInput');
-    const btn = document.getElementById('uploadBtn');
-    const pill = document.getElementById('uploadPill');
-    btn.disabled = true;
-    btn.classList.add('busy');
-    pill.classList.add('show');
-
-    let ok = 0;
+    let guardadas = 0;
     for (let i = 0; i < files.length; i++) {
-      pill.textContent = `Subiendo ${i + 1} de ${files.length}...`;
       try {
         const resized = await resizeImage(files[i], MAX_DIM);
-        const base64 = await blobToBase64(resized);
-        const res = await fetch(GAS_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ tipo: 'foto', nombre: files[i].name, mimeType: 'image/jpeg', data: base64 })
-        });
-        const data = await res.json();
-        if (data.success) ok++;
+        const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${i}`;
+        await savePending({ id, blob: resized, nombre: files[i].name, mimeType: 'image/jpeg', createdAt: Date.now() });
+        guardadas++;
       } catch (err) {
-        console.error('Error subiendo foto', err);
+        console.error('Error preparando foto', err);
       }
     }
-
-    pill.classList.remove('show');
-    btn.disabled = false;
-    btn.classList.remove('busy');
     input.value = '';
 
-    if (ok > 0) {
-      showToast(`📸 ${ok} foto${ok > 1 ? 's' : ''} subida${ok > 1 ? 's' : ''}`);
-      loadGaleria();
+    if (guardadas > 0) {
+      if (!navigator.onLine) {
+        showToast(guardadas > 1
+          ? `${guardadas} fotos guardadas, se subirán cuando haya conexión`
+          : 'Foto guardada, se subirá cuando haya conexión');
+      }
+      tryUploadPending();
     } else {
-      showToast('No se pudo subir la foto, reintentá');
+      showToast('No se pudo procesar la foto, reintentá');
     }
   }
 
