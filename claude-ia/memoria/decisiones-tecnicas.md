@@ -1,5 +1,13 @@
 # Decisiones técnicas — Invitación de casamiento
 
+## Botón de cámara en la galería: `<input capture>`, no acceso a la cámara vía JS
+
+**Decisión:** en `galeria/index.html` el botón de "sacar foto" es un segundo `<input type="file" accept="image/*" capture="environment">` oculto (además del que ya existía para elegir de la galería), no una implementación con `getUserMedia`/`MediaRecorder` como la de `mensaje/index.html`.
+
+**Por qué:** el pedido era que al tocar el botón se abra la app de cámara nativa del dispositivo (no una cámara embebida en la página) y que la foto tomada se suba sola. El atributo `capture` en un `<input type="file">` hace exactamente eso en Safari iOS y Chrome Android: abre la cámara del sistema directo, sin pedir permiso de `getUserMedia` ni mantener un stream de video abierto en la página. En desktop, donde `capture` no tiene efecto, cae solo al selector de archivos normal — degradación aceptable porque ahí no hay cámara "nativa" que abrir de todas formas.
+
+**Cómo aplicarlo:** el input de cámara reusa la misma función de subida (`handleFiles`) que el input de galería — ambos terminan llamando al mismo POST `tipo: 'foto'` del Apps Script. Si en el futuro hace falta grabar/recortar antes de subir, ahí sí conviene mirar el patrón de `mensaje/index.html` (canvas + MediaRecorder), pero para una foto suelta el `<input capture>` es más simple y no requiere pedir permisos de cámara aparte.
+
 ## Formato de imagen: JPEG si no hay alpha real, WebP si lo hay
 
 **Decisión:** para las imágenes de `img/`, se elige el formato según si la imagen tiene transparencia real (canal alpha usado) o no, no por costumbre/lo que venga del diseñador.
