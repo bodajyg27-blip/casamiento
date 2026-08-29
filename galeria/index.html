@@ -141,7 +141,6 @@
   .fab {
     position: fixed;
     right: calc(20px + env(safe-area-inset-right));
-    bottom: calc(24px + env(safe-area-inset-bottom));
     width: 60px;
     height: 60px;
     border-radius: 50%;
@@ -161,14 +160,24 @@
   .fab.busy svg { animation: spin 0.9s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  .fab-camera {
-    bottom: calc(92px + env(safe-area-inset-bottom));
+  .fab-upload {
+    bottom: calc(110px + env(safe-area-inset-bottom));
   }
+  .fab-upload.solo {
+    bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+
+  .fab-camera {
+    bottom: calc(24px + env(safe-area-inset-bottom));
+    width: 78px;
+    height: 78px;
+  }
+  .fab-camera svg { width: 34px; height: 34px; }
 
   .upload-pill {
     position: fixed;
     right: calc(20px + env(safe-area-inset-right));
-    bottom: calc(160px + env(safe-area-inset-bottom));
+    bottom: calc(178px + env(safe-area-inset-bottom));
     background: #2e2c18;
     color: var(--cream);
     padding: 8px 16px;
@@ -312,7 +321,7 @@
   <button class="fab fab-camera" id="cameraBtn" aria-label="Sacar foto">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/></svg>
   </button>
-  <button class="fab" id="uploadBtn" aria-label="Subir fotos desde la galería">
+  <button class="fab fab-upload" id="uploadBtn" aria-label="Subir fotos desde la galería">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
   </button>
 
@@ -683,6 +692,17 @@
     handleFiles(e.target.files);
     e.target.value = '';
   });
+
+  // El botón de cámara deja de mostrarse el día después de la boda: ya no
+  // tiene sentido invitar a "sacar una foto ahora" pasado ese momento.
+  // Subir desde la galería del dispositivo sigue disponible sin límite.
+  (function ocultarCamaraTrasLaBoda() {
+    const finCamara = new Date(2027, 9, 24, 6, 0, 0);
+    if (new Date() >= finCamara) {
+      document.getElementById('cameraBtn').classList.add('hidden');
+      document.getElementById('uploadBtn').classList.add('solo');
+    }
+  })();
 </script>
 </body>
 </html>
