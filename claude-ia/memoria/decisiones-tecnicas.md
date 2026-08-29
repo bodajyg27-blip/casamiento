@@ -2,7 +2,7 @@
 
 ## El botón de cámara de la galería se oculta solo, el día después de la boda
 
-**Decisión:** en `galeria/index.html`, el botón de cámara (`#cameraBtn`) se oculta con un chequeo client-side (`new Date() >= new Date(2027, 9, 24, 6, 0, 0)`) — mismo patrón que el cierre de RSVP/canciones en `familiar/`/`invitacion/`. Cuando se oculta, el botón de subir desde la galería del dispositivo (`#uploadBtn`) pasa a ocupar la posición principal (clase `.solo`) en vez de quedar un hueco vacío abajo. Ese botón **no** tiene fecha de corte — subir fotos ya sacadas sigue funcionando siempre.
+**Decisión:** en `galeria/index.html`, el botón de cámara (`#cameraBtn`) se oculta con un chequeo client-side (`new Date() >= new Date(2027, 9, 24, 10, 0, 0)`) — mismo patrón que el cierre de RSVP/canciones en `familiar/`/`invitacion/`. Cuando se oculta, el botón de subir desde la galería del dispositivo (`#uploadBtn`) pasa a ocupar la posición principal (clase `.solo`) en vez de quedar un hueco vacío abajo. Ese botón **no** tiene fecha de corte — subir fotos ya sacadas sigue funcionando siempre.
 
 **Por qué:** después de la boda no tiene sentido invitar a "sacá una foto ahora" (la noche ya pasó), pero sí puede haber fotos sueltas del evento que alguien quiera subir más tarde desde su rollo.
 

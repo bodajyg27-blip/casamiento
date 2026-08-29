@@ -697,7 +697,7 @@
   // tiene sentido invitar a "sacar una foto ahora" pasado ese momento.
   // Subir desde la galería del dispositivo sigue disponible sin límite.
   (function ocultarCamaraTrasLaBoda() {
-    const finCamara = new Date(2027, 9, 24, 6, 0, 0);
+    const finCamara = new Date(2027, 9, 24, 10, 0, 0);
     if (new Date() >= finCamara) {
       document.getElementById('cameraBtn').classList.add('hidden');
       document.getElementById('uploadBtn').classList.add('solo');
