@@ -481,6 +481,14 @@
           </div>
         </div>
 
+        <div class="modo-switch-card">
+          <div class="modo-switch-label">Fotos de la galería</div>
+          <div class="modo-switch" id="galeriaSwitch">
+            <button class="modo-btn" data-visible="true">Visibles</button>
+            <button class="modo-btn" data-visible="false">Ocultas</button>
+          </div>
+        </div>
+
         <div class="menu-actions">
           <button class="menu-card" id="btn-ir-fotos">
             <div class="menu-icon">
@@ -579,6 +587,7 @@
     panel.classList.remove('hidden');
     mostrarHome();
     cargarModoSwitch();
+    cargarGaleriaSwitch();
   }
 
   function unlockFail(mensaje) {
@@ -727,6 +736,7 @@
     panel.classList.remove('hidden');
     mostrarHome();
     cargarModoSwitch();
+    cargarGaleriaSwitch();
   }
 
   // ---------- Lista de mensajes ----------
@@ -1004,6 +1014,44 @@
         toast('No se pudo cambiar el modo, probá de nuevo');
       } finally {
         modoBtns.forEach(b => b.disabled = false);
+      }
+    });
+  });
+
+  // ---------- Switch de visibilidad de la galería ----------
+
+  const galeriaSwitch = document.getElementById('galeriaSwitch');
+  const galeriaBtns = galeriaSwitch.querySelectorAll('.modo-btn');
+
+  async function cargarGaleriaSwitch() {
+    try {
+      const res = await fetch(GAS_URL + '?tipo=galeriaVisible');
+      const data = await res.json();
+      pintarGaleriaActiva(data.visible);
+    } catch (err) {}
+  }
+
+  function pintarGaleriaActiva(visible) {
+    galeriaBtns.forEach(btn => btn.classList.toggle('active', (btn.dataset.visible === 'true') === visible));
+  }
+
+  galeriaBtns.forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (btn.classList.contains('active')) return;
+      const visible = btn.dataset.visible === 'true';
+      galeriaBtns.forEach(b => b.disabled = true);
+      try {
+        await fetch(GAS_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          body: JSON.stringify({ tipo: 'setGaleriaVisible', visible, clave: claveActual })
+        });
+        pintarGaleriaActiva(visible);
+        toast(visible ? 'Las fotos vuelven a ser visibles' : 'Las fotos quedan ocultas hasta que las muestres');
+      } catch (err) {
+        toast('No se pudo cambiar la visibilidad, probá de nuevo');
+      } finally {
+        galeriaBtns.forEach(b => b.disabled = false);
       }
     });
   });

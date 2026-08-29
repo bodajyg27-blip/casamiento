@@ -44,6 +44,10 @@ function doGet(e) {
     return ContentService.createTextOutput(JSON.stringify({ modo: getModoIndex() }))
       .setMimeType(ContentService.MimeType.JSON);
   }
+  if (tipo === "galeriaVisible") {
+    return ContentService.createTextOutput(JSON.stringify({ visible: getGaleriaVisible() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
   if (tipo === "saveTheDate") {
     return getSaveTheDate();
   }
@@ -73,6 +77,10 @@ function doPost(e) {
     if (params.tipo === "setModoIndex") {
       if (!claveValida(params.clave)) return errorNoAutorizado();
       return setModoIndex(params);
+    }
+    if (params.tipo === "setGaleriaVisible") {
+      if (!claveValida(params.clave)) return errorNoAutorizado();
+      return setGaleriaVisible(params);
     }
     return confirmarInvitado(params);
   } catch (err) {
@@ -152,6 +160,45 @@ function setModoIndex(params) {
     }
   }
   sheet.appendRow(["ModoIndex", modo]);
+  return ContentService.createTextOutput(JSON.stringify({ ok: true }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ---------- Visibilidad de la galería (galeria/index.html) ----------
+// Misma pestaña "Config": fila "GaleriaVisible" | "true" o "false". Si no
+// existe la fila, se asume visible (comportamiento de siempre). Solo afecta
+// si galeria/index.html muestra la grilla de fotos o un mensaje de "todavía
+// no" — subir fotos y verlas en tv/ siguen funcionando igual, sin bloquear
+// nada del lado del servidor (mismo criterio que ModoIndex/ClaveAdmin).
+
+function getGaleriaVisible() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Config");
+  if (!sheet) return true;
+  const data = sheet.getDataRange().getValues();
+  for (let i = 0; i < data.length; i++) {
+    if (String(data[i][0]).trim().toLowerCase() === "galeriavisible") {
+      return String(data[i][1]).trim().toLowerCase() !== "false";
+    }
+  }
+  return true;
+}
+
+function setGaleriaVisible(params) {
+  const visible = params.visible !== false && params.visible !== "false";
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Config");
+  if (!sheet) {
+    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: "Falta la pestaña Config" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  const data = sheet.getDataRange().getValues();
+  for (let i = 0; i < data.length; i++) {
+    if (String(data[i][0]).trim().toLowerCase() === "galeriavisible") {
+      sheet.getRange(i + 1, 2).setValue(String(visible));
+      return ContentService.createTextOutput(JSON.stringify({ ok: true }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+  sheet.appendRow(["GaleriaVisible", String(visible)]);
   return ContentService.createTextOutput(JSON.stringify({ ok: true }))
     .setMimeType(ContentService.MimeType.JSON);
 }

@@ -370,6 +370,22 @@
 
   async function loadGaleria() {
     const grid = document.getElementById('galleryGrid');
+    const intro = document.querySelector('.intro');
+    try {
+      const visRes = await fetch(GAS_URL + "?tipo=galeriaVisible");
+      const visData = await visRes.json();
+      if (visData.visible === false) {
+        intro.classList.add('hidden');
+        grid.innerHTML = `<div class="state-msg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/><line x1="3" y1="21" x2="21" y2="3"/></svg>
+          <span>Seguí compartiendo tu enfoque sobre esta noche, mañana se revelará cada recuerdo subido por nuestros invitados.</span>
+        </div>`;
+        countBadge.classList.add('hidden');
+        fotosCache = [];
+        return;
+      }
+      intro.classList.remove('hidden');
+    } catch (err) {}
     try {
       const res = await fetch(GAS_URL + "?tipo=galeria");
       const fotos = await res.json();

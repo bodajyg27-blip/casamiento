@@ -1,5 +1,13 @@
 # Decisiones técnicas — Invitación de casamiento
 
+## Ocultar la galería: solo cambia qué se muestra, no bloquea nada del servidor
+
+**Decisión:** el toggle "Fotos de la galería: Visibles/Ocultas" en `admin/` (Config → `GaleriaVisible`, `true`/`false`, default visible) solo controla si `galeria/index.html` muestra la grilla de fotos o el mensaje "Seguí compartiendo tu enfoque sobre esta noche, mañana se revelará cada recuerdo subido por nuestros invitados." El endpoint `getGaleria`/`getFotoBlob` sigue siendo público y sin cambios — no se le agregó ningún chequeo de `GaleriaVisible` del lado del servidor. Subir fotos (`addFoto`) tampoco se toca: los invitados pueden seguir sacando/subiendo fotos mientras están "ocultas", solo no las ven en pantalla hasta que alguien las vuelva a mostrar.
+
+**Por qué:** ya pasó una vez que proteger de más un endpoint compartido rompió `tv/index.html` (ver [[bugs-conocidos]], regresión de la clave de admin) porque esa pantalla también consume `getMensajes`/`getMensajeVideo` sin clave. `tv/index.html` usa el mismo `getGaleria` para su slideshow de fotos — si se lo hubiera bloqueado cuando `GaleriaVisible = false`, la TV del salón se hubiera quedado sin fotos también, que no es lo que se pidió (el pedido era ocultar la vista de `galeria/index.html` para los invitados, no la de la TV).
+
+**Cómo aplicarlo:** cualquier futuro "modo oculto"/toggle de visibilidad en este proyecto debería seguir el mismo patrón que `ModoIndex` y este: una bandera pública de solo lectura en `Config`, cuyo único efecto es qué arma cada página del lado del cliente — nunca condicionar del lado del servidor el acceso a datos que otra página (como `tv/`) también necesita sin clave.
+
 ## Botón de cámara en la galería: `<input capture>`, no acceso a la cámara vía JS
 
 **Decisión:** en `galeria/index.html` el botón de "sacar foto" es un segundo `<input type="file" accept="image/*" capture="environment">` oculto (además del que ya existía para elegir de la galería), no una implementación con `getUserMedia`/`MediaRecorder` como la de `mensaje/index.html`.
