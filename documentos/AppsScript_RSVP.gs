@@ -13,6 +13,18 @@ const CARRUSEL_FOLDER_ID = "1krOS3o8mvyNX3N_cvydD32PDI6ng83TO";
 // muestra en index.html cuando ModoIndex (pestaña Config) = "savethedate".
 const SAVETHEDATE_FOLDER_ID = "1Z5_sw5Hu7L3D7hrvJnlf-U-SJ4YEvU1J";
 
+// API key de Google Cloud (Drive API habilitada), restringida a Drive API
+// y a los referentes HTTP del sitio (bodajyg.site y localhost para
+// pruebas). Se usa para que galeria/index.html pueda pedir cada foto
+// directo a googleapis.com (drive/v3/files/ID?alt=media&key=...) sin
+// pasar por este script — ver escanearGaleriaDrive(). Se guarda como
+// Script Property (Configuración del proyecto > Propiedades del script >
+// DRIVE_API_KEY) en vez de hardcodeada acá, para que el valor no quede en
+// el historial de git — solo el nombre de la propiedad viaja en el código.
+function getDriveApiKey() {
+  return PropertiesService.getScriptProperties().getProperty('DRIVE_API_KEY') || '';
+}
+
 function doGet(e) {
   const tipo = e.parameter.tipo || "invitados";
   if (tipo === "canciones") {
@@ -22,7 +34,7 @@ function doGet(e) {
     return getRegalo();
   }
   if (tipo === "galeria") {
-    return getGaleria();
+    return getGaleria(e);
   }
   if (tipo === "carrusel") {
     return getCarrusel();
@@ -305,8 +317,37 @@ function getRegalo() {
 }
 
 // ---------- GALERÍA (Google Drive) ----------
+//
+// Pensado para escalar a varios miles de fotos sin recargar cada visita:
+//
+// 1) getListaGaleriaCompleta() escanea Drive como mucho una vez cada
+//    GALERIA_CACHE_TTL segundos (CacheService) — durante ese tiempo todos
+//    los invitados que abren la galería leen la lista desde caché en vez
+//    de volver a listar la carpeta entera. La lista se guarda partida en
+//    "chunks" porque CacheService limita cada clave a 100KB, y con miles
+//    de fotos la lista completa no entra en una sola.
+// 2) getGaleria() pagina server-side (?pagina=N&porPagina=M) cuando el
+//    cliente lo pide, para que el primer request sea liviano incluso con
+//    miles de fotos ya subidas. Sin esos parámetros devuelve el array
+//    plano de siempre, por compatibilidad con tv/index.html y
+//    admin/index.html (que necesitan la lista completa igual).
+// 3) galeria/index.html pide cada foto directo a la API oficial de Drive
+//    (googleapis.com/drive/v3/files/ID?alt=media&key=DRIVE_API_KEY), no a
+//    este script — así ver fotos no consume ejecuciones de Apps Script
+//    (limitadas a 30 simultáneas). Antes se probó el truco no oficial
+//    drive.google.com/thumbnail para lo mismo, pero con apenas 16 fotos
+//    cargando casi en simultáneo ya devolvía 429 (Too Many Requests): no
+//    es una API con cuota documentada. La API v3 con key sí la tiene (muy
+//    por encima de lo que necesita esta boda). tipo=foto sigue existiendo
+//    para tv/index.html, admin/index.html y el botón "Descargar".
 
-function getGaleria() {
+const GALERIA_CACHE_TTL = 60; // segundos
+// Fotos por clave de caché. CacheService limita cada clave a 100KB; cada
+// foto acá pesa ~350-400 bytes, así que 200 por chunk deja margen de
+// sobra (~70-80KB) aunque haya nombres de archivo largos.
+const GALERIA_CACHE_CHUNK = 200;
+
+function escanearGaleriaDrive() {
   const folder = DriveApp.getFolderById(GALERIA_FOLDER_ID);
   const files = folder.getFilesByType(MimeType.JPEG);
   // "image/webp" no existe como constante en el enum MimeType de Apps
@@ -318,6 +359,7 @@ function getGaleria() {
   const fotos = [];
   const vistos = {};
   const baseUrl = ScriptApp.getService().getUrl();
+  const apiKey = getDriveApiKey();
 
   function agregar(iter) {
     while (iter.hasNext()) {
@@ -329,9 +371,14 @@ function getGaleria() {
       fotos.push({
         id: id,
         nombre: file.getName(),
-        fecha: file.getDateCreated(),
+        fecha: file.getDateCreated().getTime(),
+        // url/download: proxy de este script — lo siguen usando
+        // tv/index.html, admin/index.html y el botón "Descargar".
         url: fotoUrl,
-        download: fotoUrl
+        download: fotoUrl,
+        // directo: API oficial de Drive, la usa galeria/index.html para
+        // no consumir ejecuciones de Apps Script en cada foto que se ve.
+        directo: "https://www.googleapis.com/drive/v3/files/" + id + "?alt=media&key=" + apiKey
       });
     }
   }
@@ -340,9 +387,92 @@ function getGaleria() {
   otrosTipos.forEach(tipo => agregar(folder.getFilesByType(tipo)));
 
   fotos.sort((a, b) => b.fecha - a.fecha);
+  return fotos;
+}
 
-  return ContentService.createTextOutput(JSON.stringify(fotos))
-    .setMimeType(ContentService.MimeType.JSON);
+function getListaGaleriaCompleta() {
+  const cache = CacheService.getScriptCache();
+  const metaRaw = cache.get('galeria_meta');
+  if (metaRaw) {
+    const meta = JSON.parse(metaRaw);
+    const claves = [];
+    for (let i = 0; i < meta.chunks; i++) claves.push('galeria_chunk_' + i);
+    const chunksRaw = cache.getAll(claves);
+    if (Object.keys(chunksRaw).length === meta.chunks) {
+      let fotos = [];
+      for (let i = 0; i < meta.chunks; i++) {
+        fotos = fotos.concat(JSON.parse(chunksRaw['galeria_chunk_' + i]));
+      }
+      return fotos;
+    }
+  }
+
+  // Caché vacío o vencido: recién acá se escanea Drive de verdad.
+  const fotos = escanearGaleriaDrive();
+  const chunks = [];
+  for (let i = 0; i < fotos.length; i += GALERIA_CACHE_CHUNK) {
+    chunks.push(fotos.slice(i, i + GALERIA_CACHE_CHUNK));
+  }
+  const paraGuardar = {};
+  chunks.forEach((chunk, i) => { paraGuardar['galeria_chunk_' + i] = JSON.stringify(chunk); });
+  paraGuardar['galeria_meta'] = JSON.stringify({ chunks: chunks.length, total: fotos.length });
+  cache.putAll(paraGuardar, GALERIA_CACHE_TTL);
+
+  return fotos;
+}
+
+// Se llama después de subir o borrar una foto para que el cambio se vea
+// enseguida en vez de esperar a que venza GALERIA_CACHE_TTL.
+function invalidarCacheGaleria() {
+  const cache = CacheService.getScriptCache();
+  const metaRaw = cache.get('galeria_meta');
+  const claves = ['galeria_meta'];
+  if (metaRaw) {
+    const meta = JSON.parse(metaRaw);
+    for (let i = 0; i < meta.chunks; i++) claves.push('galeria_chunk_' + i);
+  }
+  cache.removeAll(claves);
+}
+
+function getGaleria(e) {
+  const fotos = getListaGaleriaCompleta();
+
+  // tv/index.html y admin/index.html piden ?tipo=galeria sin "pagina" y
+  // esperan el array plano de siempre (con .url para el proxy base64) —
+  // se los sigue sirviendo así, ahora más rápido gracias al caché de
+  // getListaGaleriaCompleta(). Solo galeria/index.html manda "pagina" y
+  // recibe la respuesta paginada, para no traer miles de fotos de golpe.
+  if (!e || e.parameter.pagina === undefined) {
+    return ContentService.createTextOutput(JSON.stringify(fotos))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  const porPagina = Math.min(Math.max(parseInt(e.parameter.porPagina || '24', 10) || 24, 1), 200);
+  const pagina = Math.max(parseInt(e.parameter.pagina, 10) || 0, 0);
+  const inicio = pagina * porPagina;
+
+  return ContentService.createTextOutput(JSON.stringify({
+    total: fotos.length,
+    pagina: pagina,
+    porPagina: porPagina,
+    fotos: fotos.slice(inicio, inicio + porPagina)
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+// Ejecutar UNA SOLA VEZ a mano desde el editor de Apps Script después de
+// desplegar este cambio: las fotos que ya estaban subidas antes de existir
+// el campo "directo" no tienen el permiso "Cualquiera con el enlace"
+// activado, así que la API key no las puede leer hasta correr esto. Las
+// fotos nuevas ya se comparten solas en addFoto().
+function compartirFotosExistentesDeLaGaleria() {
+  const folder = DriveApp.getFolderById(GALERIA_FOLDER_ID);
+  const files = folder.getFiles();
+  let n = 0;
+  while (files.hasNext()) {
+    files.next().setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    n++;
+  }
+  Logger.log('Fotos compartidas: ' + n);
 }
 
 // Fotos del carrusel "Nuestra historia" de la portada. A diferencia de
@@ -411,6 +541,11 @@ function addFoto(params) {
   const bytes = Utilities.base64Decode(base64);
   const blob = Utilities.newBlob(bytes, mimeType, nombre);
   const file = folder.createFile(blob);
+  // Necesario para que la API key pueda leerla vía "directo" — ver
+  // escanearGaleriaDrive(). Una API key no tiene identidad propia, así
+  // que solo puede leer archivos públicos, no privados del dueño.
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  invalidarCacheGaleria();
 
   return ContentService.createTextOutput(JSON.stringify({ success: true, id: file.getId() }))
     .setMimeType(ContentService.MimeType.JSON);
@@ -423,6 +558,7 @@ function borrarFoto(params) {
       .setMimeType(ContentService.MimeType.JSON);
   }
   DriveApp.getFileById(id).setTrashed(true);
+  invalidarCacheGaleria();
   return ContentService.createTextOutput(JSON.stringify({ ok: true }))
     .setMimeType(ContentService.MimeType.JSON);
 }
