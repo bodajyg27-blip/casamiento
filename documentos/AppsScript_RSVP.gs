@@ -309,7 +309,12 @@ function getRegalo() {
 function getGaleria() {
   const folder = DriveApp.getFolderById(GALERIA_FOLDER_ID);
   const files = folder.getFilesByType(MimeType.JPEG);
-  const otrosTipos = [MimeType.PNG, MimeType.GIF, MimeType.BMP];
+  // "image/webp" no existe como constante en el enum MimeType de Apps
+  // Script (no hay MimeType.WEBP), pero getFilesByType() acepta el string
+  // de content-type crudo igual que los demás — se agrega así para que las
+  // fotos subidas en WebP (ver resizeImage() en galeria/index.html) también
+  // aparezcan en la galería.
+  const otrosTipos = [MimeType.PNG, MimeType.GIF, MimeType.BMP, 'image/webp'];
   const fotos = [];
   const vistos = {};
   const baseUrl = ScriptApp.getService().getUrl();
