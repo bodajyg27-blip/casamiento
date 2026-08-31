@@ -804,19 +804,25 @@
         return;
       }
       if (!video.src) {
-        btnVer.disabled = true;
-        btnVer.innerHTML = ICON_STOP;
-        try {
-          const res = await fetch(GAS_URL + '?tipo=mensajeVideo&id=' + msg.id);
-          const data = await res.json();
-          video.src = 'data:' + data.mimeType + ';base64,' + data.data;
-        } catch (err) {
-          toast('No se pudo cargar el video');
+        // msg.directo (API oficial de Drive) permite streaming real y
+        // seek; si no vino (key sin configurar), cae al proxy de siempre.
+        if (msg.directo) {
+          video.src = msg.directo;
+        } else {
+          btnVer.disabled = true;
+          btnVer.innerHTML = ICON_STOP;
+          try {
+            const res = await fetch(GAS_URL + '?tipo=mensajeVideo&id=' + msg.id);
+            const data = await res.json();
+            video.src = 'data:' + data.mimeType + ';base64,' + data.data;
+          } catch (err) {
+            toast('No se pudo cargar el video');
+            btnVer.disabled = false;
+            btnVer.innerHTML = ICON_PLAY;
+            return;
+          }
           btnVer.disabled = false;
-          btnVer.innerHTML = ICON_PLAY;
-          return;
         }
-        btnVer.disabled = false;
       }
       playerWrap.classList.add('open');
       btnVer.innerHTML = ICON_STOP;

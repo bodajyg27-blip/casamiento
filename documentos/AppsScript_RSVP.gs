@@ -459,20 +459,16 @@ function getGaleria(e) {
   })).setMimeType(ContentService.MimeType.JSON);
 }
 
-// Ejecutar UNA SOLA VEZ a mano desde el editor de Apps Script después de
-// desplegar este cambio: las fotos que ya estaban subidas antes de existir
-// el campo "directo" no tienen el permiso "Cualquiera con el enlace"
-// activado, así que la API key no las puede leer hasta correr esto. Las
-// fotos nuevas ya se comparten solas en addFoto().
-function compartirFotosExistentesDeLaGaleria() {
-  const folder = DriveApp.getFolderById(GALERIA_FOLDER_ID);
-  const files = folder.getFiles();
-  let n = 0;
-  while (files.hasNext()) {
-    files.next().setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    n++;
-  }
-  Logger.log('Fotos compartidas: ' + n);
+// Ejecutar UNA SOLA VEZ a mano desde el editor de Apps Script: comparte la
+// CARPETA de la galería con "Cualquiera con el enlace, solo ver". Los
+// archivos que ya estaban adentro y los que se suban de ahora en más
+// heredan ese permiso automáticamente — así addFoto() ya no necesita
+// compartir cada foto una por una (ver por qué en el comentario de
+// addFoto()), y subir fotos hace una operación menos contra Drive por
+// invitado, lo que ayuda cuando hay muchas subidas al mismo tiempo.
+function compartirCarpetaGaleria() {
+  DriveApp.getFolderById(GALERIA_FOLDER_ID).setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  Logger.log('Carpeta de la galería compartida.');
 }
 
 // Fotos del carrusel "Nuestra historia" de la portada. A diferencia de
@@ -541,10 +537,11 @@ function addFoto(params) {
   const bytes = Utilities.base64Decode(base64);
   const blob = Utilities.newBlob(bytes, mimeType, nombre);
   const file = folder.createFile(blob);
-  // Necesario para que la API key pueda leerla vía "directo" — ver
-  // escanearGaleriaDrive(). Una API key no tiene identidad propia, así
-  // que solo puede leer archivos públicos, no privados del dueño.
-  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  // No hace falta compartir este archivo individualmente: la carpeta
+  // GALERIA_FOLDER_ID ya está compartida como "Cualquiera con el enlace"
+  // (ver compartirCarpetaGaleria()) y los archivos nuevos heredan ese
+  // permiso solos — así cada subida es una operación menos contra Drive,
+  // lo que importa cuando hay muchas subidas al mismo tiempo.
   invalidarCacheGaleria();
 
   return ContentService.createTextOutput(JSON.stringify({ success: true, id: file.getId() }))
@@ -564,6 +561,19 @@ function borrarFoto(params) {
 }
 
 // ---------- MENSAJES (video, Google Drive) ----------
+//
+// Ejecutar UNA SOLA VEZ a mano desde el editor de Apps Script: comparte la
+// CARPETA de mensajes con "Cualquiera con el enlace, solo ver", igual que
+// compartirCarpetaGaleria(). Los videos nuevos heredan el permiso solos —
+// necesario para que la API key pueda leerlos vía "directo" (getMensajes()).
+// El archivo interno ULTIMO_ERROR.txt (logError()) queda en la misma
+// carpeta compartida, pero su id nunca se expone por ningún endpoint —
+// getMensajes() lo excluye explícitamente — así que sigue siendo
+// inaccesible en la práctica aunque la carpeta sea pública.
+function compartirCarpetaMensajes() {
+  DriveApp.getFolderById(MENSAJES_FOLDER_ID).setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  Logger.log('Carpeta de mensajes compartida.');
+}
 
 function addMensaje(params) {
   const base64 = params.file || "";
@@ -582,19 +592,30 @@ function addMensaje(params) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-// Lista los mensajes de video guardados (para el panel de administración).
+// Lista los mensajes de video guardados (para tv/index.html y el panel de
+// administración). "directo" apunta a la API oficial de Drive, igual que
+// las fotos de la galería (ver escanearGaleriaDrive()) — evita que
+// tv/index.html tenga que bajar el video entero como JSON+base64 antes de
+// poder reproducir un solo frame; con la URL directa el <video> puede
+// arrancar en streaming y permite adelantar/atrasar. "url" (proxy de este
+// script) se mantiene para el botón "Descargar" y como fallback.
 function getMensajes() {
   const folder = DriveApp.getFolderById(MENSAJES_FOLDER_ID);
   const files = folder.getFiles();
+  const baseUrl = ScriptApp.getService().getUrl();
+  const apiKey = getDriveApiKey();
   const mensajes = [];
   while (files.hasNext()) {
     const file = files.next();
     if (file.getName() === "ULTIMO_ERROR.txt") continue;
+    const id = file.getId();
     mensajes.push({
-      id: file.getId(),
+      id: id,
       nombre: file.getName(),
       fecha: file.getDateCreated(),
-      mimeType: file.getMimeType()
+      mimeType: file.getMimeType(),
+      url: baseUrl + "?tipo=mensajeVideo&id=" + id,
+      directo: "https://www.googleapis.com/drive/v3/files/" + id + "?alt=media&key=" + apiKey
     });
   }
   mensajes.sort((a, b) => b.fecha - a.fecha);

@@ -546,6 +546,18 @@
         img.classList.add('ready');
         pin.classList.add('loaded');
         pin.style.minHeight = '';
+        img.dataset.retries = '0';
+      });
+      // Si falla (cupo momentáneo, corte de red, lo que sea), el navegador
+      // NO reintenta solo — sin esto la foto queda rota para siempre hasta
+      // recargar la página. Reintenta con backoff exponencial (2s, 4s,
+      // 8s...) hasta 5 veces, así una falla transitoria no deja agujeros
+      // permanentes en la grilla.
+      img.addEventListener('error', () => {
+        const intentos = parseInt(img.dataset.retries || '0', 10);
+        if (intentos >= 5) return;
+        img.dataset.retries = String(intentos + 1);
+        setTimeout(() => { img.src = img.dataset.src; }, Math.min(2000 * 2 ** intentos, 30000));
       });
       pin.appendChild(img);
       pin.addEventListener('click', () => openLightbox(globalIndex));

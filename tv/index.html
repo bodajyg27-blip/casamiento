@@ -233,7 +233,14 @@
     return url;
   }
 
+  // msg.directo apunta directo a la API de Drive (streaming real, sin
+  // pasar por este script) — a diferencia de las fotos, un video no hace
+  // falta bajarlo entero antes de mostrarlo: el <video> arranca a
+  // reproducir progresivamente apenas tiene los primeros bytes. Si por
+  // algún motivo no vino "directo" (p. ej. la Script Property de la key
+  // no está configurada), cae al proxy de siempre.
   async function obtenerVideo(msg) {
+    if (msg.directo) return msg.directo;
     if (cache.has(msg.id)) return cache.get(msg.id);
     const res = await fetchConTimeout(GAS_URL + '?tipo=mensajeVideo&id=' + msg.id, 25000);
     const data = await res.json();
@@ -247,11 +254,13 @@
     return (entry.type === 'foto' ? obtenerFoto(entry.item) : obtenerVideo(entry.item)).catch(() => {});
   }
 
-  // Los videos pesan mucho más que las fotos: apenas arranca una vuelta
-  // de la playlist, se disparan todos en paralelo en segundo plano, para
-  // que tengan el máximo tiempo posible de bajar antes de que les toque.
+  // Las fotos sí conviene precargarlas en paralelo (son data-URIs pesadas
+  // que hay que bajar enteras). Los videos con "directo" ya no lo
+  // necesitan — el <video> los va bajando solo en streaming apenas se
+  // muestran — así que esta función queda solo por si algún video cae al
+  // proxy viejo (ver obtenerVideo()).
   function precargarTodosLosVideos(lista) {
-    lista.forEach(entry => { if (entry.type === 'video') precargar(entry); });
+    lista.forEach(entry => { if (entry.type === 'video' && !entry.item.directo) precargar(entry); });
   }
 
   function limpiarAnteriores() {
