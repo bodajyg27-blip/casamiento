@@ -405,6 +405,31 @@
   let scrollObserver = null;
   let unloadObserver = null;
 
+  // ---------- Freno global de reintentos ----------
+  // Si fallan muchas fotos casi juntas (cupo agotado, bloqueo de Google,
+  // etc.), NO conviene que cada una reintente sola — eso genera una
+  // ráfaga sincronizada de pedidos automáticos contra el mismo recurso
+  // caído, que es justo el patrón que hace que un bloqueo temporal se
+  // mantenga o empeore. Este contador corta todos los reintentos por un
+  // buen rato apenas se detecta ese patrón.
+  let fallosRecientes = 0;
+  let ultimoReinicioFallos = 0;
+  let pausaGlobalHasta = 0;
+  function registrarFalloYCalcularEspera(intentos) {
+    const ahora = Date.now();
+    if (ahora - ultimoReinicioFallos > 10000) {
+      fallosRecientes = 0;
+      ultimoReinicioFallos = ahora;
+    }
+    fallosRecientes++;
+    if (fallosRecientes > 6) {
+      pausaGlobalHasta = ahora + 3 * 60 * 1000; // 3 minutos sin insistir
+    }
+    const base = Math.min(2000 * 2 ** intentos, 30000);
+    const conJitter = base * (0.5 + Math.random()); // 0.5x-1.5x: no todas caen a la vez
+    return Math.max(conJitter, pausaGlobalHasta - ahora);
+  }
+
   async function loadGaleria() {
     const stateMsg = document.getElementById('stateMsg');
     const grid = document.getElementById('masonryGrid');
@@ -557,7 +582,8 @@
         const intentos = parseInt(img.dataset.retries || '0', 10);
         if (intentos >= 5) return;
         img.dataset.retries = String(intentos + 1);
-        setTimeout(() => { img.src = img.dataset.src; }, Math.min(2000 * 2 ** intentos, 30000));
+        const espera = registrarFalloYCalcularEspera(intentos);
+        setTimeout(() => { img.src = img.dataset.src; }, espera);
       });
       pin.appendChild(img);
       pin.addEventListener('click', () => openLightbox(globalIndex));
