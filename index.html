@@ -236,6 +236,24 @@
     object-fit: contain;
     background: #000;
   }
+  /* Celular en vertical sin poder bloquear la orientación (iPhone): el
+     video se dibuja acostado ocupando toda la pantalla, para que se vea
+     en grande al girar el teléfono. Si el celular gira de verdad, deja
+     de estar en "portrait" y esto ya no aplica. */
+  @media (orientation: portrait) and (pointer: coarse) {
+    .std-wrap.girado .std-video {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 100vh;
+      width: 100dvh;
+      height: 100vw;
+      transform: translate(-50%, -50%) rotate(90deg);
+    }
+  }
+  /* Pantalla inicial: mismo fondo claro con marco en relieve y mismas
+     tipografías que la portada de la invitación (Special Elite para el
+     título y el botón, Edwardian para los nombres). */
   .std-start {
     position: absolute;
     inset: 0;
@@ -243,30 +261,43 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: #f2f1de;
+    background: #f1efe9 url('img/fondoblancohorizontal.jpg') center / cover no-repeat;
+    color: #55543a;
     cursor: pointer;
     text-align: center;
-    padding: 20px;
-  }
-  .std-start .kicker {
-    font-family: 'Edwardian Script ITC', cursive;
-    font-size: clamp(48px, 10vw, 90px);
-    margin-bottom: 14px;
-    color: #f2f1de;
+    padding: 40px 20px;
   }
   .std-start .std-sub {
-    font-size: clamp(15px, 2vw, 20px);
-    letter-spacing: 2px;
+    font-family: 'Special Elite', 'Courier New', monospace;
+    font-size: clamp(20px, 2.8vw, 34px);
+    letter-spacing: clamp(4px, 0.6vw, 8px);
     text-transform: uppercase;
-    color: #d6d8ba;
-    margin-bottom: 40px;
+    color: #55543a;
+    margin-bottom: clamp(18px, 3vh, 36px);
+  }
+  .std-start .std-nombres {
+    font-family: 'Edwardian Script ITC', cursive;
+    color: #4b5320;
+    margin-bottom: clamp(26px, 4.5vh, 52px);
+  }
+  .std-start .std-nombres span {
+    display: block;
+    font-size: clamp(58px, 7.5vw, 130px);
+    line-height: 1.15;
+  }
+  .std-start .std-nombres .amp {
+    font-size: clamp(28px, 3.5vw, 56px);
+    margin: 2px 0;
+    color: #9c9a52;
   }
   .std-start .hint {
-    font-size: clamp(13px, 1.5vw, 16px);
+    font-family: 'Special Elite', 'Courier New', monospace;
+    font-size: clamp(12px, 1.3vw, 15px);
     letter-spacing: 2px;
     text-transform: uppercase;
-    padding: 13px 32px;
-    border: 1px solid rgba(242,241,222,0.5);
+    color: #6b6a45;
+    padding: 14px 30px 11px;
+    border: 1px solid rgba(85,84,58,0.55);
     border-radius: 30px;
     animation: pulseHint 1.8s ease-in-out infinite;
   }
@@ -321,8 +352,12 @@
   <div class="std-wrap">
     <video class="std-video hidden" id="stdVideo" playsinline controls></video>
     <div class="std-start" id="stdStart">
-      <p class="kicker">Julieta &amp; Gabriel</p>
       <p class="std-sub">Save the date</p>
+      <div class="std-nombres">
+        <span>Julieta</span>
+        <span class="amp">&amp;</span>
+        <span>Gabriel</span>
+      </div>
       <p class="hint">Tocá para reproducir</p>
     </div>
   </div>
@@ -453,11 +488,41 @@
       if (reproduciendo) video.play().catch(() => {});
     });
 
+    // El video es apaisado: en un celular en vertical se intenta girar la
+    // pantalla a horizontal (pantalla completa + bloqueo de orientación,
+    // funciona en Android). Donde no se puede (iPhone), se gira el video
+    // con CSS (.girado). Al salir de pantalla completa el bloqueo se
+    // pierde, así que ahí también se pasa a .girado.
+    const wrap = video.closest('.std-wrap');
+    async function ponerHorizontal() {
+      if (!window.matchMedia('(orientation: portrait) and (pointer: coarse)').matches) return;
+      try {
+        await wrap.requestFullscreen();
+        await screen.orientation.lock('landscape');
+      } catch (err) {
+        wrap.classList.add('girado');
+      }
+    }
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement) wrap.classList.add('girado');
+    });
+
+    // Al terminar vuelve a la pantalla inicial ("Tocá para reproducir"),
+    // saliendo de pantalla completa y soltando el bloqueo de orientación.
+    video.addEventListener('ended', () => {
+      video.classList.add('hidden');
+      overlay.classList.remove('hidden');
+      video.currentTime = 0;
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+      try { screen.orientation.unlock(); } catch (err) {}
+    });
+
     overlay.addEventListener('click', () => {
       if (video.error) return; // ya fallaron las dos calidades: queda el aviso
       video.classList.remove('hidden');
       overlay.classList.add('hidden');
       video.play().catch(() => {});
+      ponerHorizontal();
     });
   }
 

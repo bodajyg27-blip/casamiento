@@ -6,6 +6,8 @@ Historial de features completadas sobre `index.html` e `invitacion/index.html` (
 
 - **Video de Save the Date**: `index.html` dejó de bajarlo de Drive vía Apps Script (base64, no soportaba el archivo de 170 MB) y ahora lo reproduce en streaming desde `save_the_date/`, en 1080p (41,8 MB) o 720p (23,9 MB) según dispositivo/conexión. Ver [[decisiones-tecnicas]]. Probado en local con Chrome headless: ambas calidades, fallback entre ellas y aviso si fallan las dos.
 - **Script nuevo**: `claude-ia/scripts/transcode-video.swift` para regenerar las versiones web del video.
+- **Save the Date en celulares**: al reproducir en vertical el video pasa a horizontal (bloqueo de orientación en Android, rotación CSS en iPhone) y al terminar vuelve a la pantalla inicial. Ver [[decisiones-tecnicas]].
+- **Pantalla inicial del Save the Date**: pasó del fondo oscuro al fondo claro con marco en relieve (`img/fondoblancohorizontal.jpg`) y a las tipografías de la portada de la invitación (Special Elite + Edwardian).
 
 ## 2026-08-26 — Mensajes de video, TV, split por tipo de invitado y panel de admin
 

@@ -148,6 +148,14 @@ swiftc -O claude-ia/scripts/transcode-video.swift -o /tmp/transcode
 
 Se usa Swift/AVFoundation porque en la Mac no hay ffmpeg y los presets de `avconvert` no dejan fijar el bitrate (dan 60–86 MB). `getSaveTheDate()` y `SAVETHEDATE_FOLDER_ID` quedan en el Apps Script sin uso.
 
+## Save the Date en celulares: forzar horizontal y volver al inicio al terminar (2026-10-11)
+
+**Decisión:** el video es apaisado (mezcla tomas horizontales y verticales dentro de un cuadro 16:9), así que en un celular en vertical se lo lleva a horizontal al tocar "reproducir": primero se intenta pantalla completa + `screen.orientation.lock('landscape')`; si falla, se agrega la clase `.girado` al `.std-wrap`, que rota el `<video>` 90° con CSS ocupando toda la pantalla. Al terminar (`ended`) se oculta el video, vuelve la pantalla "Tocá para reproducir", se sale de pantalla completa y se suelta el bloqueo.
+
+**Por qué:** el bloqueo de orientación solo existe en Android (y exige pantalla completa); iPhone no deja girar la pantalla por código, por eso el fallback con CSS. La regla CSS está dentro de `@media (orientation: portrait) and (pointer: coarse)`: si la persona gira el teléfono de verdad, deja de aplicar sola, y en computadoras nunca aplica.
+
+**Cómo aplicarlo:** probado solo en Chrome de escritorio simulando pantalla vertical (rotación CSS, vuelta al inicio y segunda reproducción). El bloqueo real de Android y el comportamiento de los controles nativos rotados en iPhone hay que verlos en un teléfono.
+
 ## Carrusel "Nuestra historia": carpeta propia + orden por nombre + precarga en sessionStorage
 
 **Decisión:** el carrusel de fotos que aparece en `familiar/` e `invitacion/` usa una carpeta de Drive dedicada (`CARRUSEL_FOLDER_ID`, distinta de la galería de invitados), ordenada por **nombre de archivo** (no por fecha, a diferencia de `getGaleria()`) para que la pareja controle el orden nombrando `1.jpg`, `2.jpg`, etc. `index.html` precarga en segundo plano todas las fotos del carrusel (lista + cada base64) mientras el invitado abre el sobre y busca su nombre, y las deja en `sessionStorage` (clave `carruselCache`, con timestamp, vence a los 5 minutos). `familiar/`/`invitacion/` leen esa caché antes de pedir cada foto de nuevo.
