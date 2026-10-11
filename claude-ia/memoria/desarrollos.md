@@ -8,6 +8,7 @@ Historial de features completadas sobre `index.html` e `invitacion/index.html` (
 - **Script nuevo**: `claude-ia/scripts/transcode-video.swift` para regenerar las versiones web del video.
 - **Save the Date en celulares**: al reproducir en vertical el video pasa a horizontal (bloqueo de orientación en Android, rotación CSS en iPhone) y al terminar vuelve a la pantalla inicial. Ver [[decisiones-tecnicas]].
 - **Pantalla inicial del Save the Date**: pasó del fondo oscuro al fondo claro con marco en relieve (`img/fondoblancohorizontal.jpg`) y a las tipografías de la portada de la invitación (Special Elite + Edwardian).
+- **Pantalla inicial de `tv/`**: mismo rediseño que la del Save the Date (fondo claro en relieve, Special Elite + Edwardian). El slideshow en sí no cambió.
 
 ## 2026-08-26 — Mensajes de video, TV, split por tipo de invitado y panel de admin
 

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Julieta & Gabriel — Pantalla</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Special+Elite&display=swap');
 
   @font-face {
     font-family: 'Edwardian Script ITC';
@@ -87,40 +87,55 @@
   }
   .caption.visible { opacity: 1; }
 
+  /* Pantalla inicial: mismo fondo claro con marco en relieve y mismas
+     tipografías que la portada de la invitación y el Save the Date
+     (Special Elite para el título y el botón, Edwardian para los nombres). */
   #start-overlay {
     position: fixed;
     inset: 0;
-    background: #14130a;
-    background-image:
-      radial-gradient(circle at 20% 20%, rgba(156,163,82,0.25), transparent 45%),
-      radial-gradient(circle at 80% 80%, rgba(108,128,68,0.2), transparent 45%);
-    color: #f2f1de;
+    background: #f1efe9 url('../img/fondoblancohorizontal.jpg') center / cover no-repeat;
+    color: #55543a;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
+    padding: 40px 20px;
     z-index: 10;
     cursor: pointer;
   }
-  #start-overlay .kicker {
-    font-family: 'Edwardian Script ITC', cursive;
-    font-size: clamp(48px, 8vw, 90px);
-    margin-bottom: 14px;
-  }
   #start-overlay h1 {
-    font-size: clamp(18px, 2.2vw, 26px);
-    letter-spacing: 3px;
+    font-family: 'Special Elite', 'Courier New', monospace;
+    font-weight: normal;
+    font-size: clamp(20px, 2.8vw, 34px);
+    letter-spacing: clamp(4px, 0.6vw, 8px);
     text-transform: uppercase;
-    margin-bottom: 40px;
-    color: #d6d8ba;
+    color: #55543a;
+    margin-bottom: clamp(18px, 3vh, 36px);
+  }
+  #start-overlay .nombres {
+    font-family: 'Edwardian Script ITC', cursive;
+    color: #4b5320;
+    margin-bottom: clamp(26px, 4.5vh, 52px);
+  }
+  #start-overlay .nombres span {
+    display: block;
+    font-size: clamp(58px, 7.5vw, 130px);
+    line-height: 1.15;
+  }
+  #start-overlay .nombres .amp {
+    font-size: clamp(28px, 3.5vw, 56px);
+    margin: 2px 0;
+    color: #9c9a52;
   }
   #start-overlay .hint {
-    font-size: clamp(16px, 1.6vw, 20px);
+    font-family: 'Special Elite', 'Courier New', monospace;
+    font-size: clamp(12px, 1.3vw, 15px);
     letter-spacing: 2px;
     text-transform: uppercase;
-    padding: 14px 36px;
-    border: 1px solid rgba(242,241,222,0.5);
+    color: #6b6a45;
+    padding: 14px 30px 11px;
+    border: 1px solid rgba(85,84,58,0.55);
     border-radius: 30px;
     animation: pulseHint 1.8s ease-in-out infinite;
   }
@@ -151,8 +166,12 @@
   <div id="empty-msg"></div>
 
   <div id="start-overlay">
-    <p class="kicker">Julieta &amp; Gabriel</p>
     <h1>Nos casamos</h1>
+    <div class="nombres">
+      <span>Julieta</span>
+      <span class="amp">&amp;</span>
+      <span>Gabriel</span>
+    </div>
     <p class="hint">Tocá para comenzar</p>
   </div>
 
