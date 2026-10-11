@@ -10,7 +10,7 @@ Sitio web de casamiento (Julieta & Gabriel, 23/10/2027): puerta de entrada con b
 
 - **`index.html`** (raíz) — **puerta de entrada**, no invitación completa. Según `ModoIndex` (pestaña `Config` del Sheet):
   - `invitacion` (default): sobre de apertura + buscador de nombre → redirige a `familiar/` o `invitacion/` según la columna `Tipo` de cada invitado.
-  - `savethedate`: video a pantalla completa con toque para reproducir (con sonido), sacado de `SAVETHEDATE_FOLDER_ID`.
+  - `savethedate`: video a pantalla completa con toque para reproducir (con sonido), servido desde el propio sitio (`save_the_date/SaveTheDate-1080.mp4` y `-720.mp4`), **no** desde Drive.
   - `galeria`: redirige directo a `galeria/index.html`.
   - Cambia desde `admin/` (switch de tres botones), sin tocar código.
 - **`familiar/index.html`** — invitación completa **sin** sección de regalo. Antes era el contenido de `index.html`; se movió acá cuando `index.html` pasó a ser la puerta de entrada.
@@ -49,7 +49,7 @@ Respaldado por un Google Sheet con pestañas: `Invitados`, `Canciones`, `Regalo`
 | `mensajeVideo&id=` | Un video de mensaje en base64 | público |
 | `verificarClave&clave=` | `{ok: true/false}` contra `ClaveAdmin` | — |
 | `modoIndex` | `{modo}` actual de `index.html` | público |
-| `saveTheDate` | `{id, nombre}` del video de save the date | público |
+| `saveTheDate` | `{id, nombre}` del video de save the date | público — **sin uso desde 2026-10-11** (el video se sirve desde `save_the_date/`) |
 
 **`doPost`** (`{tipo: ...}` en el body):
 | `tipo` | Acción | Auth |
@@ -78,7 +78,7 @@ Solo `borrarMensaje`, `borrarFoto` y `setModoIndex` exigen la clave admin (`clav
 | `GALERIA_FOLDER_ID` | Fotos que suben los invitados |
 | `MENSAJES_FOLDER_ID` | Videos de "Dejanos un mensaje" |
 | `CARRUSEL_FOLDER_ID` | Fotos del carrusel "Nuestra historia" (orden por nombre de archivo) |
-| `SAVETHEDATE_FOLDER_ID` | Video de "Save the date" (se usa el primero que encuentre) |
+| `SAVETHEDATE_FOLDER_ID` | Sin uso desde 2026-10-11 — el video de "Save the date" ahora vive en `save_the_date/` del repo |
 
 ## Interacción / UX
 

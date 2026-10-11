@@ -2,6 +2,11 @@
 
 Historial de features completadas sobre `index.html` e `invitacion/index.html` (**raíz del repo** — archivos de trabajo actuales desde el 2026-07-11, ver [[decisiones-tecnicas]]).
 
+## 2026-10-11 — Save the Date en streaming desde el repo
+
+- **Video de Save the Date**: `index.html` dejó de bajarlo de Drive vía Apps Script (base64, no soportaba el archivo de 170 MB) y ahora lo reproduce en streaming desde `save_the_date/`, en 1080p (41,8 MB) o 720p (23,9 MB) según dispositivo/conexión. Ver [[decisiones-tecnicas]]. Probado en local con Chrome headless: ambas calidades, fallback entre ellas y aviso si fallan las dos.
+- **Script nuevo**: `claude-ia/scripts/transcode-video.swift` para regenerar las versiones web del video.
+
 ## 2026-08-26 — Mensajes de video, TV, split por tipo de invitado y panel de admin
 
 Sesión larga con varias features nuevas, en orden aproximado:

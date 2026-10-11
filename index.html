@@ -409,27 +409,56 @@
 
   // ---------- Modo Save the Date ----------
 
+  // El video se sirve desde el propio sitio (save_the_date/), no desde
+  // Drive: así el <video> lo reproduce en streaming apenas llegan los
+  // primeros segundos, en vez de bajarlo entero como JSON+base64 por Apps
+  // Script (que además corta en ~50 MB). Hay dos calidades: 720p para
+  // celulares o conexiones lentas, 1080p para pantallas grandes.
+  const STD_VIDEOS = {
+    hd: 'save_the_date/SaveTheDate-1080.mp4',
+    sd: 'save_the_date/SaveTheDate-720.mp4'
+  };
+
+  function elegirCalidadStd() {
+    const conn = navigator.connection || {};
+    const lenta = conn.saveData || ['slow-2g', '2g', '3g'].includes(conn.effectiveType);
+    const celular = Math.min(screen.width, screen.height) < 700;
+    return (lenta || celular) ? 'sd' : 'hd';
+  }
+
   function initSaveTheDate() {
     document.getElementById('modoSaveTheDate').classList.remove('hidden');
     const overlay = document.getElementById('stdStart');
     const video = document.getElementById('stdVideo');
+    const hint = overlay.querySelector('.hint');
 
-    overlay.addEventListener('click', async function empezar() {
-      overlay.querySelector('.hint').textContent = 'Cargando...';
-      try {
-        const res = await fetch(GAS_URL + "?tipo=saveTheDate");
-        const info = await res.json();
-        if (!info.id) throw new Error('sin video');
-        const res2 = await fetch(GAS_URL + "?tipo=foto&id=" + info.id);
-        const data = await res2.json();
-        video.src = 'data:' + data.mimeType + ';base64,' + data.data;
-        video.classList.remove('hidden');
-        overlay.classList.add('hidden');
-        video.play();
-      } catch (err) {
-        overlay.querySelector('.hint').textContent = 'No se pudo cargar el video';
+    // Empieza a bajar el video apenas se muestra la pantalla, para que ya
+    // esté en buffer cuando el invitado toque.
+    let calidad = elegirCalidadStd();
+    video.preload = 'auto';
+    video.src = STD_VIDEOS[calidad];
+
+    // Si falla la calidad elegida, prueba una vez con la otra.
+    video.addEventListener('error', () => {
+      if (calidad === 'fallback') {
+        video.classList.add('hidden');
+        overlay.classList.remove('hidden');
+        hint.textContent = 'No se pudo cargar el video';
+        return;
       }
-    }, { once: true });
+      const otra = calidad === 'hd' ? 'sd' : 'hd';
+      const reproduciendo = !video.classList.contains('hidden');
+      calidad = 'fallback';
+      video.src = STD_VIDEOS[otra];
+      if (reproduciendo) video.play().catch(() => {});
+    });
+
+    overlay.addEventListener('click', () => {
+      if (video.error) return; // ya fallaron las dos calidades: queda el aviso
+      video.classList.remove('hidden');
+      overlay.classList.add('hidden');
+      video.play().catch(() => {});
+    });
   }
 
   // ---------- Arranque: decide qué modo mostrar ----------

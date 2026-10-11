@@ -130,7 +130,23 @@
 
 **Por qué:** pensado para las distintas etapas del sitio — antes de mandar las invitaciones (save the date), durante (invitación normal) y la noche después de la boda (galería, para que los invitados suban/vean fotos fácil desde el link que ya tienen guardado).
 
-**Cómo aplicarlo:** el video de Save the Date sale del primer archivo que encuentre en `SAVETHEDATE_FOLDER_ID` (`getSaveTheDate()`) — si se quiere cambiar el video, alcanza con reemplazar el archivo en esa carpeta de Drive, no hace falta tocar nada más.
+**Cómo aplicarlo:** el video ya **no** sale de Drive (ver la decisión siguiente). El switch de modo sigue igual.
+
+## Video de Save the Date: servido desde el repo en dos calidades, no desde Drive (2026-10-11)
+
+**Decisión:** `index.html` reproduce el Save the Date desde `save_the_date/SaveTheDate-1080.mp4` (pantallas grandes) o `save_the_date/SaveTheDate-720.mp4` (celulares, `saveData` o conexión 2g/3g según `navigator.connection`), servidos por GitHub Pages. La calidad se elige **una sola vez al cargar** (`elegirCalidadStd()`), no es adaptativa durante la reproducción; si el archivo elegido falla, prueba una vez con el otro. El video se empieza a bajar (`preload="auto"`) apenas se muestra la pantalla, antes del toque.
+
+**Por qué:** antes se bajaba entero por Apps Script como JSON+base64 (`?tipo=foto&id=`). Eso corta en ~50 MB de respuesta (~35 MB de video real), obliga a esperar el 100% antes del primer cuadro y deja todo el video en memoria. El original pesa 170 MB (1080p a 18,5 Mbps, 73 s), así que directamente no cargaba. GitHub Pages sirve con CDN y soporta pedidos por rango (streaming real), sin los cupos de descarga de Drive.
+
+**Cómo aplicarlo:** para cambiar el video, dejar el original como `save_the_date/SaveTheDate.mp4` (está en `.gitignore`: supera el límite de 100 MB por archivo de GitHub) y regenerar las dos versiones web con `claude-ia/scripts/transcode-video.swift` (H.264 High + AAC 128k, con el índice al principio del archivo para streaming):
+
+```
+swiftc -O claude-ia/scripts/transcode-video.swift -o /tmp/transcode
+/tmp/transcode save_the_date/SaveTheDate.mp4 save_the_date/SaveTheDate-1080.mp4 1920 1080 5000000
+/tmp/transcode save_the_date/SaveTheDate.mp4 save_the_date/SaveTheDate-720.mp4 1280 720 2800000
+```
+
+Se usa Swift/AVFoundation porque en la Mac no hay ffmpeg y los presets de `avconvert` no dejan fijar el bitrate (dan 60–86 MB). `getSaveTheDate()` y `SAVETHEDATE_FOLDER_ID` quedan en el Apps Script sin uso.
 
 ## Carrusel "Nuestra historia": carpeta propia + orden por nombre + precarga en sessionStorage
 
