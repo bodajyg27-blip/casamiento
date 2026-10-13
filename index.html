@@ -528,25 +528,67 @@
 
   // ---------- Arranque: decide qué modo mostrar ----------
 
-  async function iniciar() {
-    let modo = 'invitacion';
-    try {
-      const res = await fetch(GAS_URL + "?tipo=modoIndex");
-      const data = await res.json();
-      if (['savethedate', 'invitacion', 'galeria'].includes(data.modo)) modo = data.modo;
-    } catch (err) {}
+  // El modo sale de Apps Script (?tipo=modoIndex), que puede fallar o
+  // saturarse si entra mucha gente junta. Para no depender de esa
+  // consulta en cada visita:
+  //  - se reintenta una vez antes de darla por fallida;
+  //  - el último modo conocido queda en localStorage: quien ya entró ve
+  //    la pantalla al instante y la consulta corre en segundo plano (si
+  //    el modo cambió, se recarga la página);
+  //  - solo quien entra por primera vez Y no logra consultar cae en
+  //    'invitacion'.
+  const MODOS_INDEX = ['savethedate', 'invitacion', 'galeria'];
 
+  async function consultarModo() {
+    for (let intento = 0; intento < 2; intento++) {
+      try {
+        const res = await fetch(GAS_URL + "?tipo=modoIndex");
+        const data = await res.json();
+        if (MODOS_INDEX.includes(data.modo)) return data.modo;
+      } catch (err) {}
+      if (intento === 0) await new Promise(r => setTimeout(r, 1200));
+    }
+    return null;
+  }
+
+  function leerModoGuardado() {
+    try {
+      const m = localStorage.getItem('modoIndex');
+      return MODOS_INDEX.includes(m) ? m : null;
+    } catch (err) { return null; }
+  }
+
+  function guardarModo(modo) {
+    try { localStorage.setItem('modoIndex', modo); } catch (err) {}
+  }
+
+  function mostrarModo(modo) {
     if (modo === 'galeria') {
       window.location.href = 'galeria/index.html';
       return;
     }
-
     document.getElementById('loadingGate').remove();
     if (modo === 'savethedate') {
       initSaveTheDate();
     } else {
       initInvitacion();
     }
+  }
+
+  async function iniciar() {
+    const guardado = leerModoGuardado();
+    if (guardado) {
+      mostrarModo(guardado);
+      const actual = await consultarModo();
+      if (actual && actual !== guardado) {
+        guardarModo(actual);
+        window.location.reload();
+      }
+      return;
+    }
+    const actual = await consultarModo();
+    if (actual) guardarModo(actual);
+    mostrarModo(actual || 'invitacion');
   }
   iniciar();
 </script>

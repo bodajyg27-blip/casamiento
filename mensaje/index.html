@@ -552,13 +552,31 @@
     });
   }
 
+  // El POST va con mode:'no-cors' (ver bugs-conocidos.md), así que su
+  // respuesta no se puede leer: que el fetch no falle NO garantiza que el
+  // video se haya guardado (p. ej. si Apps Script estaba saturado). Por
+  // eso la confirmación se hace aparte, buscando el nombre del archivo en
+  // el listado público de mensajes — recién ahí se borra de la cola.
+  async function yaEstaEnDrive(filename) {
+    const res = await fetch(GAS_URL + '?tipo=mensajes');
+    const lista = await res.json();
+    if (!Array.isArray(lista)) throw new Error('Listado de mensajes inválido');
+    return lista.some(m => m.nombre === filename);
+  }
+
   async function uploadRecord(record) {
+    // Si un intento anterior sí llegó (y solo falló la confirmación), no
+    // se vuelve a subir: evita duplicados en Drive.
+    if (await yaEstaEnDrive(record.filename)) return;
     const base64 = await blobToBase64(record.blob);
     await fetch(GAS_URL, {
       method: 'POST',
       mode: 'no-cors',
       body: JSON.stringify({ tipo: 'mensaje', file: base64, mimeType: record.mimeType, filename: record.filename }),
     });
+    if (!(await yaEstaEnDrive(record.filename))) {
+      throw new Error('El servidor no confirmó el video');
+    }
   }
 
   let uploadingQueue = false;

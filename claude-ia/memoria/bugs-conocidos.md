@@ -38,6 +38,14 @@ Al subir el video grabado en `mensaje/index.html`, `Utilities.base64Decode` fall
 
 El navegador bloqueaba la lectura de la respuesta del `fetch(GAS_URL, {method:'POST', ...})` con "No 'Access-Control-Allow-Origin' header is present", aunque el mismo request probado con `curl` (incluso simulando el header `Origin`) sí traía `access-control-allow-origin: *`. La petición SÍ llegaba y se ejecutaba del lado de Apps Script (confirmado escribiendo el archivo en Drive), el problema era solo que Chrome no dejaba leer el `Response` en JS. Se resolvió agregando `mode: 'no-cors'` al fetch — el request se sigue enviando y ejecutando igual, solo se pierde la posibilidad de leer el `{ok:true/false}` de vuelta (por eso el cliente asume éxito si el `fetch` no tira excepción de red). Ver [[decisiones-tecnicas]].
 
+## Resuelto — Mensajes de video se podían perder en silencio (mensaje/index.html) — 2026-10-13
+
+El POST del video va con `mode: 'no-cors'` (ver el bug de CORS de arriba), así que el cliente no puede leer el `{ok}` de vuelta y daba el video por subido con solo no tener error de red: si Apps Script lo rechazaba (saturado por subidas de fotos, error interno), el video se borraba igual de la cola de IndexedDB y se perdía. Ahora `uploadRecord()` confirma aparte, buscando el nombre del archivo en `?tipo=mensajes` (`yaEstaEnDrive()`), y recién ahí se borra de la cola; antes de cada reintento hace la misma consulta para no duplicar un video que sí había llegado. No requiere redeploy de Apps Script. Probado con servidor simulado (subida normal, POST perdido, confirmación caída); **no** probado contra el Apps Script real.
+
+## Resuelto — index.html mostraba la invitación si fallaba la consulta del modo — 2026-10-13
+
+Si `?tipo=modoIndex` fallaba o Apps Script estaba saturado (~30 ejecuciones simultáneas), `index.html` caía siempre en `invitacion`, aunque el modo activo fuera `savethedate`. Ahora reintenta una vez y guarda el último modo conocido en `localStorage` (`modoIndex`): quien ya entró ve su pantalla al instante y la consulta corre en segundo plano (si el modo cambió, recarga). Solo quien entra por primera vez y no logra consultar sigue cayendo en `invitacion`. Ver [[decisiones-tecnicas]].
+
 ## Abierto — Archivos congelados que no reciben más cambios
 
 Estos archivos quedaron fuera del flujo de trabajo activo y no se tocan más (ver [[decisiones-tecnicas]]):
