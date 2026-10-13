@@ -598,6 +598,16 @@
             </div>
             <div class="menu-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
           </button>
+          <button class="menu-card" id="btn-verificar-json">
+            <div class="menu-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            </div>
+            <div class="menu-text">
+              <div class="menu-title">Verificar JSON</div>
+              <div class="menu-sub">Abrir la lista de invitados tal como la entrega el servidor</div>
+            </div>
+            <div class="menu-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+          </button>
         </div>
       </div>
 
@@ -961,6 +971,14 @@
   }
 
   document.getElementById('btn-ir-videos').addEventListener('click', mostrarVistaMensajes);
+  // "Verificar JSON": abre en otra pestaña la respuesta cruda del script
+  // con la lista de invitados. Va por la URL fija del script (GAS_URL) y
+  // no por un enlace script.googleusercontent.com/macros/echo?..., porque
+  // esos son temporales (Google genera uno distinto por pedido). La lista
+  // completa exige la clave de admin, por eso se manda la de esta sesión.
+  document.getElementById('btn-verificar-json').addEventListener('click', () => {
+    window.open(GAS_URL + '?clave=' + encodeURIComponent(claveActual), '_blank', 'noopener');
+  });
   document.getElementById('btn-ir-fotos').addEventListener('click', mostrarVistaGaleria);
   btnBack.addEventListener('click', mostrarHome);
   btnRefresh.addEventListener('click', () => {
