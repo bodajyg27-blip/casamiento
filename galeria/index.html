@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Julieta & Gabriel — Galería de fotos</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Special+Elite&display=swap');
 
   @font-face {
     font-family: 'Edwardian Script ITC';
@@ -19,7 +19,7 @@
     --olive: #4b5320;
     --olive-dark: #3a4118;
     --cream: #f9f8ec;
-    --bg: #eeecd4;
+    --bg: #f1efe9;
     --border: #ddd9ae;
     --muted: #8a8757;
   }
@@ -35,6 +35,17 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  /* Mismo fondo claro con marco en relieve que la invitación, fijo detrás
+     de todo (un pseudo-elemento en vez de background-attachment: fixed,
+     que en iOS se ve a los saltos). Las fotos pasan por encima. */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: var(--bg) url('../img/fondoblancohorizontal.webp') center / cover no-repeat;
+  }
+
   .hidden { display: none !important; }
 
   /* ---------- Header ---------- */
@@ -43,14 +54,25 @@
     position: sticky;
     top: 0;
     z-index: 5;
-    background: var(--olive);
-    color: var(--cream);
-    padding: max(16px, env(safe-area-inset-top)) 18px 16px;
+    background: rgba(244,242,236,0.94);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    color: #55543a;
+    padding: max(12px, env(safe-area-inset-top)) 18px 10px;
     display: flex;
     align-items: center;
     gap: 12px;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 4px 14px rgba(75,83,32,0.06);
   }
+  /* Barra clara: el botón pasa a contorno oliva. El de cerrar del
+     lightbox (fondo oscuro) conserva el .icon-btn original. */
+  .topbar .icon-btn {
+    background: none;
+    border: 1px solid rgba(85,84,58,0.45);
+    color: var(--olive);
+  }
+  .topbar .icon-btn:active { background: rgba(75,83,32,0.1); }
   .icon-btn {
     width: 38px;
     height: 38px;
@@ -69,18 +91,31 @@
   .icon-btn:active { background: rgba(255,255,255,0.28); }
   .icon-btn svg { width: 18px; height: 18px; }
   .topbar-title { flex: 1; min-width: 0; }
-  .topbar-title .kicker { font-style: italic; font-size: 14px; opacity: 0.85; line-height: 1; }
+  /* Tipografías de la invitación: Edwardian para los nombres, Special
+     Elite (máquina de escribir) para títulos y textos de interfaz. */
+  .topbar-title .kicker {
+    display: block;
+    font-family: 'Edwardian Script ITC', cursive;
+    font-size: 30px;
+    line-height: 1;
+    color: var(--olive);
+    white-space: nowrap;
+  }
   .topbar-title h1 {
-    font-size: 20px;
-    letter-spacing: 1px;
+    font-family: 'Special Elite', 'Courier New', monospace;
+    font-size: 13px;
+    letter-spacing: 5px;
     text-transform: uppercase;
-    font-weight: 600;
+    font-weight: normal;
+    color: #6b6a45;
+    margin-top: 3px;
   }
   .count-badge {
-    background: rgba(255,255,255,0.16);
-    color: var(--cream);
+    font-family: 'Special Elite', 'Courier New', monospace;
+    border: 1px solid rgba(85,84,58,0.45);
+    color: var(--olive);
     font-size: 14px;
-    padding: 4px 12px;
+    padding: 6px 12px 3px;
     border-radius: 20px;
     flex-shrink: 0;
   }
@@ -91,7 +126,17 @@
     margin: 0 auto;
     padding: 18px 10px calc(100px + env(safe-area-inset-bottom));
   }
-  .intro { text-align: center; color: var(--muted); font-size: 17px; margin-bottom: 18px; }
+  .intro {
+    font-family: 'Special Elite', 'Courier New', monospace;
+    text-align: center;
+    color: #6b6a45;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    line-height: 1.7;
+    text-transform: uppercase;
+    margin: 6px auto 20px;
+    max-width: 520px;
+  }
 
   /* ---------- Masonry (estilo Pinterest) ---------- */
 
@@ -110,7 +155,7 @@
     border-radius: 12px;
     overflow: hidden;
     border: 1px solid var(--border);
-    background: linear-gradient(100deg, #ece9cf 30%, #f5f3e2 50%, #ece9cf 70%);
+    background: linear-gradient(100deg, #e8e5db 30%, #f5f3ee 50%, #e8e5db 70%);
     background-size: 200% 100%;
     animation: shimmer 1.4s infinite linear;
     cursor: pointer;
@@ -118,7 +163,7 @@
   }
   .pin:nth-child(3n)   { min-height: 220px; }
   .pin:nth-child(5n+1) { min-height: 280px; }
-  .pin.loaded { animation: none; background: #f2f1de; min-height: 0; }
+  .pin.loaded { animation: none; background: #efede6; min-height: 0; }
   @keyframes shimmer { to { background-position: -200% 0; } }
   .pin img {
     width: 100%;
@@ -133,14 +178,17 @@
   .state-msg {
     text-align: center;
     color: var(--muted);
-    padding: 50px 10px;
-    font-size: 18px;
+    font-family: 'Special Elite', 'Courier New', monospace;
+    padding: 50px 16px;
+    font-size: 15px;
+    line-height: 1.7;
+    letter-spacing: 0.5px;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 12px;
   }
-  .state-msg svg { width: 42px; height: 42px; color: var(--border); }
+  .state-msg svg { width: 42px; height: 42px; color: #9c9a52; }
 
   /* ---------- FAB ---------- */
 
@@ -186,9 +234,10 @@
     bottom: calc(178px + env(safe-area-inset-bottom) + var(--vv-gap, 0px));
     background: #2e2c18;
     color: var(--cream);
-    padding: 8px 16px;
+    font-family: 'Special Elite', 'Courier New', monospace;
+    padding: 10px 16px 7px;
     border-radius: 20px;
-    font-size: 14px;
+    font-size: 13px;
     box-shadow: 0 6px 16px rgba(0,0,0,0.2);
     opacity: 0;
     transform: translateY(6px);
@@ -228,7 +277,7 @@
     justify-content: space-between;
     align-items: center;
   }
-  .lightbox-counter { color: var(--cream); font-size: 15px; opacity: 0.85; }
+  .lightbox-counter { font-family: 'Special Elite', 'Courier New', monospace; color: var(--cream); font-size: 14px; letter-spacing: 2px; opacity: 0.85; }
   .lightbox-nav {
     position: absolute;
     top: 50%;
@@ -265,9 +314,11 @@
     padding: 11px 22px;
     border-radius: 30px;
     border: none;
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 15px;
-    letter-spacing: 0.5px;
+    font-family: 'Special Elite', 'Courier New', monospace;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding-top: 13px;
     cursor: pointer;
   }
   .lightbox-download svg { width: 17px; height: 17px; }
@@ -286,9 +337,11 @@
     transform: translateX(-50%) translateY(20px);
     background: #2e2c18;
     color: var(--cream);
-    padding: 12px 22px;
+    font-family: 'Special Elite', 'Courier New', monospace;
+    padding: 13px 22px 10px;
     border-radius: 30px;
-    font-size: 15px;
+    font-size: 13px;
+    letter-spacing: 0.5px;
     box-shadow: 0 8px 20px rgba(0,0,0,0.25);
     opacity: 0;
     transition: opacity 0.25s ease, transform 0.25s ease;
@@ -306,7 +359,7 @@
     </a>
     <div class="topbar-title">
       <span class="kicker">Julieta &amp; Gabriel</span>
-      <h1>Galería</h1>
+      <h1>Galería de fotos</h1>
     </div>
     <span class="count-badge hidden" id="count-badge">0</span>
   </div>
@@ -471,6 +524,41 @@
   }
 
   let generacionGaleria = 0;   // cambia en cada loadGaleria(): descarta respuestas viejas
+  let idsEnGrilla = new Set(); // evita repetir una foto si el listado se corre entre tandas
+  let finGaleria = false;      // el servidor ya devolvió una tanda vacía
+
+  // Fotos que este dispositivo acaba de subir. El servidor guarda el
+  // listado en caché ~1 minuto (ya no lo invalida con cada subida, para
+  // no re-escanear Drive todo el tiempo durante la fiesta), así que la
+  // foto recién subida puede tardar en aparecer en el listado: mientras
+  // tanto se le muestra a quien la subió desde su propia copia local.
+  const MIS_SUBIDAS_MAX_MS = 5 * 60 * 1000;
+  let misSubidas = [];         // [{ id, directo, thumb, ts }] con object URLs
+
+  function registrarSubidaPropia(idServidor, record) {
+    if (!idServidor) return;
+    const directo = URL.createObjectURL(record.blob);
+    const thumb = record.thumb ? URL.createObjectURL(record.thumb) : null;
+    misSubidas.unshift({ id: idServidor, directo, thumb, ts: Date.now() });
+  }
+
+  // Devuelve las subidas propias que el servidor todavía no lista y
+  // descarta (liberando memoria) las que ya aparecen o son viejas.
+  function subidasPropiasPendientes(fotosServidor) {
+    const enServidor = new Set(fotosServidor.map(f => f.id));
+    const ahora = Date.now();
+    const vigentes = [];
+    misSubidas.forEach(m => {
+      if (enServidor.has(m.id) || ahora - m.ts > MIS_SUBIDAS_MAX_MS) {
+        URL.revokeObjectURL(m.directo);
+        if (m.thumb) URL.revokeObjectURL(m.thumb);
+      } else {
+        vigentes.push(m);
+      }
+    });
+    misSubidas = vigentes;
+    return vigentes.map(m => ({ id: m.id, directo: m.directo, thumb: m.thumb }));
+  }
   let reintentoGaleria = null;
 
   async function loadGaleria() {
@@ -524,6 +612,8 @@
     fotosCache = [];
     totalFotos = 0;
     paginaSiguiente = 0;
+    idsEnGrilla = new Set();
+    finGaleria = false;
 
     const primeraPagina = await pedirPagina(0);
     if (generacion !== generacionGaleria) return;
@@ -531,20 +621,21 @@
       mostrarErrorYReintentar();
       return;
     }
-    if (!primeraPagina.total) {
+    const propias = subidasPropiasPendientes(primeraPagina.fotos);
+    if (!primeraPagina.total && !propias.length) {
       showState(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
         <span>Todavía no hay fotos. ¡Subí la primera!</span>`);
       countBadge.classList.add('hidden');
       return;
     }
 
-    totalFotos = primeraPagina.total;
+    totalFotos = primeraPagina.total + propias.length;
     paginaSiguiente = 1;
     countBadge.textContent = totalFotos;
     countBadge.classList.remove('hidden');
     showGrid();
     setupObservers();
-    agregarFotosAlGrid(primeraPagina.fotos);
+    agregarFotosAlGrid(propias.concat(primeraPagina.fotos));
   }
   loadGaleria();
 
@@ -601,7 +692,7 @@
   // pedir la misma un rato después, porque el sentinel puede seguir en
   // pantalla y el observer no vuelve a disparar solo.
   async function renderNextPage() {
-    if (cargandoPagina || fotosCache.length >= totalFotos) return;
+    if (cargandoPagina || finGaleria || fotosCache.length >= totalFotos) return;
     cargandoPagina = true;
     const generacion = generacionGaleria;
     const data = await pedirPagina(paginaSiguiente);
@@ -612,7 +703,7 @@
       return;
     }
     paginaSiguiente++;
-    if (!data.fotos.length) return;
+    if (!data.fotos.length) { finGaleria = true; return; }
     agregarFotosAlGrid(data.fotos);
     // El observer solo dispara cuando el sentinel ENTRA en pantalla: si
     // la tanda nueva no alcanzó a empujarlo fuera (pantalla alta, fotos
@@ -625,6 +716,13 @@
 
   function agregarFotosAlGrid(fotos) {
     const grid = document.getElementById('masonryGrid');
+    // Si entran fotos nuevas mientras alguien recorre la galería, las
+    // tandas siguientes vienen corridas y repiten algunas: se saltean.
+    fotos = fotos.filter(f => {
+      if (idsEnGrilla.has(f.id)) return false;
+      idsEnGrilla.add(f.id);
+      return true;
+    });
     const inicio = fotosCache.length;
     fotosCache = fotosCache.concat(fotos);
     fotos.forEach((foto, i) => {
@@ -871,6 +969,7 @@
     });
     const data = await res.json();
     if (!data.success) throw new Error('El servidor no confirmó la subida');
+    registrarSubidaPropia(data.id, record);
   }
 
   let uploadingQueue = false;

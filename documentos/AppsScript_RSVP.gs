@@ -507,8 +507,9 @@ function getListaGaleriaCompleta() {
   return fotos;
 }
 
-// Se llama después de subir o borrar una foto para que el cambio se vea
-// enseguida en vez de esperar a que venza GALERIA_CACHE_TTL.
+// Se llama después de BORRAR una foto (desde el panel de admin) para que
+// desaparezca enseguida en vez de esperar a que venza GALERIA_CACHE_TTL.
+// Las subidas no lo llaman — ver el comentario en addFoto().
 function invalidarCacheGaleria() {
   const cache = CacheService.getScriptCache();
   const metaRaw = cache.get('galeria_meta');
@@ -639,7 +640,14 @@ function addFoto(params) {
   // (ver compartirCarpetaGaleria()) y los archivos nuevos heredan ese
   // permiso solos — así cada subida es una operación menos contra Drive,
   // lo que importa cuando hay muchas subidas al mismo tiempo.
-  invalidarCacheGaleria();
+  //
+  // A propósito NO se llama a invalidarCacheGaleria() acá: durante la
+  // fiesta entra una foto cada pocos segundos, y si cada una vaciara el
+  // caché, casi todos los pedidos de la galería tendrían que re-escanear
+  // la carpeta entera de Drive (lento, y acerca al tope de ejecuciones
+  // simultáneas). El listado se renueva solo al vencer GALERIA_CACHE_TTL;
+  // a quien subió la foto se la muestra enseguida su propio navegador
+  // (ver misSubidas en galeria/index.html).
 
   return ContentService.createTextOutput(JSON.stringify({ success: true, id: file.getId() }))
     .setMimeType(ContentService.MimeType.JSON);

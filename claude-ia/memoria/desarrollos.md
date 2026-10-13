@@ -5,6 +5,8 @@ Historial de features completadas sobre `index.html` e `invitacion/index.html` (
 ## 2026-10-13 — Robustez para ~150 invitados
 
 - **Miniaturas en la galería** y **buscador de invitados en el servidor**: ver [[decisiones-tecnicas]]. **Requieren redeploy de Apps Script** (ver [[bugs-conocidos]]); el cliente funciona igual mientras tanto.
+- **Caché del listado de la galería**: subir una foto ya no lo vacía; quien sube ve su foto al instante desde su propio navegador. Ver [[decisiones-tecnicas]]. También requiere el redeploy.
+- **Rediseño de `galeria/`**: fondo claro con marco en relieve fijo detrás de la grilla, barra superior clara, nombres en Edwardian y textos de interfaz en Special Elite (igual que la invitación, el Save the Date y la TV). El lightbox sigue oscuro.
 - **Estado del sistema en `admin/`**: tarjeta con semáforo (servidor, lista de la galería, fotos en Drive, mensajes de video), tiempos de respuesta, pista según qué falla y revisión automática cada minuto. Solo lectura, no toca Apps Script.
 - **Imágenes a WebP**: `sobre`, `fondoblancohorizontal`, `fondohorizontal`, `camara`, `fiesta`, `iglesia` (los fondos pesan ~80% menos). Los `.jpg`/`.png` originales siguen en `img/` sin uso, junto con `TARJETA.jpg`, `calendario.jpg`, `fondo.jpg` y `lugares.jpg`, que ninguna página activa referencia.
 - **Tarjeta del QR** (`recursos-impresion/`, fuera del repo): rediseñada con el fondo en relieve y Special Elite + Edwardian; ahora tiene fuente HTML, PNG a 300 ppp y PDF. Mismo destino del QR que la anterior (verificado decodificándolo).

@@ -172,6 +172,14 @@ Se usa Swift/AVFoundation porque en la Mac no hay ffmpeg y los presets de `avcon
 
 **Cómo aplicarlo:** las fotos subidas antes del redeploy no tienen miniatura y siguen cargando la original (no hay proceso para generarlas después). `GALERIA_CACHE_CHUNK` bajó de 200 a 120 porque cada foto ahora ocupa más en el caché (límite de 100 KB por clave). Si la miniatura falla al cargar, el cliente pasa a la original.
 
+## Subir una foto ya no vacía el caché del listado de la galería (2026-10-13)
+
+**Decisión:** `addFoto()` dejó de llamar a `invalidarCacheGaleria()`; el listado se renueva solo al vencer `GALERIA_CACHE_TTL` (60 s). `borrarFoto()` sí lo sigue invalidando. Para que quien sube no espere hasta un minuto, `galeria/index.html` guarda sus subidas recientes en `misSubidas` (object URLs de la foto y la miniatura, con el ID que devuelve el servidor) y las antepone a la grilla mientras el servidor no las liste (o hasta 5 minutos).
+
+**Por qué:** durante la fiesta entra una foto cada pocos segundos; con la invalidación en cada subida el caché nunca llegaba a servir y casi cada pedido de la galería re-escaneaba la carpeta entera de Drive, justo cuando más gente la mira (más lento y más cerca del tope de ~30 ejecuciones simultáneas).
+
+**Cómo aplicarlo:** `misSubidas` vive solo en memoria: si quien subió recarga la página dentro del minuto, su foto puede no verse hasta que el servidor refresque. Los demás invitados, la TV y el admin ven las fotos nuevas con hasta 60 s de demora. `agregarFotosAlGrid()` ahora descarta IDs repetidos (`idsEnGrilla`), porque cuando entran fotos nuevas las tandas siguientes vienen corridas; `finGaleria` corta los pedidos cuando el servidor devuelve una tanda vacía.
+
 ## Carrusel "Nuestra historia": carpeta propia + orden por nombre + precarga en sessionStorage
 
 **Decisión:** el carrusel de fotos que aparece en `familiar/` e `invitacion/` usa una carpeta de Drive dedicada (`CARRUSEL_FOLDER_ID`, distinta de la galería de invitados), ordenada por **nombre de archivo** (no por fecha, a diferencia de `getGaleria()`) para que la pareja controle el orden nombrando `1.jpg`, `2.jpg`, etc. `index.html` precarga en segundo plano todas las fotos del carrusel (lista + cada base64) mientras el invitado abre el sobre y busca su nombre, y las deja en `sessionStorage` (clave `carruselCache`, con timestamp, vence a los 5 minutos). `familiar/`/`invitacion/` leen esa caché antes de pedir cada foto de nuevo.
