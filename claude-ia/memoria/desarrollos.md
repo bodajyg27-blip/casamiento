@@ -5,6 +5,7 @@ Historial de features completadas sobre `index.html` e `invitacion/index.html` (
 ## 2026-10-13 — Robustez para ~150 invitados
 
 - **Mensajes de video**: la cola solo borra un video cuando aparece en el listado de Drive (antes se podía perder en silencio). Ver [[bugs-conocidos]].
+- **Galería**: reintentos automáticos del listado, tandas que ya no se saltean ni se duplican, y galería oculta que no se revela si falla la consulta. Ver [[bugs-conocidos]]. Pendiente aparte: la grilla carga la foto completa (1600 px), no miniaturas.
 - **Modo de `index.html`**: reintento + último modo recordado en `localStorage`, con pantalla instantánea para quien ya entró. Ver [[bugs-conocidos]].
 
 ## 2026-10-11 — Save the Date en streaming desde el repo

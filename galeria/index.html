@@ -430,7 +430,51 @@
     return Math.max(conJitter, pausaGlobalHasta - ahora);
   }
 
+  // ---------- Pedidos a Apps Script con reintentos ----------
+  // Apps Script atiende ~30 ejecuciones a la vez: si muchos invitados
+  // abren la galería juntos, algunos pedidos fallan. En vez de mostrar
+  // un error al primer intento, se reintenta con esperas crecientes y
+  // aleatorias (para que no vuelvan a caer todos en el mismo instante).
+  // Devuelve null si se agotaron los intentos.
+  async function pedirJson(url, intentos) {
+    for (let i = 0; i < intentos; i++) {
+      try {
+        const res = await fetch(url);
+        return await res.json();
+      } catch (err) {
+        if (i === intentos - 1) console.error('Pedido fallido tras reintentos', url, err);
+      }
+      if (i < intentos - 1) {
+        await new Promise(r => setTimeout(r, 1500 * 2 ** i * (0.5 + Math.random())));
+      }
+    }
+    return null;
+  }
+
+  // Si no se puede confirmar si la galería está visible, se usa el último
+  // estado conocido en este dispositivo (y si nunca se supo, NO se
+  // muestran las fotos: se espera y se reintenta) — así una falla de la
+  // consulta no revela la galería antes de tiempo.
+  async function consultarGaleriaVisible() {
+    const data = await pedirJson(GAS_URL + "?tipo=galeriaVisible", 3);
+    if (data && typeof data.visible === 'boolean') {
+      try { localStorage.setItem('galeriaVisible', String(data.visible)); } catch (err) {}
+      return data.visible;
+    }
+    try {
+      const guardado = localStorage.getItem('galeriaVisible');
+      if (guardado === 'true') return true;
+      if (guardado === 'false') return false;
+    } catch (err) {}
+    return null;
+  }
+
+  let generacionGaleria = 0;   // cambia en cada loadGaleria(): descarta respuestas viejas
+  let reintentoGaleria = null;
+
   async function loadGaleria() {
+    const generacion = ++generacionGaleria;
+    clearTimeout(reintentoGaleria);
     const stateMsg = document.getElementById('stateMsg');
     const grid = document.getElementById('masonryGrid');
     const sentinel = document.getElementById('scrollSentinel');
@@ -448,20 +492,30 @@
       sentinel.classList.remove('hidden');
     }
 
-    try {
-      const visRes = await fetch(GAS_URL + "?tipo=galeriaVisible");
-      const visData = await visRes.json();
-      if (visData.visible === false) {
-        intro.classList.add('hidden');
+    // Estado de error con reintento automático: nadie tiene que recargar
+    // la página a mano.
+    function mostrarErrorYReintentar() {
+      showState(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>No se pudieron cargar las fotos. Reintentando en unos segundos…</span>`);
+      reintentoGaleria = setTimeout(loadGaleria, 15000 + Math.random() * 10000);
+    }
+
+    const visible = await consultarGaleriaVisible();
+    if (generacion !== generacionGaleria) return;
+    if (visible === false) {
+      intro.classList.add('hidden');
         showState(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/><line x1="3" y1="21" x2="21" y2="3"/></svg>
           <span>Seguí compartiendo tu enfoque sobre esta noche, mañana se revelará cada recuerdo subido por nuestros invitados.</span>`);
-        countBadge.classList.add('hidden');
-        fotosCache = [];
-        totalFotos = 0;
-        return;
-      }
-      intro.classList.remove('hidden');
-    } catch (err) {}
+      countBadge.classList.add('hidden');
+      fotosCache = [];
+      totalFotos = 0;
+      return;
+    }
+    if (visible === null) {
+      mostrarErrorYReintentar();
+      return;
+    }
+    intro.classList.remove('hidden');
 
     if (scrollObserver) scrollObserver.disconnect();
     if (unloadObserver) unloadObserver.disconnect();
@@ -471,9 +525,9 @@
     paginaSiguiente = 0;
 
     const primeraPagina = await pedirPagina(0);
+    if (generacion !== generacionGaleria) return;
     if (primeraPagina === null) {
-      showState(`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <span>No se pudieron cargar las fotos. Reintentá más tarde.</span>`);
+      mostrarErrorYReintentar();
       return;
     }
     if (!primeraPagina.total) {
@@ -484,6 +538,7 @@
     }
 
     totalFotos = primeraPagina.total;
+    paginaSiguiente = 1;
     countBadge.textContent = totalFotos;
     countBadge.classList.remove('hidden');
     showGrid();
@@ -503,13 +558,8 @@
   // el usuario vuelve a subir, se vuelve a pedir sola.
 
   async function pedirPagina(pagina) {
-    try {
-      const res = await fetch(GAS_URL + `?tipo=galeria&pagina=${pagina}&porPagina=${PAGE_SIZE}`);
-      return await res.json();
-    } catch (err) {
-      console.error('No se pudo pedir la página de galería', err);
-      return null;
-    }
+    const data = await pedirJson(GAS_URL + `?tipo=galeria&pagina=${pagina}&porPagina=${PAGE_SIZE}`, 4);
+    return (data && Array.isArray(data.fotos)) ? data : null;
   }
 
   function setupObservers() {
@@ -545,14 +595,31 @@
     }, { rootMargin: '1500px 0px 600px 0px' });
   }
 
+  // paginaSiguiente recién avanza cuando la tanda llegó bien: si falla
+  // (incluso tras los reintentos de pedirJson) NO se saltea — se vuelve a
+  // pedir la misma un rato después, porque el sentinel puede seguir en
+  // pantalla y el observer no vuelve a disparar solo.
   async function renderNextPage() {
     if (cargandoPagina || fotosCache.length >= totalFotos) return;
     cargandoPagina = true;
-    const pagina = paginaSiguiente++;
-    const data = await pedirPagina(pagina);
+    const generacion = generacionGaleria;
+    const data = await pedirPagina(paginaSiguiente);
     cargandoPagina = false;
-    if (!data || !data.fotos.length) return;
+    if (generacion !== generacionGaleria) return;
+    if (!data) {
+      setTimeout(renderNextPage, 8000 + Math.random() * 6000);
+      return;
+    }
+    paginaSiguiente++;
+    if (!data.fotos.length) return;
     agregarFotosAlGrid(data.fotos);
+    // El observer solo dispara cuando el sentinel ENTRA en pantalla: si
+    // la tanda nueva no alcanzó a empujarlo fuera (pantalla alta, fotos
+    // chicas), hay que pedir la siguiente a mano.
+    setTimeout(() => {
+      const r = document.getElementById('scrollSentinel').getBoundingClientRect();
+      if (r.top < window.innerHeight + 600) renderNextPage();
+    }, 300);
   }
 
   function agregarFotosAlGrid(fotos) {

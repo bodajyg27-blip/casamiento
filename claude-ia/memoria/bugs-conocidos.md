@@ -46,6 +46,17 @@ El POST del video va con `mode: 'no-cors'` (ver el bug de CORS de arriba), así 
 
 Si `?tipo=modoIndex` fallaba o Apps Script estaba saturado (~30 ejecuciones simultáneas), `index.html` caía siempre en `invitacion`, aunque el modo activo fuera `savethedate`. Ahora reintenta una vez y guarda el último modo conocido en `localStorage` (`modoIndex`): quien ya entró ve su pantalla al instante y la consulta corre en segundo plano (si el modo cambió, recarga). Solo quien entra por primera vez y no logra consultar sigue cayendo en `invitacion`. Ver [[decisiones-tecnicas]].
 
+## Resuelto — Galería: primera tanda duplicada, tandas salteadas y fallas sin reintento — 2026-10-13
+
+Cuatro problemas en `galeria/index.html`, todos del lado del cliente (sin redeploy de Apps Script):
+
+- **Primera tanda duplicada / últimas fotos sin cargar:** `loadGaleria()` pedía la página 0 y dejaba `paginaSiguiente = 0`, así que el primer scroll volvía a pedir la 0 (16 fotos repetidas) y, como el corte es por cantidad (`fotosCache.length >= totalFotos`), la última tanda nunca se pedía. Ahora queda en 1 tras la primera página.
+- **Tanda salteada si fallaba el pedido:** `renderNextPage()` incrementaba `paginaSiguiente` antes de saber si el pedido había salido bien. Ahora avanza solo si llegó, y si falla se vuelve a pedir la misma a los ~8–14 s.
+- **Sin reintentos contra Apps Script:** un solo fallo mostraba "No se pudieron cargar las fotos" hasta recargar a mano. Ahora `pedirJson()` reintenta con backoff y jitter, y el estado de error se reintenta solo cada ~15–25 s.
+- **Galería oculta que se revelaba si fallaba `?tipo=galeriaVisible`:** el `catch` seguía de largo y mostraba la grilla. Ahora se usa el último estado conocido (`localStorage.galeriaVisible`) y, si nunca se supo, no se muestran fotos.
+
+Además, tras agregar una tanda se vuelve a mirar si el sentinel sigue cerca de la pantalla (en pantallas altas el observer no volvía a disparar y la carga se frenaba). Probado con servidor simulado en Chrome headless; **no** probado con 150 personas reales ni contra el Apps Script real.
+
 ## Abierto — Archivos congelados que no reciben más cambios
 
 Estos archivos quedaron fuera del flujo de trabajo activo y no se tocan más (ver [[decisiones-tecnicas]]):
