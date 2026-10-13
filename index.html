@@ -53,7 +53,7 @@
     width: 100%;
     min-height: 100vh;
     min-height: 100svh;
-    background-image: url('img/fondoblancohorizontal.jpg');
+    background-image: url('img/fondoblancohorizontal.webp');
     background-size: cover;
     background-position: center;
     display: flex;
@@ -137,7 +137,7 @@
     position: fixed;
     inset: 0;
     z-index: 100;
-    background-image: url('img/sobre.jpg');
+    background-image: url('img/sobre.webp');
     background-size: cover;
     background-position: center;
     display: flex;
@@ -261,7 +261,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: #f1efe9 url('img/fondoblancohorizontal.jpg') center / cover no-repeat;
+    background: #f1efe9 url('img/fondoblancohorizontal.webp') center / cover no-repeat;
     color: #55543a;
     cursor: pointer;
     text-align: center;
@@ -392,34 +392,76 @@
 
   // ---------- Modo Invitación (código existente) ----------
 
+  // La lista de invitados ya no se baja entera al abrir la página: se le
+  // pregunta al servidor solo por lo que se escribió
+  // (?tipo=buscarInvitado&q=...), que devuelve como mucho BUSQUEDA_MAX
+  // coincidencias. guestList guarda los resultados de la última búsqueda.
   let guestList = [];
-  async function loadGuests() {
-    try {
-      const res = await fetch(GAS_URL);
-      guestList = await res.json(); // [{ nombre, confirmado, tipo }, ...]
-    } catch (err) {
-      console.error('No se pudo conectar con la planilla', err);
+  let busquedaTimer = null;
+  let busquedaSeq = 0;
+  let ultimaBusqueda = null; // { q, lista, completa }
+  const BUSQUEDA_MIN = 3;
+  const BUSQUEDA_MAX = 8;
+
+  // Minúsculas y sin acentos, igual que el servidor ("jose" encuentra "José").
+  function normalizar(texto) {
+    return String(texto || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+  }
+
+  // Devuelve las coincidencias, o null si no se pudo consultar.
+  async function buscarInvitados(query) {
+    // Si la búsqueda anterior trajo TODAS sus coincidencias y la nueva
+    // solo agrega letras, alcanza con filtrar lo que ya se tiene.
+    if (ultimaBusqueda && ultimaBusqueda.completa && query.includes(ultimaBusqueda.q)) {
+      return ultimaBusqueda.lista.filter(g => normalizar(g.nombre).includes(query));
     }
+    for (let intento = 0; intento < 2; intento++) {
+      try {
+        const res = await fetch(GAS_URL + '?tipo=buscarInvitado&q=' + encodeURIComponent(query));
+        const data = await res.json();
+        if (!Array.isArray(data)) throw new Error('Respuesta inválida');
+        // Se filtra acá también: un Apps Script sin redeployar (que no
+        // conoce buscarInvitado) responde con la lista entera.
+        const lista = data.filter(g => normalizar(g.nombre).includes(query));
+        ultimaBusqueda = { q: query, lista, completa: data.length < BUSQUEDA_MAX };
+        return lista;
+      } catch (err) {
+        if (intento === 0) await new Promise(r => setTimeout(r, 800));
+      }
+    }
+    return null;
   }
 
   function searchGuest() {
-    const query = document.getElementById('nameSearch').value.trim().toLowerCase();
+    const query = normalizar(document.getElementById('nameSearch').value);
     const resultsDiv = document.getElementById('guestResults');
     resultsDiv.innerHTML = "";
-    if (query.length < 2) return;
+    clearTimeout(busquedaTimer);
+    const seq = ++busquedaSeq;
+    if (query.length < BUSQUEDA_MIN) return;
 
-    const matches = guestList.filter(g => g.nombre.toLowerCase().includes(query));
-    if (matches.length === 0) {
-      resultsDiv.innerHTML = '<div class="no-results">No encontramos tu nombre. Contactanos directamente.</div>';
-      return;
-    }
-    matches.forEach(g => {
-      const item = document.createElement('div');
-      item.className = 'guest-item';
-      item.innerHTML = `<span>${g.nombre}</span>`;
-      item.onclick = () => irALaInvitacion(g);
-      resultsDiv.appendChild(item);
-    });
+    resultsDiv.innerHTML = '<div class="no-results">Buscando…</div>';
+    busquedaTimer = setTimeout(async () => {
+      const matches = await buscarInvitados(query);
+      if (seq !== busquedaSeq) return; // ya se escribió otra cosa
+      resultsDiv.innerHTML = "";
+      if (matches === null) {
+        resultsDiv.innerHTML = '<div class="no-results">No pudimos buscar en este momento. Probá de nuevo en unos segundos.</div>';
+        return;
+      }
+      guestList = matches;
+      if (matches.length === 0) {
+        resultsDiv.innerHTML = '<div class="no-results">No encontramos tu nombre. Contactanos directamente.</div>';
+        return;
+      }
+      matches.forEach(g => {
+        const item = document.createElement('div');
+        item.className = 'guest-item';
+        item.innerHTML = `<span>${g.nombre}</span>`;
+        item.onclick = () => irALaInvitacion(g);
+        resultsDiv.appendChild(item);
+      });
+    }, 350);
   }
 
   function irALaInvitacion(guest) {
@@ -431,7 +473,6 @@
   function initInvitacion() {
     document.getElementById('modoInvitacion').classList.remove('hidden');
     window.searchGuest = searchGuest;
-    loadGuests();
 
     const envelope = document.getElementById('envelope');
     document.documentElement.style.overflow = 'hidden';

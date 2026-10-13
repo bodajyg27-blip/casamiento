@@ -63,6 +63,16 @@ function doGet(e) {
   if (tipo === "saveTheDate") {
     return getSaveTheDate();
   }
+  if (tipo === "buscarInvitado") {
+    return buscarInvitado(e.parameter.q);
+  }
+  // La lista completa de invitados ya no es pública: solo con la clave de
+  // admin. Las páginas usan ?tipo=buscarInvitado&q=..., que devuelve
+  // únicamente los nombres que coinciden con lo que se escribió.
+  if (!claveValida(e.parameter.clave)) {
+    return ContentService.createTextOutput(JSON.stringify([]))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
   return getInvitados();
 }
 
@@ -237,7 +247,19 @@ function getSaveTheDate() {
 // E=detalle restricción, F=(sin uso), G=Tipo ("Familiar" o "Invitado") —
 // define a qué variante de invitación redirige el buscador de index.html.
 
-function getInvitados() {
+const INVITADOS_CACHE_TTL = 60;      // segundos
+const BUSQUEDA_MIN_LETRAS = 3;
+const BUSQUEDA_MAX_RESULTADOS = 8;
+
+// Lee la pestaña "Invitados". Se guarda en caché unos segundos para que
+// cada búsqueda (una por invitado que escribe su nombre) no tenga que
+// abrir el Sheet; confirmarInvitado() lo invalida para que el "ya
+// confirmado" se vea enseguida.
+function leerInvitados() {
+  const cache = CacheService.getScriptCache();
+  const enCache = cache.get('invitados_lista');
+  if (enCache) return JSON.parse(enCache);
+
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Invitados");
   const data = sheet.getDataRange().getValues();
   const guests = [];
@@ -249,7 +271,36 @@ function getInvitados() {
       tipo: String(data[i][6] || "").trim()
     });
   }
-  return ContentService.createTextOutput(JSON.stringify(guests))
+  const json = JSON.stringify(guests);
+  // CacheService limita cada clave a 100KB; con listas enormes se sigue
+  // funcionando igual, solo que sin caché.
+  if (json.length < 95000) cache.put('invitados_lista', json, INVITADOS_CACHE_TTL);
+  return guests;
+}
+
+function getInvitados() {
+  return ContentService.createTextOutput(JSON.stringify(leerInvitados()))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// Minúsculas y sin acentos, para que "jose" encuentre a "José".
+function normalizarTexto(texto) {
+  return String(texto || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
+
+// Devuelve solo los invitados cuyo nombre contiene lo que se escribió
+// (mínimo BUSQUEDA_MIN_LETRAS letras, máximo BUSQUEDA_MAX_RESULTADOS
+// resultados), en vez de entregar la lista entera a cualquiera que tenga
+// la URL del script.
+function buscarInvitado(q) {
+  const consulta = normalizarTexto(q);
+  let resultados = [];
+  if (consulta.length >= BUSQUEDA_MIN_LETRAS) {
+    resultados = leerInvitados()
+      .filter(g => normalizarTexto(g.nombre).indexOf(consulta) !== -1)
+      .slice(0, BUSQUEDA_MAX_RESULTADOS);
+  }
+  return ContentService.createTextOutput(JSON.stringify(resultados))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -266,6 +317,7 @@ function confirmarInvitado(params) {
       sheet.getRange(i + 1, 3).setValue(new Date());
       sheet.getRange(i + 1, 4).setValue(restricciones);
       sheet.getRange(i + 1, 5).setValue(detalle);
+      CacheService.getScriptCache().remove('invitados_lista');
       return ContentService.createTextOutput(JSON.stringify({ success: true }))
         .setMimeType(ContentService.MimeType.JSON);
     }
@@ -343,9 +395,36 @@ function getRegalo() {
 
 const GALERIA_CACHE_TTL = 60; // segundos
 // Fotos por clave de caché. CacheService limita cada clave a 100KB; cada
-// foto acá pesa ~350-400 bytes, así que 200 por chunk deja margen de
-// sobra (~70-80KB) aunque haya nombres de archivo largos.
-const GALERIA_CACHE_CHUNK = 200;
+// foto acá pesa ~500-550 bytes (incluye la URL de la miniatura), así que
+// 120 por chunk deja margen de sobra (~65KB) aunque haya nombres largos.
+const GALERIA_CACHE_CHUNK = 120;
+
+// Subcarpeta (dentro de GALERIA_FOLDER_ID) con las miniaturas que genera
+// galeria/index.html al subir cada foto. Cada miniatura se llama igual
+// que el ID de Drive de su foto original, que es lo que permite
+// asociarlas sin guardar nada en el Sheet. Hereda el "Cualquiera con el
+// enlace" de la carpeta de la galería, así que la API key puede leerla.
+const MINIATURAS_FOLDER_NAME = "miniaturas";
+
+function getCarpetaMiniaturas(crear) {
+  const galeria = DriveApp.getFolderById(GALERIA_FOLDER_ID);
+  const it = galeria.getFoldersByName(MINIATURAS_FOLDER_NAME);
+  if (it.hasNext()) return it.next();
+  return crear ? galeria.createFolder(MINIATURAS_FOLDER_NAME) : null;
+}
+
+// { idDeLaFotoOriginal: idDeSuMiniatura }
+function mapaMiniaturas() {
+  const mapa = {};
+  const carpeta = getCarpetaMiniaturas(false);
+  if (!carpeta) return mapa;
+  const files = carpeta.getFiles();
+  while (files.hasNext()) {
+    const f = files.next();
+    mapa[f.getName()] = f.getId();
+  }
+  return mapa;
+}
 
 function escanearGaleriaDrive() {
   const folder = DriveApp.getFolderById(GALERIA_FOLDER_ID);
@@ -360,6 +439,7 @@ function escanearGaleriaDrive() {
   const vistos = {};
   const baseUrl = ScriptApp.getService().getUrl();
   const apiKey = getDriveApiKey();
+  const miniaturas = mapaMiniaturas();
 
   function agregar(iter) {
     while (iter.hasNext()) {
@@ -378,7 +458,13 @@ function escanearGaleriaDrive() {
         download: fotoUrl,
         // directo: API oficial de Drive, la usa galeria/index.html para
         // no consumir ejecuciones de Apps Script en cada foto que se ve.
-        directo: "https://www.googleapis.com/drive/v3/files/" + id + "?alt=media&key=" + apiKey
+        directo: "https://www.googleapis.com/drive/v3/files/" + id + "?alt=media&key=" + apiKey,
+        // thumb: versión chica (~600px) para la grilla de la galería. null
+        // en las fotos subidas antes de que existieran las miniaturas —
+        // ahí el cliente usa "directo".
+        thumb: miniaturas[id]
+          ? "https://www.googleapis.com/drive/v3/files/" + miniaturas[id] + "?alt=media&key=" + apiKey
+          : null
       });
     }
   }
@@ -537,6 +623,17 @@ function addFoto(params) {
   const bytes = Utilities.base64Decode(base64);
   const blob = Utilities.newBlob(bytes, mimeType, nombre);
   const file = folder.createFile(blob);
+  // Miniatura opcional (la manda galeria/index.html junto con la foto). Si
+  // falla, la foto queda subida igual: la galería usa la original.
+  if (params.thumb) {
+    try {
+      const thumbBytes = Utilities.base64Decode(params.thumb);
+      const thumbBlob = Utilities.newBlob(thumbBytes, params.thumbMimeType || mimeType, file.getId());
+      getCarpetaMiniaturas(true).createFile(thumbBlob);
+    } catch (err) {
+      logError(err);
+    }
+  }
   // No hace falta compartir este archivo individualmente: la carpeta
   // GALERIA_FOLDER_ID ya está compartida como "Cualquiera con el enlace"
   // (ver compartirCarpetaGaleria()) y los archivos nuevos heredan ese
@@ -555,6 +652,16 @@ function borrarFoto(params) {
       .setMimeType(ContentService.MimeType.JSON);
   }
   DriveApp.getFileById(id).setTrashed(true);
+  // Su miniatura (si tiene) se va con ella.
+  try {
+    const carpeta = getCarpetaMiniaturas(false);
+    if (carpeta) {
+      const thumbs = carpeta.getFilesByName(id);
+      while (thumbs.hasNext()) thumbs.next().setTrashed(true);
+    }
+  } catch (err) {
+    logError(err);
+  }
   invalidarCacheGaleria();
   return ContentService.createTextOutput(JSON.stringify({ ok: true }))
     .setMimeType(ContentService.MimeType.JSON);

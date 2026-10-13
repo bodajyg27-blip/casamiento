@@ -156,6 +156,22 @@ Se usa Swift/AVFoundation porque en la Mac no hay ffmpeg y los presets de `avcon
 
 **Cómo aplicarlo:** probado solo en Chrome de escritorio simulando pantalla vertical (rotación CSS, vuelta al inicio y segunda reproducción). El bloqueo real de Android y el comportamiento de los controles nativos rotados en iPhone hay que verlos en un teléfono.
 
+## Buscador de invitados resuelto en el servidor (2026-10-13)
+
+**Decisión:** `index.html`, `invitacion/` y `familiar/` ya no bajan la lista completa de invitados al cargar; piden `?tipo=buscarInvitado&q=...` (350 ms de espera tras la última tecla, mínimo 3 letras, máximo 8 resultados). La lista completa (`GET` sin `tipo`) pasa a exigir la clave de admin. `leerInvitados()` cachea la pestaña 60 s en `CacheService` y `confirmarInvitado()` invalida ese caché.
+
+**Por qué:** cualquiera con la URL del script podía bajarse todos los nombres y quién confirmó. Ahora solo se ven coincidencias de lo que se escribe (se puede seguir enumerando de a 3 letras, pero ya no es un solo pedido).
+
+**Cómo aplicarlo:** el cliente filtra de nuevo lo que recibe, así que funciona igual contra un Apps Script **sin redeployar** (que responde la lista entera a cualquier `tipo` desconocido). La protección recién aplica cuando se publica la versión nueva del script. Si la búsqueda anterior vino completa (<8 resultados) y solo se agregan letras, se filtra en el cliente sin volver a pedir.
+
+## Miniaturas de la galería generadas al subir (2026-10-13)
+
+**Decisión:** `galeria/index.html` genera, además de la foto de 1600 px, una miniatura de 600 px (calidad 0,75) y la manda en el mismo POST (`thumb`, `thumbMimeType`). `addFoto()` la guarda en la subcarpeta `miniaturas` de la galería **con el ID de Drive de la foto original como nombre**; `escanearGaleriaDrive()` arma el mapa con una sola lectura de esa carpeta y agrega `thumb` (URL directa de la API de Drive, o `null`). La grilla usa `thumb || directo`; el lightbox y la descarga siguen usando la original. `borrarFoto()` también manda la miniatura a la papelera.
+
+**Por qué:** la grilla cargaba cada foto a 1600 px. No se usa `drive.google.com/thumbnail` porque ya se probó y devuelve 429 con pocas fotos (ver comentario en el script); Apps Script no tiene cómo redimensionar imágenes, así que la miniatura la genera el celular que sube.
+
+**Cómo aplicarlo:** las fotos subidas antes del redeploy no tienen miniatura y siguen cargando la original (no hay proceso para generarlas después). `GALERIA_CACHE_CHUNK` bajó de 200 a 120 porque cada foto ahora ocupa más en el caché (límite de 100 KB por clave). Si la miniatura falla al cargar, el cliente pasa a la original.
+
 ## Carrusel "Nuestra historia": carpeta propia + orden por nombre + precarga en sessionStorage
 
 **Decisión:** el carrusel de fotos que aparece en `familiar/` e `invitacion/` usa una carpeta de Drive dedicada (`CARRUSEL_FOLDER_ID`, distinta de la galería de invitados), ordenada por **nombre de archivo** (no por fecha, a diferencia de `getGaleria()`) para que la pareja controle el orden nombrando `1.jpg`, `2.jpg`, etc. `index.html` precarga en segundo plano todas las fotos del carrusel (lista + cada base64) mientras el invitado abre el sobre y busca su nombre, y las deja en `sessionStorage` (clave `carruselCache`, con timestamp, vence a los 5 minutos). `familiar/`/`invitacion/` leen esa caché antes de pedir cada foto de nuevo.

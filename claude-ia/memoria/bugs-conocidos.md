@@ -22,6 +22,8 @@ El usuario fue pasando imágenes de referencia y se fueron reemplazando seccione
 
 ## Pendiente — Redeploy de Apps Script tras cada cambio en AppsScript_RSVP.gs
 
+**Redeploy pendiente desde 2026-10-13:** `AppsScript_RSVP.gs` cambió (búsqueda de invitados + lista completa con clave, miniaturas de la galería). Hasta que se publique, la web sigue funcionando pero la lista de invitados sigue siendo pública y las fotos nuevas no generan miniatura. `getCarpetaMiniaturas()` crea una carpeta: puede pedir re-autorizar permisos de Drive.
+
 Cada vez que se edita `documentos/AppsScript_RSVP.gs`, el usuario tiene que pegar el código actualizado en el editor de Apps Script y hacer un nuevo **Deploy** (Manage deployments → editar → New version) para que el cambio tome efecto en el `GAS_URL` real. Si se agrega código que usa un servicio nuevo (ej. `DriveApp` cuando antes solo se usaba `SpreadsheetApp`), además hay que **re-autorizar permisos manualmente** — Apps Script no vuelve a pedir autorización solo porque el código cambió; hay que correr la función nueva manualmente una vez desde el editor (o revocar el acceso previo en myaccount.google.com/permissions y volver a autorizar) para que el popup de permisos aparezca.
 
 **Ya pasó 2 veces (última vez detectada 2026-09-26):** el síntoma es que `GAS_URL` (cualquier endpoint: `?tipo=carrusel`, `?tipo=regalo`, la lista de invitados) devuelve HTTP 403 con el HTML de Google "Acceso denegado" en vez del JSON esperado — se ve tanto en la invitación real como en cualquier copia/preview que apunte al mismo `GAS_URL`, así que **no es un bug de un archivo puntual**, es el deployment de Apps Script quedando desautorizado.

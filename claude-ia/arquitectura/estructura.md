@@ -4,7 +4,7 @@
 
 Sitio web de casamiento (Julieta & Gabriel, 23/10/2027): puerta de entrada con buscador que separa la invitación por tipo de invitado, dos variantes de invitación (con/sin regalo), galería de fotos, mensajes de video grabados por los invitados, pantalla de TV para el salón y panel de administración — todo estático (HTML+CSS+JS por archivo, sin build), publicado en GitHub Pages. Paleta general: verde oliva, tipografía script real Edwardian Script ITC (ver [[decisiones-tecnicas]]).
 
-**Sitio publicado:** `https://bodajyg27-blip.github.io/casamiento/` (GitHub Pages, sin dominio propio — no hay `CNAME` en el repo ni en su historial; si en algún momento se documentó un dominio `bodajyg.site`, era incorrecto/no llegó a configurarse).
+**Sitio publicado:** `https://bodajyg.site/` (GitHub Pages con dominio propio configurado en los ajustes de Pages, sin archivo `CNAME` en el repo). Verificado el 2026-10-13: `bodajyg.site` resuelve a las IP de GitHub Pages y `https://bodajyg27-blip.github.io/casamiento/...` responde 301 hacia `bodajyg.site`. La API key de Drive está restringida a ese dominio como referente, así que las fotos de la galería solo cargan entrando por ahí.
 
 ## Estructura de páginas
 
@@ -49,6 +49,8 @@ Respaldado por un Google Sheet con pestañas: `Invitados`, `Canciones`, `Regalo`
 | `mensajeVideo&id=` | Un video de mensaje en base64 | público |
 | `verificarClave&clave=` | `{ok: true/false}` contra `ClaveAdmin` | — |
 | `modoIndex` | `{modo}` actual de `index.html` | público |
+| `buscarInvitado&q=` | Hasta 8 invitados `{nombre, confirmado, tipo}` cuyo nombre contiene `q` (mín. 3 letras, sin distinguir acentos) | público |
+| *(sin `tipo`)* `&clave=` | Lista completa de invitados — desde 2026-10-13 **solo con la clave de admin** (sin clave devuelve `[]`) | clave |
 | `saveTheDate` | `{id, nombre}` del video de save the date | público — **sin uso desde 2026-10-11** (el video se sirve desde `save_the_date/`) |
 
 **`doPost`** (`{tipo: ...}` en el body):

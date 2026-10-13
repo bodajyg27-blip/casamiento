@@ -175,6 +175,78 @@
     box-shadow: 0 2px 8px rgba(75,83,32,0.06);
     margin-bottom: 16px;
   }
+  /* Estado del sistema: semáforo de los servicios de los que depende la
+     fiesta (Apps Script, galería, fotos en Drive, mensajes). */
+  .estado-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .estado-titulo { font-size: 14px; color: var(--muted); }
+  .estado-pill {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    background: #eceed6;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .estado-pill.ok { background: #dfe8c2; color: #3f5a14; }
+  .estado-pill.lento { background: #f3e3b3; color: #7a5a08; }
+  .estado-pill.falla { background: #f3d2cf; color: var(--danger-dark); }
+  .estado-fila {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 0;
+    border-top: 1px solid var(--border);
+    font-size: 15px;
+    color: var(--olive-dark);
+  }
+  .estado-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #cfcda4;
+    flex: none;
+  }
+  .estado-fila.ok .estado-dot { background: #6f9a2a; }
+  .estado-fila.lento .estado-dot { background: #d9a514; }
+  .estado-fila.falla .estado-dot { background: var(--danger); }
+  .estado-nombre { flex: 1; }
+  .estado-detalle { font-size: 13px; color: var(--muted); text-align: right; }
+  .estado-fila.falla .estado-detalle { color: var(--danger-dark); }
+  .estado-pie {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    border-top: 1px solid var(--border);
+    padding-top: 9px;
+    margin-top: 2px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .estado-btn {
+    font: inherit;
+    font-size: 13px;
+    color: var(--olive);
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 4px 12px;
+    cursor: pointer;
+  }
+  .estado-btn:disabled { opacity: 0.5; cursor: default; }
+  .estado-ayuda {
+    font-size: 13px;
+    color: var(--danger-dark);
+    padding: 2px 0 8px;
+  }
+
   .modo-switch-label {
     font-size: 14px;
     color: var(--muted);
@@ -472,6 +544,22 @@
 
       <!-- MENÚ PRINCIPAL -->
       <div id="vistaHome">
+        <div class="modo-switch-card" id="estadoCard">
+          <div class="estado-head">
+            <span class="estado-titulo">Estado del sistema</span>
+            <span class="estado-pill" id="estadoPill">Revisando…</span>
+          </div>
+          <div class="estado-ayuda hidden" id="estadoAyuda"></div>
+          <div class="estado-fila" data-check="servidor"><span class="estado-dot"></span><span class="estado-nombre">Servidor</span><span class="estado-detalle">—</span></div>
+          <div class="estado-fila" data-check="galeria"><span class="estado-dot"></span><span class="estado-nombre">Lista de la galería</span><span class="estado-detalle">—</span></div>
+          <div class="estado-fila" data-check="fotos"><span class="estado-dot"></span><span class="estado-nombre">Fotos en Drive</span><span class="estado-detalle">—</span></div>
+          <div class="estado-fila" data-check="mensajes"><span class="estado-dot"></span><span class="estado-nombre">Mensajes de video</span><span class="estado-detalle">—</span></div>
+          <div class="estado-pie">
+            <span id="estadoHora">Sin revisar todavía</span>
+            <button class="estado-btn" id="estadoBtn">Revisar ahora</button>
+          </div>
+        </div>
+
         <div class="modo-switch-card">
           <div class="modo-switch-label">Qué se muestra en la web principal</div>
           <div class="modo-switch" id="modoSwitch">
@@ -580,6 +668,142 @@
     [...gateDots.children].forEach((dot, i) => dot.classList.toggle('filled', i < entrada.length));
   }
 
+  // ---------- Estado del sistema ----------
+  // Cuatro chequeos de solo lectura contra los mismos endpoints que usan
+  // los invitados. Sirve para enterarse durante la fiesta si Apps Script
+  // dejó de responder (p. ej. el "Acceso denegado" de bugs-conocidos.md)
+  // sin esperar a que alguien avise. Se repite solo cada minuto mientras
+  // el panel está en el menú principal y la pestaña visible.
+  const ESTADO_LENTO_MS = 4000;
+  const ESTADO_TIMEOUT_MS = 15000;
+  let estadoRevisando = false;
+
+  async function pedirJsonEstado(url) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ESTADO_TIMEOUT_MS);
+    try {
+      const res = await fetch(url, { signal: controller.signal });
+      return await res.json();
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  function cargarImagenEstado(url) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const timer = setTimeout(() => reject(new Error('timeout')), ESTADO_TIMEOUT_MS);
+      img.onload = () => { clearTimeout(timer); resolve(); };
+      img.onerror = () => { clearTimeout(timer); reject(new Error('no cargó')); };
+      img.src = url;
+    });
+  }
+
+  function pintarEstado(check, estado, detalle) {
+    const fila = document.querySelector(`.estado-fila[data-check="${check}"]`);
+    fila.classList.remove('ok', 'lento', 'falla');
+    if (estado) fila.classList.add(estado);
+    fila.querySelector('.estado-detalle').textContent = detalle;
+  }
+
+  // Corre un chequeo, mide cuánto tarda y pinta su fila. Devuelve
+  // { estado, valor }, donde valor es lo que devolvió fn().
+  async function chequear(check, fn, describir) {
+    const t0 = performance.now();
+    try {
+      const valor = await fn();
+      const ms = Math.round(performance.now() - t0);
+      const estado = ms > ESTADO_LENTO_MS ? 'lento' : 'ok';
+      const seg = (ms / 1000).toFixed(1).replace('.', ',') + ' s';
+      pintarEstado(check, estado, describir(valor) + ' · ' + seg);
+      return { estado, valor };
+    } catch (err) {
+      pintarEstado(check, 'falla', 'No responde');
+      return { estado: 'falla', valor: null };
+    }
+  }
+
+  async function revisarEstado() {
+    if (estadoRevisando) return;
+    estadoRevisando = true;
+    const pill = document.getElementById('estadoPill');
+    const btn = document.getElementById('estadoBtn');
+    const ayuda = document.getElementById('estadoAyuda');
+    btn.disabled = true;
+    pill.className = 'estado-pill';
+    pill.textContent = 'Revisando…';
+
+    const [servidor, galeria, mensajes] = await Promise.all([
+      chequear('servidor', async () => {
+        const d = await pedirJsonEstado(GAS_URL + '?tipo=modoIndex');
+        if (!d || !d.modo) throw new Error('respuesta inválida');
+        return d;
+      }, () => 'Responde'),
+      chequear('galeria', async () => {
+        const d = await pedirJsonEstado(GAS_URL + '?tipo=galeria&pagina=0&porPagina=1');
+        if (!d || typeof d.total !== 'number') throw new Error('respuesta inválida');
+        return d;
+      }, d => d.total + (d.total === 1 ? ' foto' : ' fotos')),
+      chequear('mensajes', async () => {
+        const d = await pedirJsonEstado(GAS_URL + '?tipo=mensajes');
+        if (!Array.isArray(d)) throw new Error('respuesta inválida');
+        return d;
+      }, d => d.length + (d.length === 1 ? ' mensaje' : ' mensajes')),
+    ]);
+
+    // "Fotos en Drive": baja de verdad una foto por el mismo camino que
+    // la galería (API de Drive con la key). Necesita que la lista haya
+    // respondido y que haya al menos una foto.
+    let fotos;
+    const primera = galeria.valor && galeria.valor.fotos && galeria.valor.fotos[0];
+    if (galeria.estado === 'falla') {
+      pintarEstado('fotos', 'falla', 'No se pudo probar');
+      fotos = { estado: 'falla' };
+    } else if (!primera) {
+      pintarEstado('fotos', null, 'Sin fotos para probar');
+      fotos = { estado: 'ok' };
+    } else {
+      // El parámetro extra evita que el navegador responda desde su caché.
+      const url = (primera.thumb || primera.directo) + '&_estado=' + Date.now();
+      fotos = await chequear('fotos', () => cargarImagenEstado(url), () => 'Se ven');
+    }
+
+    const estados = [servidor.estado, galeria.estado, mensajes.estado, fotos.estado];
+    const fallas = estados.filter(e => e === 'falla').length;
+    if (fallas) {
+      pill.className = 'estado-pill falla';
+      pill.textContent = fallas === estados.length ? 'No funciona' : 'Hay problemas';
+    } else if (estados.includes('lento')) {
+      pill.className = 'estado-pill lento';
+      pill.textContent = 'Funciona lento';
+    } else {
+      pill.className = 'estado-pill ok';
+      pill.textContent = 'Todo funcionando';
+    }
+
+    // Pista según qué falló.
+    let pista = '';
+    if (servidor.estado === 'falla' && galeria.estado === 'falla' && mensajes.estado === 'falla') {
+      pista = 'Apps Script no responde. Si este dispositivo tiene internet, revisá el deploy del script (puede estar pidiendo autorización de nuevo).';
+    } else if (fotos.estado === 'falla' && galeria.estado !== 'falla') {
+      pista = 'La lista funciona pero las fotos no cargan desde Drive: puede ser la clave de la API o un cupo de Drive agotado por un rato.';
+    }
+    ayuda.textContent = pista;
+    ayuda.classList.toggle('hidden', !pista);
+
+    const ahora = new Date();
+    const dos = n => String(n).padStart(2, '0');
+    document.getElementById('estadoHora').textContent =
+      'Última revisión: ' + dos(ahora.getHours()) + ':' + dos(ahora.getMinutes()) + ':' + dos(ahora.getSeconds());
+    btn.disabled = false;
+    estadoRevisando = false;
+  }
+
+  document.getElementById('estadoBtn').addEventListener('click', revisarEstado);
+  setInterval(() => {
+    if (claveActual && vistaActual === 'home' && document.visibilityState === 'visible') revisarEstado();
+  }, 60000);
+
   function unlockOk(clave) {
     claveActual = clave;
     sessionStorage.setItem('mensajes-admin-clave', clave);
@@ -588,6 +812,7 @@
     mostrarHome();
     cargarModoSwitch();
     cargarGaleriaSwitch();
+    revisarEstado();
   }
 
   function unlockFail(mensaje) {
@@ -737,6 +962,7 @@
     mostrarHome();
     cargarModoSwitch();
     cargarGaleriaSwitch();
+    revisarEstado();
   }
 
   // ---------- Lista de mensajes ----------

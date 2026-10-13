@@ -356,6 +356,7 @@
 <script>
   const GAS_URL = "https://script.google.com/macros/s/AKfycbz-sc2l5jW1oMN6Dkr-s3gduTSbTTlL2gRiPlw_khEQ6GzTCkJHlnqpgvrvD0b2sBOo/exec";
   const MAX_DIM = 1600;
+  const THUMB_DIM = 600;   // miniatura para la grilla (la foto completa se ve al tocarla)
   const PAGE_SIZE = 16;
 
   // Safari en iOS reserva una barra de navegación pegada abajo que
@@ -633,7 +634,10 @@
       pin.dataset.index = globalIndex;
       const img = document.createElement('img');
       img.alt = 'Foto del casamiento';
-      img.dataset.src = foto.directo;
+      // En la grilla va la miniatura (~600px, mucho más liviana); la foto
+      // completa se pide recién en el lightbox. Las fotos sin miniatura
+      // (subidas antes de que existieran) usan la original.
+      img.dataset.src = foto.thumb || foto.directo;
       img.addEventListener('load', () => {
         img.classList.add('ready');
         pin.classList.add('loaded');
@@ -646,6 +650,13 @@
       // 8s...) hasta 5 veces, así una falla transitoria no deja agujeros
       // permanentes en la grilla.
       img.addEventListener('error', () => {
+        // Si lo que falló es la miniatura, se pasa a la original una vez
+        // antes de entrar en los reintentos de siempre.
+        if (foto.thumb && img.dataset.src === foto.thumb) {
+          img.dataset.src = foto.directo;
+          img.src = foto.directo;
+          return;
+        }
         const intentos = parseInt(img.dataset.retries || '0', 10);
         if (intentos >= 5) return;
         img.dataset.retries = String(intentos + 1);
@@ -760,7 +771,7 @@
     }, 'image/webp');
   })();
 
-  function resizeImage(file, maxDim) {
+  function resizeImage(file, maxDim, calidad) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onerror = reject;
@@ -782,7 +793,7 @@
           canvas.width = width;
           canvas.height = height;
           canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-          canvas.toBlob(blob => resolve(blob), outputMime, 0.85);
+          canvas.toBlob(blob => resolve(blob), outputMime, calidad || 0.85);
         };
         img.src = e.target.result;
       };
@@ -848,10 +859,15 @@
 
   async function uploadRecord(record) {
     const base64 = await blobToBase64(record.blob);
+    const payload = { tipo: 'foto', nombre: record.nombre, mimeType: record.mimeType, data: base64 };
+    if (record.thumb) {
+      payload.thumb = await blobToBase64(record.thumb);
+      payload.thumbMimeType = record.thumb.type || record.mimeType;
+    }
     const res = await fetch(GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ tipo: 'foto', nombre: record.nombre, mimeType: record.mimeType, data: base64 })
+      body: JSON.stringify(payload)
     });
     const data = await res.json();
     if (!data.success) throw new Error('El servidor no confirmó la subida');
@@ -910,8 +926,12 @@
     for (let i = 0; i < files.length; i++) {
       try {
         const resized = await resizeImage(files[i], MAX_DIM);
+        // La miniatura es un extra: si no se puede generar, la foto se
+        // sube igual y la grilla usa la original.
+        let thumb = null;
+        try { thumb = await resizeImage(files[i], THUMB_DIM, 0.75); } catch (err) {}
         const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${i}`;
-        await savePending({ id, blob: resized, nombre: files[i].name, mimeType: outputMime, createdAt: Date.now() });
+        await savePending({ id, blob: resized, thumb, nombre: files[i].name, mimeType: outputMime, createdAt: Date.now() });
         guardadas++;
       } catch (err) {
         console.error('Error preparando foto', err);

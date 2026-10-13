@@ -4,6 +4,11 @@ Historial de features completadas sobre `index.html` e `invitacion/index.html` (
 
 ## 2026-10-13 — Robustez para ~150 invitados
 
+- **Miniaturas en la galería** y **buscador de invitados en el servidor**: ver [[decisiones-tecnicas]]. **Requieren redeploy de Apps Script** (ver [[bugs-conocidos]]); el cliente funciona igual mientras tanto.
+- **Estado del sistema en `admin/`**: tarjeta con semáforo (servidor, lista de la galería, fotos en Drive, mensajes de video), tiempos de respuesta, pista según qué falla y revisión automática cada minuto. Solo lectura, no toca Apps Script.
+- **Imágenes a WebP**: `sobre`, `fondoblancohorizontal`, `fondohorizontal`, `camara`, `fiesta`, `iglesia` (los fondos pesan ~80% menos). Los `.jpg`/`.png` originales siguen en `img/` sin uso, junto con `TARJETA.jpg`, `calendario.jpg`, `fondo.jpg` y `lugares.jpg`, que ninguna página activa referencia.
+- **Tarjeta del QR** (`recursos-impresion/`, fuera del repo): rediseñada con el fondo en relieve y Special Elite + Edwardian; ahora tiene fuente HTML, PNG a 300 ppp y PDF. Mismo destino del QR que la anterior (verificado decodificándolo).
+
 - **Mensajes de video**: la cola solo borra un video cuando aparece en el listado de Drive (antes se podía perder en silencio). Ver [[bugs-conocidos]].
 - **Galería**: reintentos automáticos del listado, tandas que ya no se saltean ni se duplican, y galería oculta que no se revela si falla la consulta. Ver [[bugs-conocidos]]. Pendiente aparte: la grilla carga la foto completa (1600 px), no miniaturas.
 - **Modo de `index.html`**: reintento + último modo recordado en `localStorage`, con pantalla instantánea para quien ya entró. Ver [[bugs-conocidos]].
