@@ -59,6 +59,16 @@ Cuatro problemas en `galeria/index.html`, todos del lado del cliente (sin redepl
 
 Además, tras agregar una tanda se vuelve a mirar si el sentinel sigue cerca de la pantalla (en pantallas altas el observer no volvía a disparar y la carga se frenaba). Probado con servidor simulado en Chrome headless; **no** probado con 150 personas reales ni contra el Apps Script real.
 
+## Mitigado — Google bloquea la descarga directa de fotos por red ("Sorry...", 403) — 2026-10-13
+
+**Síntoma:** las fotos de la galería no cargan y el panel de admin marca "Fotos en Drive" en rojo. `https://www.googleapis.com/drive/v3/files/ID?alt=media&key=...` responde **HTTP 403 con una página HTML "Sorry..."** (la de tráfico automatizado de Google), aunque la key está bien: el mismo pedido de **metadatos** (`?fields=...&key=`) responde 200 desde la misma red. Es un bloqueo de Google sobre las descargas anónimas desde esa IP, no un problema de la key ni del script. Visto el 2026-10-13 desde la red de casa; ya había antecedentes (commit `2e8deff`, 2026-08-30).
+
+**Por qué importa:** en la fiesta todos los invitados salen por la misma IP (wifi del salón), que es justo lo que dispara este bloqueo.
+
+**Mitigación (cliente, sin redeploy):** `galeria/index.html` arma por foto una lista de rutas (`rutasDeFoto()`): miniatura → directa → `https://lh3.googleusercontent.com/d/ID=wANCHO`. Si una falla pasa a la siguiente sin esperar; con 3 fallos de `googleapis.com` el resto de la sesión arranca por la alternativa (`preferirAlternativa`). El lightbox hace lo mismo a 1600 px. Verificado **en vivo** con la directa bloqueada: 13 de 16 fotos cargadas por la alternativa en ~12 s (las otras 3 estaban fuera de pantalla o en curso). `admin/` prueba las dos rutas y avisa "Solo por la ruta alternativa".
+
+**Lo que sigue en riesgo:** `lh3.googleusercontent.com/d/` no es una API documentada (puede limitar o cambiar); los videos no tienen ruta alternativa en Google, así que `tv/` y `admin/` caen al proxy de Apps Script cuando la directa falla (`videoDirectoBloqueado` en `tv/`: más lento, baja el video entero en base64, y consume ejecuciones del script); la descarga de una foto y las fotos de `tv/`/`admin/` van por el proxy de Apps Script y no les afecta. La solución de fondo sería servir las fotos desde un almacenamiento pensado para eso en vez de Drive.
+
 ## Abierto — Archivos congelados que no reciben más cambios
 
 Estos archivos quedaron fuera del flujo de trabajo activo y no se tocan más (ver [[decisiones-tecnicas]]):

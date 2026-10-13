@@ -714,6 +714,31 @@
     }, 300);
   }
 
+  // ---------- Rutas alternativas para cada foto ----------
+  // La descarga directa por la API de Drive (alt=media con la key) a veces
+  // es bloqueada por Google para toda una red: responde 403 con la página
+  // "Sorry..." de tráfico automatizado. Pasa cuando salen muchas descargas
+  // desde la misma IP — justo el caso de todos los invitados en el wifi
+  // del salón. Las imágenes de lh3.googleusercontent.com van por otro
+  // camino y siguen respondiendo, así que cada foto tiene una lista de
+  // rutas y pasa a la siguiente cuando una falla. Si la directa falla
+  // varias veces, el resto de la sesión arranca por la alternativa para
+  // no seguir insistiendo contra la ruta bloqueada.
+  let fallosRutaDirecta = 0;
+  let preferirAlternativa = false;
+
+  function rutasDeFoto(foto, ancho, conMiniatura) {
+    const propia = String(foto.directo).startsWith('blob:'); // recién subida desde este dispositivo
+    const drive = (conMiniatura && foto.thumb) ? [foto.thumb, foto.directo] : [foto.directo];
+    if (propia) return [drive[0]];
+    const alternativa = 'https://lh3.googleusercontent.com/d/' + foto.id + '=w' + ancho;
+    return preferirAlternativa ? [alternativa].concat(drive) : drive.concat([alternativa]);
+  }
+
+  function anotarFalloDeRuta(url) {
+    if (String(url).includes('googleapis.com') && ++fallosRutaDirecta >= 3) preferirAlternativa = true;
+  }
+
   function agregarFotosAlGrid(fotos) {
     const grid = document.getElementById('masonryGrid');
     // Si entran fotos nuevas mientras alguien recorre la galería, las
@@ -735,7 +760,9 @@
       // En la grilla va la miniatura (~600px, mucho más liviana); la foto
       // completa se pide recién en el lightbox. Las fotos sin miniatura
       // (subidas antes de que existieran) usan la original.
-      img.dataset.src = foto.thumb || foto.directo;
+      const rutas = rutasDeFoto(foto, 600, true);
+      let iRuta = 0;
+      img.dataset.src = rutas[0];
       img.addEventListener('load', () => {
         img.classList.add('ready');
         pin.classList.add('loaded');
@@ -748,18 +775,24 @@
       // 8s...) hasta 5 veces, así una falla transitoria no deja agujeros
       // permanentes en la grilla.
       img.addEventListener('error', () => {
-        // Si lo que falló es la miniatura, se pasa a la original una vez
-        // antes de entrar en los reintentos de siempre.
-        if (foto.thumb && img.dataset.src === foto.thumb) {
-          img.dataset.src = foto.directo;
-          img.src = foto.directo;
+        // Primero se prueba la ruta siguiente, sin esperar. Recién cuando
+        // fallaron todas entran los reintentos de siempre, desde la primera.
+        anotarFalloDeRuta(rutas[iRuta]);
+        if (iRuta < rutas.length - 1) {
+          iRuta++;
+          img.dataset.src = rutas[iRuta];
+          img.src = rutas[iRuta];
           return;
         }
         const intentos = parseInt(img.dataset.retries || '0', 10);
         if (intentos >= 5) return;
         img.dataset.retries = String(intentos + 1);
         const espera = registrarFalloYCalcularEspera(intentos);
-        setTimeout(() => { img.src = img.dataset.src; }, espera);
+        setTimeout(() => {
+          iRuta = 0;
+          img.dataset.src = rutas[0];
+          img.src = rutas[0];
+        }, espera);
       });
       pin.appendChild(img);
       pin.addEventListener('click', () => openLightbox(globalIndex));
@@ -807,8 +840,22 @@
       lightboxImg.classList.remove('hidden');
       lightboxSpinner.classList.add('hidden');
     };
-    lightboxImg.onerror = () => showToast('No se pudo cargar la foto');
-    lightboxImg.src = foto.directo;
+    // Mismas rutas alternativas que la grilla, pero a tamaño completo.
+    const rutas = rutasDeFoto(foto, 1600, false);
+    const indice = lightboxIndex;
+    let iRuta = 0;
+    lightboxImg.onerror = () => {
+      if (indice !== lightboxIndex) return; // ya se pasó a otra foto
+      anotarFalloDeRuta(rutas[iRuta]);
+      if (iRuta < rutas.length - 1) {
+        iRuta++;
+        lightboxImg.src = rutas[iRuta];
+        return;
+      }
+      lightboxSpinner.classList.add('hidden');
+      showToast('No se pudo cargar la foto');
+    };
+    lightboxImg.src = rutas[0];
   }
 
   function closeLightbox() { lightbox.classList.remove('open'); }

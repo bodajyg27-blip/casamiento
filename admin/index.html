@@ -763,9 +763,19 @@
       pintarEstado('fotos', null, 'Sin fotos para probar');
       fotos = { estado: 'ok' };
     } else {
-      // El parámetro extra evita que el navegador responda desde su caché.
-      const url = (primera.thumb || primera.directo) + '&_estado=' + Date.now();
-      fotos = await chequear('fotos', () => cargarImagenEstado(url), () => 'Se ven');
+      // Se prueban las dos rutas que usa la galería: la directa (API de
+      // Drive con la key) y la alternativa (lh3.googleusercontent.com). Si
+      // solo anda la alternativa, la galería sigue mostrando fotos pero
+      // conviene saberlo: Google está bloqueando la directa en esta red.
+      fotos = await chequear('fotos', () => cargarImagenEstado(primera.thumb || primera.directo), () => 'Se ven');
+      if (fotos.estado === 'falla') {
+        const alternativa = 'https://lh3.googleusercontent.com/d/' + primera.id + '=w600';
+        try {
+          await cargarImagenEstado(alternativa);
+          pintarEstado('fotos', 'lento', 'Solo por la ruta alternativa');
+          fotos = { estado: 'lento', soloAlternativa: true };
+        } catch (err) {}
+      }
     }
 
     const estados = [servidor.estado, galeria.estado, mensajes.estado, fotos.estado];
@@ -775,7 +785,7 @@
       pill.textContent = fallas === estados.length ? 'No funciona' : 'Hay problemas';
     } else if (estados.includes('lento')) {
       pill.className = 'estado-pill lento';
-      pill.textContent = 'Funciona lento';
+      pill.textContent = fotos.soloAlternativa ? 'Funciona con avisos' : 'Funciona lento';
     } else {
       pill.className = 'estado-pill ok';
       pill.textContent = 'Todo funcionando';
@@ -785,8 +795,10 @@
     let pista = '';
     if (servidor.estado === 'falla' && galeria.estado === 'falla' && mensajes.estado === 'falla') {
       pista = 'Apps Script no responde. Si este dispositivo tiene internet, revisá el deploy del script (puede estar pidiendo autorización de nuevo).';
+    } else if (fotos.soloAlternativa) {
+      pista = 'Google está bloqueando en esta red la descarga directa de fotos. La galería las muestra igual por la ruta alternativa; suele destrabarse solo en unas horas.';
     } else if (fotos.estado === 'falla' && galeria.estado !== 'falla') {
-      pista = 'La lista funciona pero las fotos no cargan desde Drive: puede ser la clave de la API o un cupo de Drive agotado por un rato.';
+      pista = 'La lista funciona pero las fotos no cargan desde Drive por ninguna de las dos rutas: puede ser la clave de la API o un bloqueo de Google en esta red.';
     }
     ayuda.textContent = pista;
     ayuda.classList.toggle('hidden', !pista);
@@ -1034,6 +1046,18 @@
         // seek; si no vino (key sin configurar), cae al proxy de siempre.
         if (msg.directo) {
           video.src = msg.directo;
+          // Si Google bloquea la ruta directa en esta red, se baja el
+          // video por el proxy (una sola vez).
+          video.addEventListener('error', async () => {
+            try {
+              const res = await fetch(GAS_URL + '?tipo=mensajeVideo&id=' + msg.id);
+              const data = await res.json();
+              video.src = 'data:' + data.mimeType + ';base64,' + data.data;
+              if (playerWrap.classList.contains('open')) video.play().catch(() => {});
+            } catch (err) {
+              toast('No se pudo cargar el video');
+            }
+          }, { once: true });
         } else {
           btnVer.disabled = true;
           btnVer.innerHTML = ICON_STOP;
