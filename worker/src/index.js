@@ -16,6 +16,7 @@
 //   POST /carrusel                   → FormData: foto, hash, clave (solo admin); va al final;
 //                                      409 si ya hay una foto con ese hash
 //   POST /borrar                     → también { tipo: "carrusel", id: <nombre>, clave }
+//   POST /uso                        → JSON { clave }: uso del plan gratis (solo admin)
 //
 // Las fotos del carrusel se cargan desde admin/ (ya convertidas a WebP o
 // JPEG en el navegador) y quedan en R2 → boda-fotos → carpeta "carrusel".
@@ -102,10 +103,10 @@ function limpiarNombre(nombre) {
 
 const memo = {};
 
-function recordado(clave, fn) {
+function recordado(clave, fn, ttl = LISTA_TTL_MS) {
   const ahora = Date.now();
   const m = memo[clave];
-  if (m && ahora - m.cuando < LISTA_TTL_MS) return m.promesa;
+  if (m && ahora - m.cuando < ttl) return m.promesa;
   const promesa = fn().catch(err => { delete memo[clave]; throw err; });
   memo[clave] = { cuando: ahora, promesa };
   return promesa;
@@ -321,6 +322,101 @@ async function subirCarrusel(request, env, base) {
   return json(request, { ok: true, id: nombre, url: `${base}/c/${encodeURIComponent(nombre)}` });
 }
 
+// ---------- Uso del plan gratis (solo admin) ----------
+// Lo que muestra admin/ para saber si se está por pasar de lo gratis:
+//   - Pedidos al Worker hoy (100.000 por día; el día es UTC, o sea que se
+//     reinicia a las 21:00 de Argentina). Es el que más riesgo tiene en la
+//     fiesta: si se agota, fotos y videos dejan de andar hasta el reinicio.
+//   - Almacenamiento de R2 (10 GB): se suma acá listando los buckets,
+//     porque el dato de la analítica de Cloudflare llega con atraso.
+//   - Operaciones de R2 en el mes (clase A 1.000.000, clase B 10.000.000).
+// Los pedidos y las operaciones salen de la API GraphQL de analítica, que
+// necesita el secreto CF_API_TOKEN (token con "Account Analytics: Read",
+// cargado con `npx wrangler secret put CF_API_TOKEN`). Sin él, se informa
+// solo el almacenamiento.
+
+const LIMITES = {
+  pedidosDia: 100000,
+  almacenamiento: 10 * 1e9,
+  claseA: 1000000,
+  claseB: 10000000
+};
+const USO_TTL_MS = 60 * 1000;
+
+// https://developers.cloudflare.com/r2/pricing/ — lo que no está acá ni es
+// gratis se cuenta como clase A (la más cara), para no subestimar.
+const OPS_CLASE_B = new Set(['HeadBucket', 'HeadObject', 'GetObject', 'UsageSummary', 'GetBucketEncryption',
+  'GetBucketLocation', 'GetBucketCors', 'GetBucketLifecycleConfiguration']);
+const OPS_GRATIS = new Set(['DeleteObject', 'DeleteObjects', 'DeleteBucket', 'AbortMultipartUpload']);
+
+async function bytesDe(bucket) {
+  const objetos = await listarTodo(bucket);
+  return objetos.reduce((total, o) => total + o.size, 0);
+}
+
+async function analitica(env) {
+  const ahora = new Date();
+  const inicioMes = new Date(Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), 1));
+  const query = `query($a: String!, $desde: Time!, $hasta: Time!, $hoy: Date!) {
+    viewer { accounts(filter: { accountTag: $a }) {
+      ops: r2OperationsAdaptiveGroups(limit: 1000, filter: { datetime_geq: $desde, datetime_leq: $hasta }) {
+        sum { requests } dimensions { actionType }
+      }
+      worker: workersInvocationsAdaptive(limit: 100, filter: { date_geq: $hoy }) {
+        sum { requests } dimensions { scriptName }
+      }
+    } }
+  }`;
+  const res = await fetch('https://api.cloudflare.com/client/v4/graphql', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + env.CF_API_TOKEN, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, variables: {
+      a: env.CF_ACCOUNT_ID,
+      desde: inicioMes.toISOString(),
+      hasta: ahora.toISOString(),
+      hoy: ahora.toISOString().slice(0, 10)
+    } })
+  });
+  const data = await res.json();
+  if (data.errors && data.errors.length) throw new Error(data.errors[0].message);
+  const cuenta = data.data.viewer.accounts[0];
+  let claseA = 0;
+  let claseB = 0;
+  cuenta.ops.forEach(g => {
+    const tipo = g.dimensions.actionType;
+    if (OPS_GRATIS.has(tipo)) return;
+    if (OPS_CLASE_B.has(tipo)) claseB += g.sum.requests;
+    else claseA += g.sum.requests;
+  });
+  // El límite de 100.000 es por cuenta, sumando todos los Workers.
+  const pedidosHoy = cuenta.worker.reduce((t, g) => t + g.sum.requests, 0);
+  return { claseA, claseB, pedidosHoy };
+}
+
+async function uso(request, env) {
+  let params;
+  try {
+    params = await request.json();
+  } catch (err) {
+    return json(request, { ok: false, error: 'Formato inválido' }, 400);
+  }
+  if (!(await claveValida(env, params.clave))) return json(request, { ok: false, error: 'No autorizado' }, 403);
+
+  const datos = await recordado('uso', async () => {
+    const [fotos, mensajes] = await Promise.all([bytesDe(env.FOTOS), bytesDe(env.MENSAJES)]);
+    const resultado = { almacenamiento: fotos + mensajes, analitica: false };
+    if (env.CF_API_TOKEN && env.CF_ACCOUNT_ID) {
+      try {
+        Object.assign(resultado, await analitica(env), { analitica: true });
+      } catch (err) {
+        resultado.errorAnalitica = String(err && err.message || err);
+      }
+    }
+    return resultado;
+  }, USO_TTL_MS);
+  return json(request, Object.assign({ ok: true, limites: LIMITES, generado: new Date().toISOString() }, datos));
+}
+
 // ---------- Borrar (solo admin) ----------
 
 async function claveValida(env, clave) {
@@ -405,6 +501,7 @@ export default {
         if (ruta === '/mensajes') return subirMensaje(request, env, url);
         if (ruta === '/carrusel') return subirCarrusel(request, env, base);
         if (ruta === '/borrar') return borrar(request, env);
+        if (ruta === '/uso') return uso(request, env);
       }
 
       return json(request, { error: 'No encontrado' }, 404);

@@ -14,6 +14,9 @@
     // Se usa solo para validar la clave del admin al borrar
     // (?tipo=verificarClave), así la clave sigue viviendo en un solo lugar:
     // la pestaña Config del Sheet.
-    "GAS_URL": "https://script.google.com/macros/s/AKfycbxC-pfS4VL6-8teZ8T3Pt5cXYdHQIrkn5gslkQ6HcKk6qQmlMVVL8Cz5HWzsuM6ExMN/exec"
+    "GAS_URL": "https://script.google.com/macros/s/AKfycbxC-pfS4VL6-8teZ8T3Pt5cXYdHQIrkn5gslkQ6HcKk6qQmlMVVL8Cz5HWzsuM6ExMN/exec",
+    // Cuenta de Cloudflare, para consultar el uso del plan gratis (/uso).
+    // El token va aparte, como secreto: npx wrangler secret put CF_API_TOKEN
+    "CF_ACCOUNT_ID": "9457e18aad071a4fd2a8030df08cbc4a"
   }
 }

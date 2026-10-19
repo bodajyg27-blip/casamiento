@@ -331,6 +331,29 @@
   .seccion-titulo:first-child { margin-top: 4px; }
   .modo-switch-label.separada { margin-top: 16px; }
 
+  /* Uso del plan gratis de Cloudflare: una barra por límite. */
+  .uso-fila { padding: 8px 0; border-top: 1px solid var(--border); }
+  .uso-linea {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 15px;
+    color: var(--olive-dark);
+  }
+  .uso-cifra { font-size: 13px; color: var(--muted); text-align: right; white-space: nowrap; }
+  .uso-nota { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .uso-barra {
+    height: 6px;
+    border-radius: 3px;
+    background: #eceed6;
+    margin-top: 6px;
+    overflow: hidden;
+  }
+  .uso-barra span { display: block; height: 100%; background: #6f9a2a; }
+  .uso-fila.lento .uso-barra span { background: #d9a514; }
+  .uso-fila.falla .uso-barra span { background: var(--danger); }
+  .uso-fila.falla .uso-cifra { color: var(--danger-dark); }
+
   /* Pantalla del salón: tres accesos a tv/ en una fila. */
   .tv-links { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .tv-link {
@@ -638,6 +661,18 @@
           <div class="estado-pie">
             <span id="estadoHora">Sin revisar todavía</span>
             <button class="estado-btn" id="estadoBtn">Revisar ahora</button>
+          </div>
+        </div>
+
+        <div class="modo-switch-card" id="usoCard">
+          <div class="estado-head">
+            <span class="estado-titulo">Plan gratis de Cloudflare</span>
+            <span class="estado-pill" id="usoPill">Revisando…</span>
+          </div>
+          <div class="estado-ayuda hidden" id="usoAyuda"></div>
+          <div id="usoFilas"></div>
+          <div class="estado-pie">
+            <span id="usoHora">—</span>
           </div>
         </div>
 
@@ -970,6 +1005,7 @@
       'Última revisión: ' + dos(ahora.getHours()) + ':' + dos(ahora.getMinutes()) + ':' + dos(ahora.getSeconds());
     btn.disabled = false;
     estadoRevisando = false;
+    cargarUso();
   }
 
   document.getElementById('estadoBtn').addEventListener('click', revisarEstado);
@@ -1753,6 +1789,90 @@
     pintarCarruselEstado(texto, fallas.length > 0);
     if (subidas) cargarCarrusel();
   });
+  // ---------- Uso del plan gratis de Cloudflare ----------
+  // Lo calcula el Worker (POST /uso, ver worker/src/index.js) y lo guarda
+  // un minuto. Amarillo desde USO_AVISO, rojo desde USO_ALERTA.
+
+  const USO_AVISO = 0.7;
+  const USO_ALERTA = 0.9;
+  const fmtNum = n => n.toLocaleString('es-AR');
+  const fmtGB = b => (b / 1e9).toLocaleString('es-AR', { maximumFractionDigits: b < 1e9 ? 2 : 1 }) + ' GB';
+
+  function filaUso(nombre, usado, limite, fmt, nota) {
+    const p = limite ? usado / limite : 0;
+    const clase = p >= USO_ALERTA ? 'falla' : p >= USO_AVISO ? 'lento' : '';
+    const pct = Math.round(p * 100);
+    return {
+      p,
+      html: `<div class="uso-fila ${clase}">
+        <div class="uso-linea"><span>${nombre}</span><span class="uso-cifra">${fmt(usado)} de ${fmt(limite)} · ${pct}%</span></div>
+        <div class="uso-barra"><span style="width:${Math.min(100, Math.max(p * 100, usado ? 1 : 0))}%"></span></div>
+        ${nota ? `<div class="uso-nota">${nota}</div>` : ''}
+      </div>`
+    };
+  }
+
+  // Cuánto falta para las 00:00 UTC (21:00 en Argentina), cuando se
+  // reinicia el cupo diario del Worker.
+  function faltaParaReinicio() {
+    const ahora = new Date();
+    const reinicio = Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), ahora.getUTCDate() + 1);
+    const min = Math.round((reinicio - ahora.getTime()) / 60000);
+    return min >= 60 ? `${Math.floor(min / 60)} h ${min % 60} min` : `${min} min`;
+  }
+
+  async function cargarUso() {
+    const pill = document.getElementById('usoPill');
+    const filas = document.getElementById('usoFilas');
+    const ayuda = document.getElementById('usoAyuda');
+    try {
+      const res = await fetch(MEDIA_URL + '/uso', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clave: claveActual })
+      });
+      const d = await res.json();
+      if (!d.ok) throw new Error(d.error || 'respuesta inválida');
+
+      const items = [];
+      if (d.analitica) {
+        items.push(filaUso('Pedidos al Worker hoy', d.pedidosHoy, d.limites.pedidosDia, fmtNum,
+          'Se reinicia a las 21:00 (en ' + faltaParaReinicio() + '). Si se agota, fotos y videos dejan de andar hasta esa hora.'));
+      }
+      items.push(filaUso('Almacenamiento', d.almacenamiento, d.limites.almacenamiento, fmtGB, 'Fotos, miniaturas, carrusel y videos.'));
+      if (d.analitica) {
+        items.push(filaUso('Operaciones clase A (mes)', d.claseA, d.limites.claseA, fmtNum, 'Subidas y listados.'));
+        items.push(filaUso('Operaciones clase B (mes)', d.claseB, d.limites.claseB, fmtNum, 'Ver fotos y videos.'));
+      }
+      filas.innerHTML = items.map(i => i.html).join('');
+
+      const peor = Math.max(...items.map(i => i.p));
+      pill.className = 'estado-pill ' + (peor >= USO_ALERTA ? 'falla' : peor >= USO_AVISO ? 'lento' : 'ok');
+      pill.textContent = peor >= USO_ALERTA ? 'Casi en el límite' : peor >= USO_AVISO ? 'Atención' : 'Dentro de lo gratis';
+
+      let pista = '';
+      if (!d.analitica) {
+        pista = d.errorAnalitica
+          ? 'No se pudo leer la analítica de Cloudflare (' + d.errorAnalitica + '): solo se muestra el almacenamiento.'
+          : 'Falta el token de analítica en el Worker (CF_API_TOKEN): solo se muestra el almacenamiento.';
+      } else if (d.pedidosHoy / d.limites.pedidosDia >= USO_AVISO) {
+        pista = 'El cupo diario del Worker se está agotando. Para la fiesta conviene el plan Workers Paid (USD 5 por mes), que no tiene ese tope.';
+      } else if (peor >= USO_AVISO) {
+        pista = 'Algún límite mensual de R2 se está acercando a lo gratis: lo que pase del límite se cobra (centavos de dólar).';
+      }
+      ayuda.textContent = pista;
+      ayuda.classList.toggle('hidden', !pista);
+
+      const hora = new Date(d.generado);
+      document.getElementById('usoHora').textContent = 'Datos de las ' +
+        hora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }) + ' (se actualizan cada minuto)';
+    } catch (err) {
+      pill.className = 'estado-pill falla';
+      pill.textContent = 'Sin datos';
+      ayuda.textContent = 'No se pudo consultar el uso: ' + err.message;
+      ayuda.classList.remove('hidden');
+    }
+  }
 </script>
 </body>
 </html>

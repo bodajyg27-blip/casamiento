@@ -229,3 +229,9 @@ Varias imágenes provistas por el usuario venían con fondos que no eran transpa
 - Galería: el Worker guarda una marca `huellas/<hash>` en `boda-fotos` y la consulta con `head()` (no el listado, que es grande y está en memoria); responde 409 `repetida`. Al borrar una foto se borra su marca (el hash va en el customMetadata de la foto). La página saca la foto de la cola y avisa "ya estaba en la galería"; además no encola dos veces el mismo archivo. Las 15 fotos subidas antes del cambio no tienen huella.
 - Carrusel: el hash va en el customMetadata de cada foto y se compara contra el listado del carrusel (pocas fotos); el admin saltea las repetidas antes de convertirlas.
 - En los dos, sin `hash` (página vieja en caché) se sube igual, sin control. Probado con `wrangler dev` (R2 local + Apps Script simulado).
+
+## 2026-10-19 — Uso del plan gratis de Cloudflare en el admin
+
+- Tarjeta "Plan gratis de Cloudflare" (sección Estado) con barras: pedidos al Worker hoy (100.000/día, reinicio 00:00 UTC = 21:00 AR), almacenamiento R2 (10 GB), operaciones clase A (1M/mes) y clase B (10M/mes). Amarillo ≥ 70 %, rojo ≥ 90 %. Se actualiza con el semáforo (cada minuto).
+- Worker `POST /uso` (con clave): el almacenamiento se suma listando los buckets (la analítica llega atrasada); pedidos y operaciones salen de la API GraphQL de analítica (`r2OperationsAdaptiveGroups`, `workersInvocationsAdaptive`). Clasificación A/B según la página de precios de R2; lo desconocido cuenta como A. Resultado en memoria 60 s.
+- Requiere el secreto **CF_API_TOKEN** (token de Cloudflare con *Account Analytics: Read*): `npx wrangler secret put CF_API_TOKEN` desde `worker/`. `CF_ACCOUNT_ID` está en `wrangler.jsonc`. Sin token, la tarjeta muestra solo el almacenamiento y lo avisa.
