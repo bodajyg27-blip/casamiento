@@ -98,7 +98,7 @@
 
 ## Clave del panel de mensajes validada en el servidor, guardada en el Sheet (mensaje/admin.html)
 
-**Decisión:** la clave de 4 dígitos para entrar a `mensaje/admin.html` ya no está hardcodeada en el HTML (`const CLAVE = "2358"`). Ahora vive en una pestaña `Config` del mismo Google Sheet (celda A1 `ClaveAdmin`, B1 el valor), y las funciones `getMensajes`, `getMensajeVideo` y `borrarMensaje` en `documentos/AppsScript_RSVP.gs` la exigen como parámetro (`clave`) y la validan del lado del servidor con `claveValida()` antes de devolver o borrar nada.
+**Decisión:** la clave de 4 dígitos para entrar a `mensaje/admin.html` ya no está hardcodeada en el HTML (`const CLAVE = "…"`). Ahora vive en una pestaña `Config` del mismo Google Sheet (celda A1 `ClaveAdmin`, B1 el valor), y las funciones `getMensajes`, `getMensajeVideo` y `borrarMensaje` en `documentos/AppsScript_RSVP.gs` la exigen como parámetro (`clave`) y la validan del lado del servidor con `claveValida()` antes de devolver o borrar nada.
 
 **Por qué:** antes, aunque la clave estuviera escondida, cualquiera que descubriera las URLs `?tipo=mensajes` / `?tipo=mensajeVideo&id=...` o el POST `tipo:"borrarMensaje"` podía ver o borrar mensajes sin conocerla — la clave solo gateaba la pantalla, no los datos. Ahora el servidor rechaza esas llamadas si no viene la clave correcta (`errorNoAutorizado()`), sea cual sea el camino por el que lleguen.
 

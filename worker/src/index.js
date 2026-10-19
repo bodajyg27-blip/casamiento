@@ -179,6 +179,8 @@ async function servir(request, bucket, key, inmutable = true) {
   obj.writeHttpMetadata(h);
   h.set('ETag', obj.httpEtag);
   h.set('Accept-Ranges', 'bytes');
+  // Que el navegador respete el Content-Type guardado y no lo adivine.
+  h.set('X-Content-Type-Options', 'nosniff');
   // Los ids de galería y mensajes no se reutilizan nunca, así que el
   // navegador puede guardarlos para siempre. Las del carrusel se pueden
   // reemplazar con el mismo nombre ("1.jpg"): esas, solo una hora.
@@ -221,7 +223,7 @@ async function subirFoto(request, env) {
   const id = nuevoId(ext);
   let conThumb = false;
   const thumb = form.get('thumb');
-  if (thumb && typeof thumb !== 'string' && thumb.type.startsWith('image/') && thumb.size <= MAX_THUMB) {
+  if (thumb && typeof thumb !== 'string' && extensionDe(thumb.type) && thumb.type.startsWith('image/') && thumb.size <= MAX_THUMB) {
     await env.FOTOS.put('miniaturas/' + id, thumb, {
       httpMetadata: { contentType: thumb.type }
     });

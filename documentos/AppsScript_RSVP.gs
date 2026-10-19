@@ -87,7 +87,7 @@ function logError(err) {
 
 // ---------- Clave del panel de administración ----------
 // Pestaña "Config" en el mismo Sheet: columna A = nombre del campo,
-// columna B = valor. Fila esperada: ClaveAdmin | 2358 (sin encabezado).
+// columna B = valor. Fila esperada: ClaveAdmin | <la clave> (sin encabezado).
 
 function getClaveAdmin() {
   const sheet = libro().getSheetByName("Config");
