@@ -369,7 +369,7 @@
   const MEDIA_URL = "https://boda-media.bodajyg.workers.dev";
 
   // Precarga en segundo plano las fotos del carrusel "Nuestra historia"
-  // (se ve igual en familiar/index.html e invitacion/index.html) mientras
+  // (se ve igual para todos en invitacion/index.html) mientras
   // el invitado abre el sobre y busca su nombre acá: quedan en la caché
   // del navegador (el Worker las marca para guardarse una hora) y en la
   // página de destino aparecen al instante.
@@ -457,10 +457,16 @@
     }, 350);
   }
 
+  // Una sola invitación para todos; el tipo decide cómo se muestra el regalo
+  // (ver invitacion/index.html). familiar/index.html quedó solo como
+  // redirección para los links viejos.
+  function destinoInvitacion(guest) {
+    return 'invitacion/index.html?tipo=' + (guest.tipo === 'Familiar' ? 'familiar' : 'invitado');
+  }
+
   function irALaInvitacion(guest) {
     document.getElementById('guestResults').innerHTML = '<div class="buscando">Un momento…</div>';
-    const destino = guest.tipo === 'Familiar' ? 'familiar/index.html' : 'invitacion/index.html';
-    setTimeout(() => { window.location.href = destino; }, 300);
+    setTimeout(() => { window.location.href = destinoInvitacion(guest); }, 300);
   }
 
   function initInvitacion() {

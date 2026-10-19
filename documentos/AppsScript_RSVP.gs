@@ -5,8 +5,9 @@
 // claude-ia/memoria/decisiones-tecnicas.md). El Worker consulta acá
 // ?tipo=verificarClave para autorizar los borrados del admin.
 //
-// El panel admin/ también edita el Sheet por acá (lista de invitados y datos
-// del regalo): ver "ADMIN" más abajo. Todo con la clave de admin.
+// El panel admin/ también edita el Sheet por acá (lista de invitados, datos
+// del regalo y textos de la invitación): ver "ADMIN" y "TEXTOS" más abajo.
+// Todo con la clave de admin.
 //
 // Drive se usa solo para el respaldo: el botón "Sincronizar" del admin
 // llama a sincronizarDrive(), que copia a una carpeta de Drive las fotos y
@@ -48,6 +49,9 @@ function doGet(e) {
   }
   if (tipo === "buscarInvitado") {
     return buscarInvitado(e.parameter.q);
+  }
+  if (tipo === "textos") {
+    return getTextos();
   }
   // La lista completa de invitados ya no es pública: solo con la clave de
   // admin. Las páginas usan ?tipo=buscarInvitado&q=..., que devuelve
@@ -92,6 +96,10 @@ function doPost(e) {
     if (params.tipo === "adminGuardarRegalo") {
       if (!claveValida(params.clave)) return errorNoAutorizado();
       return adminGuardarRegalo(params);
+    }
+    if (params.tipo === "adminGuardarTextos") {
+      if (!claveValida(params.clave)) return errorNoAutorizado();
+      return adminGuardarTextos(params);
     }
     return confirmarInvitado(params);
   } catch (err) {
@@ -827,6 +835,104 @@ function adminGuardarRegalo(params) {
       if (campo === "CBU") celda.setNumberFormat("@");
       celda.setValue(campos[campo]);
     });
+    return jsonOut({ ok: true });
+  });
+}
+
+// ---------- TEXTOS de la invitación (editables desde el panel) ----------
+// Pestaña "Textos": A = clave del texto (ej. "regalo.intro"), B = texto para
+// Invitados, C = texto para Familiares. Solo tiene filas de lo que se
+// modificó: lo que no está acá se ve como figura en invitacion/index.html
+// (ese HTML es la fuente de verdad de los textos originales y de la lista de
+// claves). Un texto vacío en B o C significa "usar el original".
+// Lectura pública (son los mismos textos que ya ve cualquiera que abre la
+// invitación); escritura solo con la clave de admin.
+
+// Toda clave lleva un punto ("seccion.texto"): así el encabezado de la
+// pestaña ("clave") nunca se confunde con un texto ni se puede pisar.
+const CLAVE_TEXTO = /^[a-z0-9_]+\.[a-z0-9_.]+$/;
+const TEXTOS_CACHE_TTL = 60;          // segundos
+const TEXTOS_MAX_LARGO = 500;
+const TEXTOS_MAX_CAMBIOS = 300;
+
+function leerTextos() {
+  const cache = CacheService.getScriptCache();
+  const enCache = cache.get("textos_json");
+  if (enCache) return JSON.parse(enCache);
+
+  const sheet = libro().getSheetByName("Textos");
+  const textos = {};
+  if (sheet) {
+    const data = sheet.getDataRange().getValues();
+    for (let i = 0; i < data.length; i++) {
+      const clave = String(data[i][0] || "").trim();
+      if (!CLAVE_TEXTO.test(clave)) continue;      // también salta el encabezado ("clave")
+      const inv = String(data[i][1] || "").trim();
+      const fam = String(data[i][2] || "").trim();
+      if (inv || fam) textos[clave] = { i: inv, f: fam };
+    }
+  }
+  const json = JSON.stringify(textos);
+  if (json.length < 95000) cache.put("textos_json", json, TEXTOS_CACHE_TTL);
+  return textos;
+}
+
+function getTextos() {
+  return jsonOut({ ok: true, textos: leerTextos() });
+}
+
+// Limpia un texto que llega del panel: sin caracteres de control (salvo el
+// salto de línea) y con largo máximo.
+function limpiarTexto(valor) {
+  return String(valor == null ? "" : valor)
+    .replace(/[\u0000-\u0009\u000B-\u001F\u007F]/g, "")
+    .replace(/\r/g, "")
+    .trim()
+    .slice(0, TEXTOS_MAX_LARGO);
+}
+
+// cambios: [{ clave, i, f }]. Para cada clave se reemplazan los dos textos;
+// "" (o ausente) = volver al original. Si los dos quedan vacíos se borra la
+// fila. Solo se tocan las claves que llegan.
+function adminGuardarTextos(params) {
+  return conCandado(() => {
+    const cambios = Array.isArray(params.cambios) ? params.cambios : null;
+    if (!cambios) return jsonOut({ ok: false, error: "Faltan los cambios" });
+    if (cambios.length > TEXTOS_MAX_CAMBIOS) return jsonOut({ ok: false, error: "Demasiados cambios juntos" });
+    for (const c of cambios) {
+      if (!c || !CLAVE_TEXTO.test(String(c.clave || ""))) return jsonOut({ ok: false, error: "Clave de texto inválida" });
+    }
+
+    const ss = libro();
+    let sheet = ss.getSheetByName("Textos");
+    if (!sheet) {
+      sheet = ss.insertSheet("Textos");
+      sheet.appendRow(["clave", "invitado", "familiar"]);
+    }
+    const data = sheet.getDataRange().getValues();
+    const fila = {};
+    for (let i = 0; i < data.length; i++) fila[String(data[i][0] || "").trim()] = i + 1;
+
+    const borrar = [];
+    cambios.forEach(c => {
+      const clave = String(c.clave);
+      const inv = limpiarTexto(c.i);
+      const fam = limpiarTexto(c.f);
+      const existente = fila[clave];
+      if (!inv && !fam) {
+        if (existente) borrar.push(existente);
+        return;
+      }
+      const nro = existente || (sheet.getLastRow() + 1);
+      // Formato de texto: un valor que empiece con "=" no se toma como fórmula.
+      sheet.getRange(nro, 1, 1, 3).setNumberFormat("@");
+      sheet.getRange(nro, 1, 1, 3).setValues([[clave, inv, fam]]);
+      if (!existente) fila[clave] = nro;
+    });
+    // Se borran de abajo hacia arriba para que no se corran los números.
+    borrar.sort((a, b) => b - a).forEach(n => sheet.deleteRow(n));
+
+    CacheService.getScriptCache().remove("textos_json");
     return jsonOut({ ok: true });
   });
 }

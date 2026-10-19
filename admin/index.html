@@ -271,6 +271,25 @@
   .menu-card { display: flex; align-items: center; gap: 14px; width: 100%; background: var(--cream); border: 1px solid var(--border); border-radius: 16px; padding: 12px 14px; text-align: left; cursor: pointer; margin-bottom: 10px; }
   .menu-card .menu-icon { width: 42px; height: 42px; }
 
+  /* ---------- TARJETA: textos de la invitación ---------- */
+  details.acordeon { background: var(--cream); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 10px; overflow: hidden; }
+  details.acordeon > summary { list-style: none; cursor: pointer; padding: 14px 16px; font-weight: 600; font-size: 18px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  details.acordeon > summary::-webkit-details-marker { display: none; }
+  details.acordeon > summary::after { content: '▾'; color: var(--muted); transition: transform .15s; margin-left: 4px; }
+  details.acordeon[open] > summary::after { transform: rotate(180deg); }
+  details.acordeon > summary .pill { margin-left: auto; }
+  .acordeon .cuerpo { padding: 2px 16px 12px; border-top: 1px solid var(--border); }
+  .txt-item { padding: 12px 0 4px; }
+  .txt-item + .txt-item { border-top: 1px dashed var(--border); }
+  .txt-etiqueta { font-size: 14px; color: var(--muted); margin-bottom: 4px; display: flex; justify-content: space-between; gap: 8px; }
+  .txt-etiqueta .restaurar { border: none; background: none; color: var(--olive); font-size: 13px; text-decoration: underline; cursor: pointer; padding: 0; }
+  .txt-etiqueta .restaurar[disabled] { visibility: hidden; }
+  .txt-sub { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 8px 0 3px; }
+  .txt-item textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: #fff; outline: none; resize: none; overflow: hidden; line-height: 1.3; }
+  .txt-item textarea:focus { border-color: var(--olive); }
+  .txt-item textarea.mod { border-left: 4px solid #e8870e; }
+  .txt-nota { font-size: 13px; color: var(--muted); margin: 8px 0 2px; }
+
   /* ---------- Barra de pestañas ---------- */
   .tabbar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
@@ -483,6 +502,23 @@
         </div>
       </section>
 
+      <!-- ===================== TARJETA ===================== -->
+      <section class="tab" id="tab-tarjeta">
+        <div class="card">
+          <div class="small muted" style="margin-bottom:10px">Cambiá cualquier texto de la invitación. Lo que no toques queda como está. En <b>Regalo</b> podés escribir textos distintos para Invitados y Familiares. Los cambios se ven al instante en la invitación (recargándola).</div>
+          <div class="row" style="gap:8px;flex-wrap:wrap">
+            <a class="btn ghost" href="../invitacion/index.html?tipo=invitado" target="_blank" rel="noopener">Ver como invitado</a>
+            <a class="btn ghost" href="../invitacion/index.html?tipo=familiar" target="_blank" rel="noopener">Ver como familiar</a>
+          </div>
+        </div>
+        <div class="cargando" id="textosCargando"><div class="spinner"></div><span>Cargando textos…</span></div>
+        <div id="textosLista"></div>
+        <div class="guardar-barra hidden" id="textosBarra">
+          <button class="btn ghost" id="tDescartar" disabled>Descartar</button>
+          <button class="btn grow" id="tGuardar" disabled>Guardar cambios</button>
+        </div>
+      </section>
+
       <!-- ===================== REGALO ===================== -->
       <section class="tab" id="tab-regalo">
         <div class="cargando" id="regaloCargando"><div class="spinner"></div><span>Cargando…</span></div>
@@ -558,6 +594,7 @@
       <button class="on" data-tab="inicio"><i data-i="home"></i>Inicio</button>
       <button data-tab="invitados"><i data-i="users"></i>Invitados<span class="badge hidden" id="badgePend">0</span></button>
       <button data-tab="contenido"><i data-i="image"></i>Contenido</button>
+      <button data-tab="tarjeta"><i data-i="file"></i>Tarjeta</button>
       <button data-tab="regalo"><i data-i="gift"></i>Regalo</button>
       <button data-tab="sistema"><i data-i="settings"></i>Sistema</button>
     </nav>
@@ -651,6 +688,7 @@
     chevL: '<polyline points="15 18 9 12 15 6"/>',
     up: '<polyline points="18 15 12 9 6 15"/>',
     down: '<polyline points="6 9 12 15 18 9"/>',
+    file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
     check: '<polyline points="20 6 9 17 4 12"/>'
   };
   const icono = n => `<svg class="i" viewBox="0 0 24 24">${P[n]}</svg>`;
@@ -799,7 +837,7 @@
 
   // ---------- Pestañas ----------
 
-  const TITULOS = { inicio: 'Inicio', invitados: 'Invitados', contenido: 'Contenido', regalo: 'Regalo', sistema: 'Sistema' };
+  const TITULOS = { inicio: 'Inicio', invitados: 'Invitados', contenido: 'Contenido', tarjeta: 'Tarjeta', regalo: 'Regalo', sistema: 'Sistema' };
   const cargadas = {};   // qué pestañas ya pidieron sus datos
   let tabActual = 'inicio';
 
@@ -814,6 +852,7 @@
     history.replaceState(null, '', '#' + tab);
     if (tab === 'invitados' && !cargadas.invitados) cargarInvitados();
     if (tab === 'contenido') irSub(sub || subActual);
+    if (tab === 'tarjeta' && !cargadas.tarjeta) cargarTarjeta();
     if (tab === 'regalo' && !cargadas.regalo) cargarRegalo();
     if (tab === 'sistema' && !cargadas.uso) cargarUso();
   }
@@ -828,6 +867,7 @@
       if (tabActual === 'inicio') { await Promise.all([revisarEstado(), cargarModoSwitch(), cargarGaleriaSwitch()]); }
       else if (tabActual === 'invitados') await cargarInvitados();
       else if (tabActual === 'contenido') await recargarSub();
+      else if (tabActual === 'tarjeta') await cargarTarjeta();
       else if (tabActual === 'regalo') await cargarRegalo();
       else if (tabActual === 'sistema') await cargarUso();
     } finally {
@@ -1807,6 +1847,207 @@
     if (fallas.length) texto += (texto ? ' ' : '') + 'No se pudieron subir: ' + fallas.join(', ') + '.';
     pintarCarruselEstado(texto, fallas.length > 0);
     if (subidas) cargarCarrusel();
+  });
+
+
+  // ---------- TARJETA: textos de la invitación ----------
+  // La lista de textos sale de la propia invitación (invitacion/index.html):
+  // cada texto lleva data-t="seccion.texto" y data-tl="etiqueta", y los
+  // mensajes que arma su JavaScript están en el JSON "catalogoMensajes". Así
+  // hay una sola fuente de verdad y agregar un texto nuevo allá lo suma acá.
+  // Lo modificado se guarda en la pestaña "Textos" del Sheet (solo las
+  // diferencias con el original). data-tv = el texto puede ser distinto para
+  // Familiares; data-tf = su original, si no coincide con el de Invitados.
+
+  const SECCIONES_TARJETA = {
+    portada: 'Portada', historia: 'Nuestra historia', fecha: 'Guardá la fecha', cuenta: 'Cuenta regresiva',
+    lugares: 'Cómo llegar', itinerario: 'Itinerario', dresscode: 'Dress code', rsvp: 'Confirmar asistencia',
+    canciones: 'Dejá tu canción', regalo: 'Regalo', galeria: 'Fotos del casamiento', pie: 'Pie de página',
+    msg: 'Avisos y mensajes'
+  };
+  let catalogoTarjeta = [];
+  let textosGuardados = {};
+
+  function leerCatalogoTarjeta(html) {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const items = [];
+    doc.querySelectorAll('[data-t], [data-tp]').forEach(el => {
+      const esCampo = el.hasAttribute('data-tp');
+      items.push({
+        clave: esCampo ? el.dataset.tp : el.dataset.t,
+        etiqueta: el.dataset.tl || '',
+        original: (esCampo ? (el.getAttribute('placeholder') || '') : el.textContent).trim(),
+        familiar: el.dataset.tf || null,
+        variante: el.dataset.tv === '1'
+      });
+    });
+    const cat = doc.getElementById('catalogoMensajes');
+    if (cat) {
+      const msgs = JSON.parse(cat.textContent);
+      Object.keys(msgs).forEach(clave => items.push({ clave, etiqueta: msgs[clave].l, original: msgs[clave].t, familiar: null, variante: false }));
+    }
+    return items;
+  }
+
+  // Lo que se ve hoy en la invitación (original + lo guardado).
+  function valoresVigentes(it) {
+    const o = textosGuardados[it.clave] || {};
+    return { i: o.i || it.original, f: it.variante ? (o.f || it.familiar || o.i || it.original) : null };
+  }
+  // Lo que hay que guardar para esos valores: solo lo que difiere del original.
+  function paraGuardarTexto(it, vi, vf) {
+    const i = vi !== it.original ? vi : '';
+    let f = '';
+    if (it.variante) f = it.familiar ? (vf !== it.familiar ? vf : '') : (vf !== vi ? vf : '');
+    return { i, f };
+  }
+  const valoresDeCampos = it => ({
+    i: ($(`.txt-item[data-clave="${it.clave}"] textarea[data-v="i"]`) || {}).value,
+    f: it.variante ? ($(`.txt-item[data-clave="${it.clave}"] textarea[data-v="f"]`) || {}).value : null
+  });
+
+  async function cargarTarjeta() {
+    $('#textosCargando').classList.remove('hidden');
+    $('#textosCargando').innerHTML = '<div class="spinner"></div><span>Cargando textos…</span>';
+    try {
+      const [html, resp] = await Promise.all([
+        fetch('../invitacion/index.html', { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error('No se pudo leer la invitación'); return r.text(); }),
+        fetch(GAS_URL + '?tipo=textos').then(r => r.json())
+      ]);
+      if (!resp || !resp.ok) throw new Error('No se pudieron leer los textos guardados');
+      catalogoTarjeta = leerCatalogoTarjeta(html);
+      if (!catalogoTarjeta.length) throw new Error('No se encontraron textos en la invitación');
+      textosGuardados = resp.textos || {};
+      cargadas.tarjeta = true;
+      $('#textosCargando').classList.add('hidden');
+      pintarTarjeta();
+    } catch (err) {
+      $('#textosCargando').innerHTML = '<span>No pudimos cargar los textos: ' + esc(err.message) + '</span>';
+    }
+  }
+
+  function pintarTarjeta() {
+    const orden = [];
+    const porSeccion = {};
+    catalogoTarjeta.forEach(it => {
+      const sec = it.clave.split('.')[0];
+      if (!porSeccion[sec]) { porSeccion[sec] = []; orden.push(sec); }
+      porSeccion[sec].push(it);
+    });
+    orden.sort((a, b) => (a === 'msg') - (b === 'msg'));   // los avisos al final
+    const campo = (it, quien, valor, sub) => `
+      ${sub ? `<div class="txt-sub">${sub}</div>` : ''}
+      <textarea rows="1" maxlength="500" data-v="${quien}" data-prev="${esc(valor)}">${esc(valor)}</textarea>`;
+    $('#textosLista').innerHTML = orden.map(sec => `
+      <details class="acordeon" data-sec="${sec}">
+        <summary><span>${esc(SECCIONES_TARJETA[sec] || sec)}</span><span class="pill hidden" data-cuenta="${sec}"></span></summary>
+        <div class="cuerpo">
+          ${sec === 'msg' ? '<div class="txt-nota">Son los avisos y mensajes que aparecen mientras se usa la invitación. Donde dice {alias}, se reemplaza solo.</div>' : ''}
+          ${porSeccion[sec].map(it => {
+            const v = valoresVigentes(it);
+            return `<div class="txt-item" data-clave="${it.clave}">
+              <div class="txt-etiqueta"><span>${esc(it.etiqueta)}</span><button type="button" class="restaurar" disabled>Restaurar</button></div>
+              ${it.variante
+                ? campo(it, 'i', v.i, 'Invitados') + campo(it, 'f', v.f, 'Familiares')
+                : campo(it, 'i', v.i, '')}
+            </div>`;
+          }).join('')}
+        </div>
+      </details>`).join('');
+    $('#textosBarra').classList.remove('hidden');
+    $$('#textosLista textarea').forEach(ajustarAlto);
+    actualizarMarcasTarjeta();
+  }
+
+  function ajustarAlto(ta) { ta.style.height = 'auto'; ta.style.height = (ta.scrollHeight + 2) + 'px'; }
+
+  // Marca lo modificado, cuenta por sección y habilita Guardar / Descartar.
+  function actualizarMarcasTarjeta() {
+    let pendientes = 0;
+    const cuentaPorSeccion = {};
+    catalogoTarjeta.forEach(it => {
+      const v = valoresDeCampos(it);
+      if (v.i === undefined) return;
+      const nuevo = paraGuardarTexto(it, v.i, v.f);
+      const guardado = textosGuardados[it.clave] || {};
+      const cambioPendiente = nuevo.i !== (guardado.i || '') || nuevo.f !== (guardado.f || '');
+      if (cambioPendiente) pendientes++;
+      const modificado = !!(nuevo.i || nuevo.f);
+      const sec = it.clave.split('.')[0];
+      if (modificado) cuentaPorSeccion[sec] = (cuentaPorSeccion[sec] || 0) + 1;
+      const item = $(`.txt-item[data-clave="${it.clave}"]`);
+      item.querySelectorAll('textarea').forEach(ta => {
+        const original = ta.dataset.v === 'i' ? it.original : (it.familiar || v.i);
+        ta.classList.toggle('mod', ta.value !== original);
+      });
+      item.querySelector('.restaurar').disabled = !modificado;
+    });
+    $$('#textosLista [data-cuenta]').forEach(p => {
+      const n = cuentaPorSeccion[p.dataset.cuenta] || 0;
+      p.textContent = n + (n === 1 ? ' cambio' : ' cambios');
+      p.classList.toggle('hidden', !n);
+      p.classList.toggle('warn', !!n);
+    });
+    $('#tGuardar').disabled = !pendientes;
+    $('#tDescartar').disabled = !pendientes;
+    $('#tGuardar').textContent = pendientes ? 'Guardar cambios (' + pendientes + ')' : 'Guardar cambios';
+  }
+
+  $('#textosLista').addEventListener('input', e => {
+    const ta = e.target;
+    if (ta.tagName !== 'TEXTAREA') return;
+    // Texto con versión para Familiares y sin un original propio para ellos:
+    // mientras los dos campos digan lo mismo, el de Familiares acompaña al de
+    // Invitados. Si se escribe algo distinto en el de Familiares, se separan.
+    if (ta.dataset.v === 'i') {
+      const item = ta.closest('.txt-item');
+      const it = catalogoTarjeta.find(x => x.clave === item.dataset.clave);
+      const f = item.querySelector('textarea[data-v="f"]');
+      if (f && !it.familiar && f.value === ta.dataset.prev) { f.value = ta.value; f.dataset.prev = ta.value; ajustarAlto(f); }
+      ta.dataset.prev = ta.value;
+    }
+    ajustarAlto(ta);
+    actualizarMarcasTarjeta();
+  });
+  // Restaurar: vuelve al original de ese texto (en los dos idiomas de un regalo).
+  $('#textosLista').addEventListener('click', e => {
+    const b = e.target.closest('.restaurar');
+    if (!b || b.disabled) return;
+    const it = catalogoTarjeta.find(x => x.clave === b.closest('.txt-item').dataset.clave);
+    const item = b.closest('.txt-item');
+    const campoI = item.querySelector('textarea[data-v="i"]');
+    campoI.value = it.original;
+    campoI.dataset.prev = it.original;
+    const f = item.querySelector('textarea[data-v="f"]');
+    if (f) { f.value = it.familiar || it.original; f.dataset.prev = f.value; }
+    item.querySelectorAll('textarea').forEach(ajustarAlto);
+    actualizarMarcasTarjeta();
+  });
+
+  $('#tDescartar').addEventListener('click', () => { pintarTarjeta(); toast('Cambios descartados'); });
+  $('#tGuardar').addEventListener('click', async () => {
+    const cambios = [];
+    catalogoTarjeta.forEach(it => {
+      const v = valoresDeCampos(it);
+      const nuevo = paraGuardarTexto(it, v.i, v.f);
+      const guardado = textosGuardados[it.clave] || {};
+      if (nuevo.i !== (guardado.i || '') || nuevo.f !== (guardado.f || '')) cambios.push({ clave: it.clave, i: nuevo.i, f: nuevo.f });
+    });
+    if (!cambios.length) return;
+    const btn = $('#tGuardar');
+    btn.disabled = true;
+    btn.textContent = 'Guardando…';
+    try {
+      await gas('adminGuardarTextos', { cambios });
+      // Se vuelve a leer del servidor: es lo que ven los invitados.
+      const resp = await fetch(GAS_URL + '?tipo=textos').then(r => r.json());
+      if (resp && resp.ok) textosGuardados = resp.textos || {};
+      toast(cambios.length === 1 ? 'Texto guardado' : cambios.length + ' textos guardados');
+      pintarTarjeta();
+    } catch (err) {
+      toast(err.message);
+      actualizarMarcasTarjeta();
+    }
   });
 
   // ---------- REGALO ----------

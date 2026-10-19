@@ -893,20 +893,20 @@
   <!-- PORTADA -->
   <div class="portada-image horizontal nombres-wrap">
     <img src="../img/fondoblancohorizontal.webp" width="2056" height="1561" alt="Nos casamos — Julieta &amp; Gabriel. Con inmensa alegría queremos invitarte a celebrar el día en que unimos nuestras vidas.">
-    <span class="overlay-kicker">Nos casamos</span>
+    <span class="overlay-kicker" data-t="portada.titulo" data-tl="Título de la portada">Nos casamos</span>
     <div class="nombres-overlay reveal">
-      <span class="nombres-part nombre-uno">Julieta</span>
-      <span class="nombres-amp">&amp;</span>
-      <span class="nombres-part nombre-dos">Gabriel</span>
+      <span class="nombres-part nombre-uno" data-t="portada.nombre1" data-tl="Primer nombre">Julieta</span>
+      <span class="nombres-amp" data-t="portada.amp" data-tl="Símbolo entre los nombres">&amp;</span>
+      <span class="nombres-part nombre-dos" data-t="portada.nombre2" data-tl="Segundo nombre">Gabriel</span>
     </div>
-    <p class="overlay-intro">Con inmensa alegría queremos invitarte<br>a celebrar el día en que unimos nuestras vidas.</p>
+    <p class="overlay-intro"><span data-t="portada.intro1" data-tl="Texto de la portada (primera línea)">Con inmensa alegría queremos invitarte</span><br><span data-t="portada.intro2" data-tl="Texto de la portada (segunda línea)">a celebrar el día en que unimos nuestras vidas.</span></p>
   </div>
 
   <!-- CARRUSEL DE FOTOS -->
   <div class="card card-fondo carrusel-card">
     <div class="screen-inner reveal">
-      <h2 class="section-title">Nuestra historia</h2>
-      <div class="section-sub">Deslizá para ver más</div>
+      <h2 class="section-title" data-t="historia.titulo" data-tl="Título">Nuestra historia</h2>
+      <div class="section-sub" data-t="historia.sub" data-tl="Subtítulo">Deslizá para ver más</div>
       <div class="carrusel-wrap">
         <div class="carrusel-track" id="carruselTrack"></div>
       </div>
@@ -918,7 +918,7 @@
   <div class="portada-image horizontal calendario-wrap">
     <img src="../img/fondohorizontal.webp" width="2056" height="1561" alt="Guardá la fecha — Sábado 23 de octubre de 2027">
     <div class="calendario-content reveal">
-      <h2 class="section-title cal-title">Guardá la fecha</h2>
+      <h2 class="section-title cal-title" data-t="fecha.titulo" data-tl="Título">Guardá la fecha</h2>
       <div class="cal-fecha">
         <span class="cal-mes">Octubre</span>
         <div class="cal-linea">
@@ -941,10 +941,10 @@
         <div class="cal-grid-row"><span>31</span><span></span><span></span><span></span><span></span><span></span><span></span></div>
       </div>
       <div class="countdown cal-countdown">
-        <div class="countdown-unit"><span class="countdown-num cd-days">0</span><span class="countdown-label">días</span></div>
-        <div class="countdown-unit"><span class="countdown-num cd-hours">00</span><span class="countdown-label">hs</span></div>
-        <div class="countdown-unit"><span class="countdown-num cd-mins">00</span><span class="countdown-label">min</span></div>
-        <div class="countdown-unit"><span class="countdown-num cd-secs">00</span><span class="countdown-label">seg</span></div>
+        <div class="countdown-unit"><span class="countdown-num cd-days">0</span><span class="countdown-label" data-t="cuenta.dias" data-tl="Cuenta regresiva: días">días</span></div>
+        <div class="countdown-unit"><span class="countdown-num cd-hours">00</span><span class="countdown-label" data-t="cuenta.horas" data-tl="Cuenta regresiva: horas">hs</span></div>
+        <div class="countdown-unit"><span class="countdown-num cd-mins">00</span><span class="countdown-label" data-t="cuenta.minutos" data-tl="Cuenta regresiva: minutos">min</span></div>
+        <div class="countdown-unit"><span class="countdown-num cd-secs">00</span><span class="countdown-label" data-t="cuenta.segundos" data-tl="Cuenta regresiva: segundos">seg</span></div>
       </div>
     </div>
   </div>
@@ -957,18 +957,18 @@
 
         <div class="lugar-bloque">
           <img class="lugar-icon lugar-icon-img" src="../img/iglesia.webp" alt="">
-          <span class="lugar-nombre">Ceremonia</span>
-          <span class="lugar-hora">19:00 hs</span>
-          <span class="lugar-lugar">Iglesia</span>
-          <a class="btn lugar-btn" href="https://www.google.com/maps/search/?api=1&query=Calle+Espejo+1940+Maip%C3%BA+Mendoza" target="_blank" rel="noopener">Cómo llegar</a>
+          <span class="lugar-nombre" data-t="lugares.ceremonia_nombre" data-tl="Ceremonia: título">Ceremonia</span>
+          <span class="lugar-hora" data-t="lugares.ceremonia_hora" data-tl="Ceremonia: hora">19:00 hs</span>
+          <span class="lugar-lugar" data-t="lugares.ceremonia_lugar" data-tl="Ceremonia: lugar">Iglesia</span>
+          <a class="btn lugar-btn" href="https://www.google.com/maps/search/?api=1&query=Calle+Espejo+1940+Maip%C3%BA+Mendoza" target="_blank" rel="noopener" data-t="lugares.ceremonia_boton" data-tl="Ceremonia: botón">Cómo llegar</a>
         </div>
 
         <div class="lugar-bloque">
           <img class="lugar-icon lugar-icon-img" src="../img/fiesta.webp" alt="">
-          <span class="lugar-nombre">Fiesta</span>
-          <span class="lugar-hora">20:30 hs</span>
-          <span class="lugar-lugar">Entre Olivos Eventos</span>
-          <a class="btn lugar-btn" href="https://www.google.com/maps/search/?api=1&query=Calle+Espejo+1940+Maip%C3%BA+Mendoza" target="_blank" rel="noopener">Cómo llegar</a>
+          <span class="lugar-nombre" data-t="lugares.fiesta_nombre" data-tl="Fiesta: título">Fiesta</span>
+          <span class="lugar-hora" data-t="lugares.fiesta_hora" data-tl="Fiesta: hora">20:30 hs</span>
+          <span class="lugar-lugar" data-t="lugares.fiesta_lugar" data-tl="Fiesta: lugar">Entre Olivos Eventos</span>
+          <a class="btn lugar-btn" href="https://www.google.com/maps/search/?api=1&query=Calle+Espejo+1940+Maip%C3%BA+Mendoza" target="_blank" rel="noopener" data-t="lugares.fiesta_boton" data-tl="Fiesta: botón">Cómo llegar</a>
         </div>
 
       </div>
@@ -978,23 +978,23 @@
   <!-- ITINERARIO -->
   <div class="card card-fondo">
     <div class="screen-inner reveal">
-      <h2 class="section-title">Itinerario</h2>
-      <div class="section-sub">Así va a ser el día</div>
+      <h2 class="section-title" data-t="itinerario.titulo" data-tl="Título">Itinerario</h2>
+      <div class="section-sub" data-t="itinerario.sub" data-tl="Subtítulo">Así va a ser el día</div>
       <div class="itinerario-list">
-        <div class="itinerario-item"><span class="itinerario-hora">19:00</span><span class="itinerario-evento">Ceremonia religiosa</span></div>
-        <div class="itinerario-item"><span class="itinerario-hora">20:30</span><span class="itinerario-evento">Recepción</span></div>
-        <div class="itinerario-item"><span class="itinerario-hora">21:30</span><span class="itinerario-evento">Cena</span></div>
-        <div class="itinerario-item"><span class="itinerario-hora">23:00</span><span class="itinerario-evento">Fiesta y baile</span></div>
+        <div class="itinerario-item"><span class="itinerario-hora" data-t="itinerario.hora1" data-tl="Momento 1: hora">19:00</span><span class="itinerario-evento" data-t="itinerario.evento1" data-tl="Momento 1: qué pasa">Ceremonia religiosa</span></div>
+        <div class="itinerario-item"><span class="itinerario-hora" data-t="itinerario.hora2" data-tl="Momento 2: hora">20:30</span><span class="itinerario-evento" data-t="itinerario.evento2" data-tl="Momento 2: qué pasa">Recepción</span></div>
+        <div class="itinerario-item"><span class="itinerario-hora" data-t="itinerario.hora3" data-tl="Momento 3: hora">21:30</span><span class="itinerario-evento" data-t="itinerario.evento3" data-tl="Momento 3: qué pasa">Cena</span></div>
+        <div class="itinerario-item"><span class="itinerario-hora" data-t="itinerario.hora4" data-tl="Momento 4: hora">23:00</span><span class="itinerario-evento" data-t="itinerario.evento4" data-tl="Momento 4: qué pasa">Fiesta y baile</span></div>
       </div>
-      <p class="itinerario-nota">Horarios a confirmar</p>
+      <p class="itinerario-nota" data-t="itinerario.nota" data-tl="Nota al pie">Horarios a confirmar</p>
     </div>
   </div>
 
   <!-- DRESS CODE -->
   <div class="card card-fondo">
     <div class="screen-inner reveal">
-      <h2 class="section-title">Dress Code</h2>
-      <div class="section-sub">Elegante</div>
+      <h2 class="section-title" data-t="dresscode.titulo" data-tl="Título">Dress Code</h2>
+      <div class="section-sub" data-t="dresscode.sub" data-tl="Subtítulo">Elegante</div>
       <div class="dresscode-icons">
         <svg class="dresscode-icon" viewBox="0 0 64 96" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <path d="M26 7C29 4 35 4 38 7L35 26C48 34 58 55 57 90L7 90C6 55 16 34 29 26L26 7Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
@@ -1010,23 +1010,23 @@
           <circle cx="32" cy="70" r="1.6" fill="currentColor"/>
         </svg>
       </div>
-      <p class="dresscode-text">Vestido largo.<br>El blanco está reservado para la novia.<br>Por favor, evitá los colores oliva o verde.</p>
+      <p class="dresscode-text"><span data-t="dresscode.linea1" data-tl="Línea 1">Vestido largo.</span><br><span data-t="dresscode.linea2" data-tl="Línea 2">El blanco está reservado para la novia.</span><br><span data-t="dresscode.linea3" data-tl="Línea 3">Por favor, evitá los colores oliva o verde.</span></p>
     </div>
   </div>
 
   <!-- RSVP -->
   <div class="card card-fondo">
     <div class="screen-inner reveal">
-    <h2 class="section-title">Confirmar asistencia</h2>
+    <h2 class="section-title" data-t="rsvp.titulo" data-tl="Título">Confirmar asistencia</h2>
     <div id="rsvpAbierto">
-      <div class="section-sub">Buscá tu nombre en la lista de invitados</div>
-      <input type="text" id="rsvpSearch" placeholder="Escribí tu nombre..." oninput="searchGuest()">
+      <div class="section-sub" data-t="rsvp.sub" data-tl="Subtítulo">Buscá tu nombre en la lista de invitados</div>
+      <input type="text" id="rsvpSearch" placeholder="Escribí tu nombre..." data-tp="rsvp.ph_nombre" data-tl="Campo de búsqueda del nombre" oninput="searchGuest()">
       <div class="guest-results" id="guestResults"></div>
 
       <div class="restriction-panel" id="restrictionPanel" style="display:none;">
         <div class="divider"></div>
         <div class="selected-name" id="selectedName"></div>
-        <div class="section-sub">¿Tenés alguna restricción alimentaria?</div>
+        <div class="section-sub" data-t="rsvp.restricciones" data-tl="Pregunta de restricciones alimentarias">¿Tenés alguna restricción alimentaria?</div>
         <div class="restriction-options">
           <label><input type="checkbox" value="Celiaquía" class="restriction-check"> Celiaquía</label>
           <label><input type="checkbox" value="Diabetes" class="restriction-check"> Diabetes</label>
@@ -1034,14 +1034,14 @@
           <label><input type="checkbox" value="Intolerancia" class="restriction-check" onchange="toggleDetailField('intolerancia', this)"> Intolerancia</label>
           <label><input type="checkbox" value="Otros" class="restriction-check" onchange="toggleDetailField('otros', this)"> Otros</label>
         </div>
-        <input type="text" id="intoleranciaDetail" class="detail-field" placeholder="¿A qué sos intolerante?" style="display:none;">
-        <input type="text" id="otrosDetail" class="detail-field" placeholder="Especificá tu restricción..." style="display:none;">
-        <button class="btn" id="confirmBtn" onclick="submitConfirmation()">Confirmar asistencia</button>
+        <input type="text" id="intoleranciaDetail" class="detail-field" placeholder="¿A qué sos intolerante?" data-tp="rsvp.ph_intolerancia" data-tl="Campo: intolerancia" style="display:none;">
+        <input type="text" id="otrosDetail" class="detail-field" placeholder="Especificá tu restricción..." data-tp="rsvp.ph_otros" data-tl="Campo: otra restricción" style="display:none;">
+        <button class="btn" id="confirmBtn" onclick="submitConfirmation()" data-t="rsvp.boton" data-tl="Botón de confirmar">Confirmar asistencia</button>
       </div>
     </div>
     <div id="rsvpCerrado" style="display:none;">
-      <div class="section-sub">El plazo para confirmar ya cerró</div>
-      <p style="font-size:16px;">Si necesitás avisarnos algo, contactanos directamente.</p>
+      <div class="section-sub" data-t="rsvp.cerrado_titulo" data-tl="Cuando cierra el plazo: título">El plazo para confirmar ya cerró</div>
+      <p style="font-size:16px;" data-t="rsvp.cerrado_texto" data-tl="Cuando cierra el plazo: texto">Si necesitás avisarnos algo, contactanos directamente.</p>
     </div>
     </div>
   </div>
@@ -1049,16 +1049,16 @@
   <!-- CANCIÓN -->
   <div class="card card-fondo">
     <div class="screen-inner reveal">
-    <h2 class="section-title">Dejá tu canción</h2>
+    <h2 class="section-title" data-t="canciones.titulo" data-tl="Título">Dejá tu canción</h2>
     <div id="songAbierto">
-      <div class="section-sub">Ayudanos a armar la playlist de la noche</div>
-      <input type="text" id="songInput" placeholder="Nombre de la canción y artista..." maxlength="50">
-      <button class="btn" onclick="addSong()">Agregar canción</button>
+      <div class="section-sub" data-t="canciones.sub" data-tl="Subtítulo">Ayudanos a armar la playlist de la noche</div>
+      <input type="text" id="songInput" placeholder="Nombre de la canción y artista..." data-tp="canciones.ph_cancion" data-tl="Campo de la canción" maxlength="50">
+      <button class="btn" onclick="addSong()" data-t="canciones.boton" data-tl="Botón de agregar">Agregar canción</button>
       <div class="song-list" id="songList"></div>
     </div>
     <div id="songCerrado" style="display:none;">
-      <div class="section-sub">El plazo para sugerir canciones ya cerró</div>
-      <p style="font-size:16px;">Ya armamos la playlist con lo que nos dejaron. ¡Gracias!</p>
+      <div class="section-sub" data-t="canciones.cerrado_titulo" data-tl="Cuando cierra el plazo: título">El plazo para sugerir canciones ya cerró</div>
+      <p style="font-size:16px;" data-t="canciones.cerrado_texto" data-tl="Cuando cierra el plazo: texto">Ya armamos la playlist con lo que nos dejaron. ¡Gracias!</p>
     </div>
     </div>
   </div>
@@ -1066,34 +1066,98 @@
   <!-- REGALO / TARJETA -->
   <div class="card card-fondo">
     <div class="screen-inner reveal">
-      <h2 class="section-title">Nuestro regalo de bodas</h2>
-      <div class="section-sub">Si querés colaborar con nuestra luna de miel, este es el valor sugerido de la tarjeta</div>
+      <h2 class="section-title" data-t="regalo.titulo" data-tl="Título" data-tv="1">Nuestro regalo de bodas</h2>
+      <div class="section-sub" id="giftIntro" data-t="regalo.intro" data-tl="Texto de presentación" data-tv="1" data-tf="Que estés con nosotros es el mejor regalo. Si querés colaborar con nuestra luna de miel, estos son los datos de nuestra cuenta">Si querés colaborar con nuestra luna de miel, este es el valor sugerido de la tarjeta</div>
       <div class="gift-amount" id="giftAmount">Cargando...</div>
       <div class="bank-box">
-        <div><b>Titular:</b> <span id="giftTitular">—</span></div>
-        <div><b>Banco:</b> <span id="giftBanco">—</span></div>
-        <div><b>CBU:</b> <span id="giftCbu">—</span></div>
-        <div><b>Alias:</b> <span id="giftAlias">—</span></div>
+        <div><b data-t="regalo.titular" data-tl="Etiqueta: titular" data-tv="1">Titular:</b> <span id="giftTitular">—</span></div>
+        <div><b data-t="regalo.banco" data-tl="Etiqueta: banco" data-tv="1">Banco:</b> <span id="giftBanco">—</span></div>
+        <div><b data-t="regalo.cbu" data-tl="Etiqueta: CBU" data-tv="1">CBU:</b> <span id="giftCbu">—</span></div>
+        <div><b data-t="regalo.alias" data-tl="Etiqueta: alias" data-tv="1">Alias:</b> <span id="giftAlias">—</span></div>
       </div>
-      <button class="btn secondary" onclick="copyAlias()">Copiar alias</button>
+      <button class="btn secondary" onclick="copyAlias()" data-t="regalo.boton" data-tl="Botón de copiar el alias" data-tv="1">Copiar alias</button>
     </div>
   </div>
 
   <!-- GALERÍA -->
   <div class="card card-fondo">
     <div class="screen-inner reveal">
-      <h2 class="section-title">Fotos del casamiento</h2>
-      <div class="section-sub galeria-sub">Subí tus fotos y mirá las que van compartiendo los demás invitados</div>
+      <h2 class="section-title" data-t="galeria.titulo" data-tl="Título">Fotos del casamiento</h2>
+      <div class="section-sub galeria-sub" data-t="galeria.sub" data-tl="Subtítulo">Subí tus fotos y mirá las que van compartiendo los demás invitados</div>
       <img class="galeria-icon" src="../img/camara.webp" alt="">
-      <a class="btn galeria-btn" href="../galeria/index.html">Ver galería</a>
+      <a class="btn galeria-btn" href="../galeria/index.html" data-t="galeria.boton" data-tl="Botón">Ver galería</a>
     </div>
   </div>
 
-  <footer>Julieta &amp; Gabriel <img src="../img/alianzas.webp" width="500" height="624" loading="lazy" alt="" class="footer-rings"> 23.10.2027</footer>
+  <footer><span data-t="pie.nombres" data-tl="Nombres">Julieta &amp; Gabriel</span> <img src="../img/alianzas.webp" width="500" height="624" loading="lazy" alt="" class="footer-rings"> <span data-t="pie.fecha" data-tl="Fecha">23.10.2027</span></footer>
 </div>
 
 <div class="toast" id="toast"></div>
 
+<script type="application/json" id="catalogoMensajes">
+{
+ "msg.carrusel_vacio": {
+  "l": "Carrusel sin fotos",
+  "t": "Pronto vamos a compartir fotos acá."
+ },
+ "msg.carrusel_error": {
+  "l": "Carrusel: no se pudieron cargar las fotos",
+  "t": "No se pudieron cargar las fotos."
+ },
+ "msg.buscando": {
+  "l": "Buscando el nombre",
+  "t": "Buscando…"
+ },
+ "msg.buscar_error": {
+  "l": "Búsqueda: error",
+  "t": "No pudimos buscar en este momento. Probá de nuevo en unos segundos."
+ },
+ "msg.no_encontrado": {
+  "l": "Búsqueda: nombre no encontrado",
+  "t": "No encontramos tu nombre. Contactanos directamente para confirmar."
+ },
+ "msg.ya_confirmado": {
+  "l": "Etiqueta junto al nombre de quien ya confirmó",
+  "t": "Ya confirmado ✓"
+ },
+ "msg.ya_confirmado_linea": {
+  "l": "Aviso al elegir un nombre que ya confirmó",
+  "t": "asistencia ya confirmada ✓"
+ },
+ "msg.confirmando": {
+  "l": "Botón mientras confirma",
+  "t": "Confirmando..."
+ },
+ "msg.confirmado_boton": {
+  "l": "Botón después de confirmar",
+  "t": "Asistencia confirmada ✓"
+ },
+ "msg.confirmado_aviso": {
+  "l": "Aviso al confirmar",
+  "t": "✅ ¡Asistencia confirmada!"
+ },
+ "msg.confirmar_reintentar": {
+  "l": "Aviso: nombre no encontrado al confirmar",
+  "t": "No encontramos tu nombre, reintentá"
+ },
+ "msg.error_conexion": {
+  "l": "Aviso: error de conexión",
+  "t": "Error de conexión, intentá de nuevo"
+ },
+ "msg.cancion_ok": {
+  "l": "Aviso al agregar una canción",
+  "t": "🎵 ¡Canción agregada!"
+ },
+ "msg.cancion_error": {
+  "l": "Aviso: no se pudo guardar la canción",
+  "t": "No se pudo guardar, intentá de nuevo"
+ },
+ "msg.alias_copiado": {
+  "l": "Aviso al copiar el alias ({alias} = el alias)",
+  "t": "Alias copiado: {alias}"
+ }
+}
+</script>
 <script>
   if ('scrollRestoration' in history) {
     history.scrollRestoration = 'manual';
@@ -1103,6 +1167,75 @@
   const GAS_URL = "https://script.google.com/macros/s/AKfycbxC-pfS4VL6-8teZ8T3Pt5cXYdHQIrkn5gslkQ6HcKk6qQmlMVVL8Cz5HWzsuM6ExMN/exec";
   // Fotos (carrusel incluido): Worker de Cloudflare con R2 (ver worker/src/index.js).
   const MEDIA_URL = "https://boda-media.bodajyg.workers.dev";
+
+  // ---------- Textos editables desde el panel de admin ----------
+  // Cada texto de esta página lleva data-t="seccion.texto" (y los campos de
+  // texto data-tp). Los originales son los que están escritos en este HTML;
+  // lo que se cambia en el panel (admin/ → Tarjeta) se guarda en la pestaña
+  // "Textos" del Sheet y se aplica encima. Si el Sheet no responde, la página
+  // se ve con los originales. Los mensajes que arma el JavaScript (avisos,
+  // errores) están en el catálogo "catalogoMensajes" de más arriba.
+  // data-tv: ese texto puede ser distinto para Familiares; data-tf: el
+  // original para Familiares si no coincide con el de Invitados.
+  const TEXTOS_CACHE = 'tarjetaTextos';
+  const CATALOGO_MENSAJES = JSON.parse(document.getElementById('catalogoMensajes').textContent);
+  let tipoInvitacion = new URLSearchParams(location.search).get('tipo') === 'familiar' ? 'Familiar' : 'Invitado';
+  let textosEditados = {};
+  try { textosEditados = JSON.parse(localStorage.getItem(TEXTOS_CACHE)) || {}; } catch (err) {}
+  const originalesDeTexto = new Map();
+
+  function textoEditado(clave, original, originalFamiliar, variante) {
+    const o = textosEditados[clave] || {};
+    if (tipoInvitacion === 'Familiar' && variante) return o.f || originalFamiliar || o.i || original;
+    return o.i || original;
+  }
+
+  function aplicarTextos() {
+    document.querySelectorAll('[data-t]').forEach(el => {
+      if (!originalesDeTexto.has(el)) originalesDeTexto.set(el, el.textContent);
+      const original = originalesDeTexto.get(el);
+      const texto = textoEditado(el.dataset.t, original, el.dataset.tf, el.dataset.tv === '1');
+      if (el.textContent !== texto) el.textContent = texto;
+      el.style.whiteSpace = texto.includes('\n') ? 'pre-line' : '';
+    });
+    document.querySelectorAll('[data-tp]').forEach(el => {
+      if (!originalesDeTexto.has(el)) originalesDeTexto.set(el, el.getAttribute('placeholder') || '');
+      el.setAttribute('placeholder', textoEditado(el.dataset.tp, originalesDeTexto.get(el), null, false));
+    });
+  }
+
+  // Texto actual de un elemento marcado (por si el JavaScript necesita
+  // volver a ponérselo, como el botón de confirmar).
+  function textoDe(clave) {
+    const el = document.querySelector('[data-t="' + clave + '"]');
+    return el ? textoEditado(clave, originalesDeTexto.has(el) ? originalesDeTexto.get(el) : el.textContent, el.dataset.tf, el.dataset.tv === '1') : '';
+  }
+
+  const escHtml = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  // Mensaje del catálogo, con lo editado en el panel; {nombre} se reemplaza por vars.nombre.
+  function msg(clave, vars) {
+    const def = CATALOGO_MENSAJES[clave] ? CATALOGO_MENSAJES[clave].t : '';
+    let texto = (textosEditados[clave] && textosEditados[clave].i) || def;
+    Object.keys(vars || {}).forEach(k => { texto = texto.split('{' + k + '}').join(vars[k]); });
+    return texto;
+  }
+
+  async function cargarTextosEditados() {
+    if (GAS_URL.startsWith("PEGAR_AQUI")) return;
+    try {
+      const res = await fetch(GAS_URL + '?tipo=textos');
+      const d = await res.json();
+      if (!d || !d.ok || !d.textos) return;
+      textosEditados = d.textos;
+      try { localStorage.setItem(TEXTOS_CACHE, JSON.stringify(d.textos)); } catch (err) {}
+      aplicarTextos();
+    } catch (err) {
+      console.error('No se pudieron cargar los textos editados', err);
+    }
+  }
+  aplicarTextos();          // primero lo que quedó guardado (sin esperar a la red)
+  cargarTextosEditados();   // y después lo último del Sheet
 
   function renderCountdown(targetDate) {
     // Clases en vez de ids: así el contador se actualiza en TODAS las
@@ -1160,7 +1293,7 @@
       const res = await fetch(MEDIA_URL + "/carrusel");
       const fotos = await res.json();
       if (!Array.isArray(fotos) || !fotos.length) {
-        track.innerHTML = '<div class="carrusel-slide loaded"><p class="carrusel-empty">Pronto vamos a compartir fotos acá.</p></div>';
+        track.innerHTML = '<div class="carrusel-slide loaded"><p class="carrusel-empty">' + escHtml(msg('msg.carrusel_vacio')) + '</p></div>';
         return;
       }
       track.innerHTML = fotos.map(() => '<div class="carrusel-slide"><img class="carrusel-img" alt="Julieta y Gabriel"></div>').join('');
@@ -1192,7 +1325,7 @@
         track.addEventListener('touchstart', () => clearInterval(autoplay), { once: true, passive: true });
       }
     } catch (err) {
-      track.innerHTML = '<div class="carrusel-slide loaded"><p class="carrusel-empty">No se pudieron cargar las fotos.</p></div>';
+      track.innerHTML = '<div class="carrusel-slide loaded"><p class="carrusel-empty">' + escHtml(msg('msg.carrusel_error')) + '</p></div>';
     }
   }
 
@@ -1280,18 +1413,18 @@
       return;
     }
 
-    resultsDiv.innerHTML = '<div class="no-results">Buscando…</div>';
+    resultsDiv.innerHTML = '<div class="no-results">' + escHtml(msg('msg.buscando')) + '</div>';
     busquedaTimer = setTimeout(async () => {
       const matches = await buscarInvitados(query);
       if (seq !== busquedaSeq) return; // ya se escribió otra cosa
       resultsDiv.innerHTML = "";
       if (matches === null) {
-        resultsDiv.innerHTML = '<div class="no-results">No pudimos buscar en este momento. Probá de nuevo en unos segundos.</div>';
+        resultsDiv.innerHTML = '<div class="no-results">' + escHtml(msg('msg.buscar_error')) + '</div>';
         return;
       }
       guestList = matches;
       if (matches.length === 0) {
-        resultsDiv.innerHTML = '<div class="no-results">No encontramos tu nombre. Contactanos directamente para confirmar.</div>';
+        resultsDiv.innerHTML = '<div class="no-results">' + escHtml(msg('msg.no_encontrado')) + '</div>';
         return;
       }
       matches.forEach(g => {
@@ -1299,7 +1432,7 @@
         item.className = 'guest-item selectable';
         item.innerHTML = `
           <span>${g.nombre}</span>
-          <span class="status-tag">${g.confirmado ? 'Ya confirmado ✓' : ''}</span>
+          <span class="status-tag">${g.confirmado ? escHtml(msg('msg.ya_confirmado')) : ''}</span>
         `;
         item.onclick = () => selectGuest(g.nombre);
         resultsDiv.appendChild(item);
@@ -1313,8 +1446,13 @@
     document.getElementById('rsvpSearch').value = nombre;
 
     const guest = guestList.find(g => g.nombre === nombre);
+    // Si el tipo de la lista no coincide con el de la dirección, manda la lista.
+    if (guest && ((guest.tipo === 'Familiar') !== (tipoInvitacion === 'Familiar'))) {
+      tipoInvitacion = guest.tipo === 'Familiar' ? 'Familiar' : 'Invitado';
+      pintarRegalo();
+    }
     document.getElementById('selectedName').textContent = nombre +
-      (guest && guest.confirmado ? ' — asistencia ya confirmada ✓' : '');
+      (guest && guest.confirmado ? ' — ' + msg('msg.ya_confirmado_linea') : '');
 
     document.querySelectorAll('.restriction-check').forEach(c => c.checked = false);
     document.getElementById('intoleranciaDetail').style.display = 'none';
@@ -1323,7 +1461,7 @@
     document.getElementById('otrosDetail').value = '';
 
     const confirmBtn = document.getElementById('confirmBtn');
-    confirmBtn.textContent = 'Confirmar asistencia';
+    confirmBtn.textContent = textoDe('rsvp.boton');
 
     document.getElementById('restrictionPanel').style.display = 'block';
   }
@@ -1352,7 +1490,7 @@
     }
 
     const btn = document.getElementById('confirmBtn');
-    btn.textContent = 'Confirmando...';
+    btn.textContent = msg('msg.confirmando');
     try {
       const res = await fetch(GAS_URL, {
         method: 'POST',
@@ -1361,17 +1499,17 @@
       });
       const data = await res.json();
       if (data.success) {
-        btn.textContent = 'Asistencia confirmada ✓';
-        showToast('✅ ¡Asistencia confirmada!');
+        btn.textContent = msg('msg.confirmado_boton');
+        showToast(msg('msg.confirmado_aviso'));
         const g = guestList.find(g => g.nombre === selectedGuestName);
         if (g) g.confirmado = true;
       } else {
-        btn.textContent = 'Confirmar asistencia';
-        showToast('No encontramos tu nombre, reintentá');
+        btn.textContent = textoDe('rsvp.boton');
+        showToast(msg('msg.confirmar_reintentar'));
       }
     } catch (err) {
-      btn.textContent = 'Confirmar asistencia';
-      showToast('Error de conexión, intentá de nuevo');
+      btn.textContent = textoDe('rsvp.boton');
+      showToast(msg('msg.error_conexion'));
     }
   }
 
@@ -1392,7 +1530,7 @@
       saveSongs();
       input.value = "";
       renderSongs();
-      showToast('🎵 ¡Canción agregada!');
+      showToast(msg('msg.cancion_ok'));
       return;
     }
 
@@ -1409,12 +1547,12 @@
         saveSongs();
         input.value = "";
         renderSongs();
-        showToast('🎵 ¡Canción agregada!');
+        showToast(msg('msg.cancion_ok'));
       } else {
-        showToast('No se pudo guardar, intentá de nuevo');
+        showToast(msg('msg.cancion_error'));
       }
     } catch (err) {
-      showToast('Error de conexión, intentá de nuevo');
+      showToast(msg('msg.error_conexion'));
     } finally {
       input.disabled = false;
     }
@@ -1436,30 +1574,49 @@
 
   let giftAlias = '';
 
+  // Una sola invitación para todos: el tipo (Familiar / Invitado) decide cómo
+  // se muestra el regalo. A los Invitados se les sugiere un monto; a los
+  // Familiares no (se ven los datos de la cuenta, con otro texto y sin monto).
+  // El tipo llega en la dirección (?tipo=familiar|invitado, lo pone la portada
+  // al buscar el nombre) y, si la persona elige su nombre más abajo para
+  // confirmar, se corrige con el tipo que figura en la lista.
+  let regaloDatos = null;
+
+  function pintarRegalo() {
+    const familiar = tipoInvitacion === 'Familiar';
+    aplicarTextos();   // los textos del regalo cambian según el tipo
+    const monto = document.getElementById('giftAmount');
+    // Familiar: el monto no se muestra (ni el "Cargando..." que lo reemplazaría).
+    monto.style.display = familiar ? 'none' : '';
+    if (!familiar && regaloDatos && regaloDatos.Monto) {
+      monto.textContent = '$ ' + Number(regaloDatos.Monto).toLocaleString('es-AR') + ' ARS';
+    }
+    if (regaloDatos) {
+      document.getElementById('giftTitular').textContent = regaloDatos.Titular || '';
+      document.getElementById('giftBanco').textContent = regaloDatos.Banco || '';
+      document.getElementById('giftCbu').textContent = regaloDatos.CBU || '';
+      document.getElementById('giftAlias').textContent = regaloDatos.Alias || '';
+      giftAlias = regaloDatos.Alias || '';
+    }
+  }
+
   async function loadRegalo() {
     if (GAS_URL.startsWith("PEGAR_AQUI")) return;
     try {
       const res = await fetch(GAS_URL + "?tipo=regalo");
-      const data = await res.json();
-      if (data.Monto) {
-        const monto = Number(data.Monto);
-        document.getElementById('giftAmount').textContent = '$ ' + monto.toLocaleString('es-AR') + ' ARS';
-      }
-      document.getElementById('giftTitular').textContent = data.Titular || '';
-      document.getElementById('giftBanco').textContent = data.Banco || '';
-      document.getElementById('giftCbu').textContent = data.CBU || '';
-      document.getElementById('giftAlias').textContent = data.Alias || '';
-      giftAlias = data.Alias || '';
+      regaloDatos = await res.json();
+      pintarRegalo();
     } catch (err) {
       console.error('No se pudo cargar la info del regalo', err);
     }
   }
+  pintarRegalo();   // ya con el texto y el monto oculto, sin esperar a la red
   loadRegalo();
 
   function copyAlias() {
     if (!giftAlias) return;
     navigator.clipboard.writeText(giftAlias).then(() => {
-      alert('Alias copiado: ' + giftAlias);
+      alert(msg('msg.alias_copiado', { alias: giftAlias }));
     });
   }
 
