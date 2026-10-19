@@ -577,8 +577,12 @@
   //    la pantalla al instante y la consulta corre en segundo plano (si
   //    el modo cambió, se recarga la página);
   //  - solo quien entra por primera vez Y no logra consultar cae en
-  //    'invitacion'.
+  //    MODO_POR_DEFECTO. Mientras estemos en la etapa de Save the Date
+  //    queda en 'savethedate' para que la invitación no se vea antes de
+  //    tiempo si el script falla — cambiarlo a 'invitacion' cuando se
+  //    manden las invitaciones.
   const MODOS_INDEX = ['savethedate', 'invitacion', 'galeria'];
+  const MODO_POR_DEFECTO = 'savethedate';
 
   async function consultarModo() {
     for (let intento = 0; intento < 2; intento++) {
@@ -629,7 +633,7 @@
     }
     const actual = await consultarModo();
     if (actual) guardarModo(actual);
-    mostrarModo(actual || 'invitacion');
+    mostrarModo(actual || MODO_POR_DEFECTO);
   }
   iniciar();
 </script>
