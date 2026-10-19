@@ -571,7 +571,8 @@
       <h3><span id="shTitulo">Editar invitado</span><button class="mini" data-cerrar="ovInvitado"><i data-i="x"></i></button></h3>
       <div class="campo"><label for="iNombre">Nombre completo</label><input id="iNombre" autocomplete="off" maxlength="100"></div>
       <div class="campo"><label>Tipo de invitación</label><div class="seg" id="iTipo"><button data-v="Familiar">Familiar</button><button data-v="Invitado">Invitado</button></div></div>
-      <div class="sw"><div><b>Confirmó asistencia</b><div class="small muted" id="iFecha"></div></div><button class="toggle" id="iConf" aria-label="Confirmó asistencia"></button></div>
+      <!-- Se puede CONFIRMAR desde acá (con aviso previo) pero no desconfirmar: una vez confirmado queda fijo. -->
+      <div class="sw"><div><b>Confirmó asistencia</b><div class="small muted" id="iFecha"></div><div class="small muted" id="iConfNota"></div></div><span class="pill ok hidden" id="iConfEstado">SÍ</span><button class="toggle" id="iConf" aria-label="Confirmar asistencia"></button></div>
       <!-- Dato interno: solo se ve acá, en el detalle. No está en la lista, en los filtros, en el CSV ni en lo que ven los invitados. -->
       <div class="campo" style="margin-top:2px"><label for="iPago">Pagado</label><select id="iPago"></select></div>
       <!-- Solo si el Sheet tiene la columna "Capitán" (el servidor avisa). También dato interno. -->
@@ -1062,7 +1063,8 @@
   let filtro = 'todos';
   let textoBusqueda = '';
   let editando = null;       // el invitado que se edita, o null si es uno nuevo
-  let formConf = false, formRestr = [], formTipo = 'Invitado';
+  let formConf = false;   // "confirmar" pedido en esta hoja (se aplica al guardar)
+  let formRestr = [], formTipo = 'Invitado';
   let capitanDisponible = false;   // el servidor avisa si el Sheet tiene la columna Capitán
   const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   const fmtDiaMes = f => f ? new Date(f).toLocaleDateString('es-AR', { day: 'numeric', month: 'numeric' }) : '';
@@ -1151,7 +1153,7 @@
     try {
       await gas('adminGuardarInvitado', {
         fila: null, nombreOriginal: '', nombre,
-        tipoInvitado: tipoNuevo, confirmado: false, restricciones: [], detalle: ''
+        tipoInvitado: tipoNuevo, restricciones: [], detalle: ''
       });
       cerrar('ovNuevo');
       toast(nombre + ' agregado/a');
@@ -1196,8 +1198,15 @@
     $('#shTitulo').textContent = inv ? 'Editar invitado' : 'Agregar invitado';
     $('#iNombre').value = inv ? inv.nombre : '';
     $('#iDetalle').value = inv ? inv.detalle : '';
-    $('#iFecha').textContent = inv && inv.confirmado ? 'Confirmó el ' + fmtDiaMes(inv.fecha) : 'Todavía no confirmó';
-    formConf = inv ? inv.confirmado : false;
+    const confirmo = !!(inv && inv.confirmado);
+    $('#iFecha').textContent = confirmo ? 'Confirmó el ' + fmtDiaMes(inv.fecha) : 'Todavía no confirmó';
+    // Confirmado: queda fijo (solo la etiqueta). Sin confirmar: el interruptor.
+    $('#iConfNota').textContent = confirmo
+      ? 'Ya confirmó: no se puede desconfirmar desde el panel'
+      : 'Lo confirma el invitado desde su invitación, o podés confirmarlo vos';
+    $('#iConfEstado').classList.toggle('hidden', !confirmo);
+    $('#iConf').classList.toggle('hidden', confirmo);
+    formConf = false;
     $('#iCap').value = inv && inv.capitan ? 'SI' : 'NO';
     $('#iCapFila').classList.toggle('hidden', !capitanDisponible);
     formRestr = inv ? inv.restricciones.slice() : [];
@@ -1207,7 +1216,15 @@
     abrir('ovInvitado');
   }
 
-  $('#iConf').addEventListener('click', () => { formConf = !formConf; pintarFormInvitado(); });
+  // Prender "Confirmó asistencia" solo lo deja pedido: el aviso aparece al
+  // tocar Guardar (ver más abajo), porque una vez guardado no se puede deshacer.
+  $('#iConf').addEventListener('click', () => {
+    formConf = !formConf;
+    $('#iConfNota').textContent = formConf
+      ? 'Se confirma al tocar Guardar (antes te va a preguntar)'
+      : 'Lo confirma el invitado desde su invitación, o podés confirmarlo vos';
+    pintarFormInvitado();
+  });
   $('#iTipo').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { formTipo = b.dataset.v; pintarFormInvitado(); } });
   $('#iRestr').addEventListener('click', e => {
     const b = e.target.closest('.chip');
@@ -1220,6 +1237,13 @@
   $('#iGuardar').addEventListener('click', async () => {
     const nombre = $('#iNombre').value.trim();
     if (!nombre) { toast('Falta el nombre'); $('#iNombre').focus(); return; }
+    // Si se está confirmando la asistencia, se pregunta ANTES de guardar. Si
+    // dice que no, no se guarda nada y la hoja sigue abierta.
+    if (editando && !editando.confirmado && formConf) {
+      const seguir = await confirmar('¿Confirmar la asistencia de ' + editando.nombre + '?',
+        'Vas a confirmar a este invitado. Queda confirmado y no se puede desconfirmar desde el panel. Si Pagado está en AUN NO CONFIRMADO, pasa a NO.', 'Sí, confirmar');
+      if (!seguir) return;
+    }
     const btn = $('#iGuardar');
     btn.disabled = true;
     btn.textContent = 'Guardando…';
@@ -1230,13 +1254,14 @@
         nombre,
         // No se llama "tipo": ese campo ya lleva el nombre de la acción.
         tipoInvitado: formTipo,
-        confirmado: formConf,
         restricciones: formRestr,
         detalle: $('#iDetalle').value.trim()
       };
       // "Pagado" solo viaja si se cambió: así nunca se pisa un valor que el
       // panel no entiende. Un invitado nuevo lo recibe del servidor (AUN NO CONFIRMADO).
       if (editando && $('#iPago').value !== editando.pago) datos.pago = $('#iPago').value;
+      // "Confirmó" solo viaja para confirmar (nunca para desconfirmar).
+      if (editando && !editando.confirmado && formConf) datos.confirmado = true;
       // Lo mismo con "Capitán": solo viaja si se cambió (y si el Sheet tiene la columna).
       const esCapitan = $('#iCap').value === 'SI';
       if (capitanDisponible && esCapitan !== (editando ? !!editando.capitan : false)) datos.capitan = esCapitan;

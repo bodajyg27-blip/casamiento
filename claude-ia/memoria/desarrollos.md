@@ -285,3 +285,10 @@ Varias imágenes provistas por el usuario venían con fondos que no eran transpa
 ## 2026-10-19 — Exportar solo Nombre, Restricciones y Detalle
 
 - El CSV de Invitados (botón Exportar) lleva únicamente `Nombre`, `Restricciones` y `Detalle` (todos los invitados, una fila cada uno). Se sacaron Tipo, Confirmó y Fecha; Pagado y Capitán ya no iban. Sigue con BOM para que Excel abra bien los acentos.
+
+## 2026-10-19 — Confirmar asistencia: el admin puede confirmar, no desconfirmar; Pagado pasa a NO
+
+- **Pagado = NO al confirmar**: `pagoAlConfirmar()` (común a `confirmarInvitado` y al admin): si Pagado está en `AUN NO CONFIRMADO` o vacío pasa a `NO`; un `SI` (o un `NO`) ya puesto no se toca, y confirmar dos veces no cambia nada.
+- **Admin**: puede CONFIRMAR (como si el invitado lo hiciera: `confirmado: true` pone B = verdadero, C = fecha de ese momento y aplica la regla de Pagado; si en el mismo guardado se elige un pago explícito, gana ese) pero NO desconfirmar: un `confirmado: false` se ignora en el servidor y no se puede borrar la fecha. Un invitado nuevo sale sin confirmar salvo que se pida confirmarlo.
+- **Panel**: en el detalle, si el invitado no confirmó hay un interruptor «Confirmó asistencia»; prenderlo solo lo deja pedido (se puede volver a apagar antes de guardar) y **al tocar Guardar** pregunta «¿Confirmar la asistencia de X?» (botón «Sí, confirmar»; aclara que no se puede desconfirmar y que Pagado pasa a NO). Si dice que no, no se guarda nada y la hoja sigue abierta. Una vez confirmado, el detalle muestra «SÍ» fijo y «no se puede desconfirmar desde el panel», sin interruptor. El panel manda `confirmado` solo para confirmar. El alta rápida (popup) crea siempre sin confirmar.
+- Probado: funciones del script con Sheet simulado (confirmar, no desconfirmar, SI no se pisa, pago explícito, nuevo, fecha) y 12 verificaciones en Chrome. Requiere publicar el `.gs`.

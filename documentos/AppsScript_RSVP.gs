@@ -307,6 +307,8 @@ function confirmarInvitadoSinCandado(params) {
       sheet.getRange(i + 1, 3).setValue(new Date());
       sheet.getRange(i + 1, 4).setValue(restricciones);
       sheet.getRange(i + 1, 5).setValue(detalle);
+      const colPago = columnaPago(data);
+      sheet.getRange(i + 1, colPago + 1).setValue(pagoAlConfirmar(data[i][colPago]));
       CacheService.getScriptCache().remove('invitados_lista');
       return ContentService.createTextOutput(JSON.stringify({ success: true }))
         .setMimeType(ContentService.MimeType.JSON);
@@ -627,6 +629,14 @@ const TIPOS_INVITADO = ["Familiar", "Invitado"];
 const PAGO_VALORES = ["SI", "NO", "AUN NO CONFIRMADO"];
 const PAGO_POR_DEFECTO = "AUN NO CONFIRMADO";   // todo invitado nuevo arranca así
 
+// Al confirmar (el invitado o el admin), "Pagado" pasa de AUN NO CONFIRMADO
+// (o vacío) a NO: ya confirmó, todavía no pagó. Un SI (o un NO) que ya
+// estuviera puesto no se toca: confirmar no puede pisar un pago.
+function pagoAlConfirmar(actual) {
+  const valor = String(actual || "").trim();
+  return valor === "" || valor === PAGO_POR_DEFECTO ? "NO" : valor;
+}
+
 // Índice (desde 0) de la columna Pagado: la que tenga "pag" en el
 // encabezado y, si no hay, la F. Nunca una de las que ya usa otra cosa.
 function columnaPago(data) {
@@ -714,7 +724,9 @@ function adminGuardarInvitado(params) {
     // "tipo" ya lleva el nombre de la acción (ver doPost): el del invitado
     // viaja como "tipoInvitado".
     const tipo = TIPOS_INVITADO.includes(params.tipoInvitado) ? params.tipoInvitado : "Invitado";
-    const confirmado = params.confirmado === true;
+    // El admin puede CONFIRMAR a un invitado (como si lo hiciera él desde su
+    // invitación) pero NO desconfirmarlo: un "confirmado: false" se ignora.
+    const confirmar = params.confirmado === true;
     const restricciones = Array.isArray(params.restricciones) ? params.restricciones.map(String).join(", ") : "";
     const detalle = String(params.detalle || "").trim().slice(0, 300);
     // "pago" es opcional: si no llega, en un invitado existente no se toca
@@ -744,22 +756,22 @@ function adminGuardarInvitado(params) {
       }
     }
 
-    const fecha = new Date();
     if (esNuevo) {
       // Columnas A..G (F = Pagado)
-      const filaNueva = [nombre, confirmado, confirmado ? fecha : "", restricciones, detalle, "", tipo];
+      const filaNueva = [nombre, confirmar, confirmar ? new Date() : "", restricciones, detalle, "", tipo];
       while (filaNueva.length <= Math.max(colPago, colCapitan)) filaNueva.push("");
-      filaNueva[colPago] = pago === null ? PAGO_POR_DEFECTO : pago;
+      filaNueva[colPago] = pago === null ? (confirmar ? pagoAlConfirmar("") : PAGO_POR_DEFECTO) : pago;
       if (colCapitan >= 0) filaNueva[colCapitan] = capitan ? "C" : "";
       sheet.appendRow(filaNueva);
       copiarValidaciones(sheet, sheet.getLastRow(), colPago, colCapitan);
     } else {
       const yaConfirmado = data[fila - 1][1] === true || data[fila - 1][1] === "TRUE";
       sheet.getRange(fila, 1).setValue(nombre);
-      sheet.getRange(fila, 2).setValue(confirmado);
-      // La fecha de confirmación se conserva si ya estaba confirmado.
-      if (confirmado && !yaConfirmado) sheet.getRange(fila, 3).setValue(fecha);
-      if (!confirmado) sheet.getRange(fila, 3).setValue("");
+      if (confirmar && !yaConfirmado) {
+        sheet.getRange(fila, 2).setValue(true);
+        sheet.getRange(fila, 3).setValue(new Date());
+        sheet.getRange(fila, colPago + 1).setValue(pagoAlConfirmar(data[fila - 1][colPago]));
+      }
       sheet.getRange(fila, 4).setValue(restricciones);
       sheet.getRange(fila, 5).setValue(detalle);
       sheet.getRange(fila, 7).setValue(tipo);
