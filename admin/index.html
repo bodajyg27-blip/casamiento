@@ -568,10 +568,9 @@
       <div class="sw"><div><b>Confirmó asistencia</b><div class="small muted" id="iFecha"></div></div><button class="toggle" id="iConf" aria-label="Confirmó asistencia"></button></div>
       <div class="campo" style="margin-top:6px"><label>Restricciones alimentarias</label><div class="restr" id="iRestr"></div></div>
       <div class="campo"><label for="iDetalle">Detalle (opcional)</label><textarea id="iDetalle" rows="2" maxlength="300" placeholder="Ej.: alergia a los frutos secos"></textarea></div>
-      <div class="acciones">
-        <button class="btn danger" id="iBorrar"><i data-i="trash" style="width:17px;height:17px"></i>Borrar</button>
-        <button class="btn" id="iGuardar">Guardar</button>
-      </div>
+      <div class="acciones"><button class="btn" id="iGuardar">Guardar</button></div>
+      <!-- Aparte y lejos de Guardar, para no tocarlo sin querer -->
+      <button class="btn danger full" id="iBorrar" style="margin-top:34px"><i data-i="trash" style="width:17px;height:17px"></i>Borrar invitado</button>
     </div>
   </div>
 
@@ -660,13 +659,22 @@
   $$('[data-cerrar]').forEach(b => b.addEventListener('click', () => cerrar(b.dataset.cerrar)));
 
   let confirmarOk = null;
-  function confirmar(titulo, texto) {
+  let confirmarAbiertaEn = 0;
+  function confirmar(titulo, texto, etiqueta) {
     $('#cTitulo').textContent = titulo;
     $('#cTexto').textContent = texto || 'Esta acción no se puede deshacer.';
+    $('#cOk').textContent = etiqueta || 'Borrar';
+    confirmarAbiertaEn = Date.now();
     abrir('ovConfirm');
     return new Promise(resolve => { confirmarOk = resolve; });
   }
-  $('#cOk').addEventListener('click', () => { cerrar('ovConfirm'); if (confirmarOk) confirmarOk(true); });
+  // Un toque doble (o el mismo toque que abrió el aviso) no alcanza para
+  // confirmar: se ignora lo que llegue en el primer medio segundo.
+  $('#cOk').addEventListener('click', () => {
+    if (Date.now() - confirmarAbiertaEn < 600) return;
+    cerrar('ovConfirm');
+    if (confirmarOk) confirmarOk(true);
+  });
   $('#cCancelar').addEventListener('click', () => { cerrar('ovConfirm'); if (confirmarOk) confirmarOk(false); });
   $('#ovConfirm').addEventListener('click', e => { if (e.target.id === 'ovConfirm' && confirmarOk) confirmarOk(false); });
 
@@ -1155,7 +1163,7 @@
 
   $('#iBorrar').addEventListener('click', async () => {
     const inv = editando;
-    const ok = await confirmar('Borrar a ' + inv.nombre, 'Sale de la lista y ya no podrá confirmar su asistencia.');
+    const ok = await confirmar('¿Borrar a ' + inv.nombre + '?', 'Sale de la lista y ya no podrá confirmar su asistencia. No se puede deshacer.', 'Sí, borrar');
     if (!ok) return;
     try {
       await gas('adminBorrarInvitado', { fila: inv.fila, nombreOriginal: inv.nombre });

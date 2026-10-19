@@ -251,3 +251,8 @@ Varias imágenes provistas por el usuario venían con fondos que no eran transpa
 - **Fotos**: grilla con "Ver más", visor con anterior/siguiente y borrado, selección múltiple para borrar varias.
 - Gotcha: el campo `tipo` de los pedidos al script lleva el nombre de la acción; el tipo del invitado viaja como `tipoInvitado` (con el mismo nombre se pisaban y el servidor no reconocía el pedido).
 - Probado: funciones del script con un Sheet simulado en Node (`doPost` NO está cubierto por esa prueba: el bug de `tipo` lo encontró el recorrido en Chrome) y recorrido completo en Chrome contra un Worker local (wrangler dev) y un Apps Script simulado: 39 verificaciones (invitados, regalo, fotos, carrusel con un HEIC real, sistema). **Falta probar contra el Apps Script y el Sheet reales** una vez publicado.
+
+## 2026-10-19 — Borrar con menos riesgo de tocarlo sin querer (admin)
+
+- Todos los borrados del panel ya pedían confirmación (`confirmar()`). Ahora, además: el aviso ignora cualquier toque que llegue en los primeros 600 ms (un doble toque o el mismo toque que lo abrió no confirma) y el botón dice "Sí, borrar" en el caso de invitados. En la hoja de edición de un invitado, "Borrar invitado" quedó aparte, abajo y lejos de "Guardar".
+- Probado en Chrome: el aviso abre, un toque inmediato no borra, Cancelar no borra y deja la hoja abierta, y confirmando tras una pausa sí borra.
