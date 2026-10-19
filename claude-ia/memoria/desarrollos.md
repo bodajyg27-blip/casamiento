@@ -235,3 +235,8 @@ Varias imágenes provistas por el usuario venían con fondos que no eran transpa
 - Tarjeta "Plan gratis de Cloudflare" (sección Estado) con barras: pedidos al Worker hoy (100.000/día, reinicio 00:00 UTC = 21:00 AR), almacenamiento R2 (10 GB), operaciones clase A (1M/mes) y clase B (10M/mes). Amarillo ≥ 70 %, rojo ≥ 90 %. Se actualiza con el semáforo (cada minuto).
 - Worker `POST /uso` (con clave): el almacenamiento se suma listando los buckets (la analítica llega atrasada); pedidos y operaciones salen de la API GraphQL de analítica (`r2OperationsAdaptiveGroups`, `workersInvocationsAdaptive`). Clasificación A/B según la página de precios de R2; lo desconocido cuenta como A. Resultado en memoria 60 s.
 - Requiere el secreto **CF_API_TOKEN** (token de Cloudflare con *Account Analytics: Read*): `npx wrangler secret put CF_API_TOKEN` desde `worker/`. `CF_ACCOUNT_ID` está en `wrangler.jsonc`. Sin token, la tarjeta muestra solo el almacenamiento y lo avisa.
+
+## 2026-10-19 — Avance visible en Sincronizar
+
+- `sincronizarDrive()` trabaja tandas de ~20 s (`RESPALDO_TIEMPO_MAX_MS`, antes 90 s) para que el admin actualice el avance seguido. El panel muestra "Copiando… X de Y en Drive (NN %) · se copiaron N en esta sincronización" y la barra con el tramo pendiente animado mientras el script trabaja. El porcentaje cuenta también lo que ya estaba en Drive. Probado con un Apps Script simulado (25 → 50 → 75 → 100 %).
+- Para que tome efecto hay que pegar el `.gs` y publicar una **nueva versión** (misma URL); no pide permisos nuevos.

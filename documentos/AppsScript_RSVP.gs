@@ -332,9 +332,10 @@ function getRegalo() {
 //
 // Cada archivo se nombra "<fecha> - <id>": el id es el mismo del Worker,
 // así se sabe qué ya está copiado sin llevar otra lista. Cada llamada
-// trabaja como mucho RESPALDO_TIEMPO_MAX_MS y devuelve cuántos faltan: el
-// admin vuelve a llamar hasta que no quede nada (Apps Script corta a los
-// 6 minutos). Solo copia, nunca borra: lo que se borre en el Worker queda
+// trabaja como mucho RESPALDO_TIEMPO_MAX_MS (~20 s, y termina la tanda de
+// descargas en curso) y devuelve cuántos faltan: el admin vuelve a llamar
+// hasta que no quede nada y va mostrando el porcentaje (Apps Script corta
+// a los 6 minutos). Solo copia, nunca borra: lo que se borre en el Worker queda
 // en Drive.
 //
 // La primera vez hay que autorizar Drive y UrlFetch corriendo
@@ -343,7 +344,7 @@ function getRegalo() {
 
 const MEDIA_URL = "https://boda-media.bodajyg.workers.dev";
 const RESPALDO_NOMBRE_CARPETA = "Casamiento J&G - Respaldo";
-const RESPALDO_TIEMPO_MAX_MS = 90 * 1000;
+const RESPALDO_TIEMPO_MAX_MS = 20 * 1000;   // tandas cortas: el admin muestra el avance entre una y otra
 const RESPALDO_TANDA = 6;            // descargas en paralelo por tanda
 const RESPALDO_ZONA = "America/Argentina/Buenos_Aires";
 

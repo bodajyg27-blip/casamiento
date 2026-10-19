@@ -400,8 +400,16 @@
     height: 100%;
     width: 0;
     background: var(--olive);
-    transition: width 0.3s ease;
+    transition: width 0.4s ease;
   }
+  /* Mientras el script trabaja, la parte que falta se anima para que no
+     parezca trabado entre una tanda y otra. */
+  .respaldo-barra.trabajando {
+    background: repeating-linear-gradient(135deg, #eceed6 0 10px, #dfe3bd 10px 20px);
+    background-size: 28px 28px;
+    animation: respaldoRayas 0.8s linear infinite;
+  }
+  @keyframes respaldoRayas { to { background-position: 28px 0; } }
   .respaldo-pie {
     display: flex;
     align-items: center;
@@ -1531,6 +1539,7 @@
     respaldoBtn.disabled = true;
     respaldoBtn.textContent = 'Sincronizando…';
     respaldoBarra.classList.remove('hidden');
+    respaldoBarra.classList.add('trabajando');
     respaldoBarraFill.style.width = '0';
     pintarRespaldo('Revisando qué falta copiar…');
     let copiadas = 0;
@@ -1545,13 +1554,19 @@
         fallidas = data.fallidas;
         respaldoLink.href = data.carpetaUrl;
         respaldoLink.classList.remove('hidden');
+        // Avance sobre TODO lo que hay (lo que ya estaba en Drive también
+        // cuenta). Lo que falló no está copiado y no se suma.
         const enDrive = data.total - data.pendientes - fallidas;
-        respaldoBarraFill.style.width = (data.total ? Math.round(enDrive / data.total * 100) : 100) + '%';
-        if (data.pendientes) pintarRespaldo('Copiadas ' + copiadas + '… faltan ' + data.pendientes);
+        const pct = data.total ? Math.round(enDrive / data.total * 100) : 100;
+        respaldoBarraFill.style.width = pct + '%';
+        if (data.pendientes) {
+          pintarRespaldo(`Copiando… ${enDrive} de ${data.total} en Drive (${pct} %) · se copiaron ${copiadas} en esta sincronización`);
+        }
         // Si una vuelta entera no pudo copiar nada, cortar en vez de
         // insistir para siempre.
       } while (data.pendientes > 0 && data.copiadas > 0);
 
+      respaldoBarra.classList.remove('trabajando');
       let texto = copiadas
         ? 'Listo: ' + copiadas + (copiadas === 1 ? ' archivo nuevo copiado' : ' archivos nuevos copiados') + '.'
         : 'Ya estaba todo copiado.';
@@ -1563,6 +1578,7 @@
     } catch (err) {
       pintarRespaldo((copiadas ? 'Se copiaron ' + copiadas + ', pero después falló: ' : 'No se pudo sincronizar: ') + err.message, true);
     } finally {
+      respaldoBarra.classList.remove('trabajando');
       respaldoBtn.disabled = false;
       respaldoBtn.textContent = 'Sincronizar';
     }
