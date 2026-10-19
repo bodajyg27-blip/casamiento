@@ -268,3 +268,16 @@ Varias imágenes provistas por el usuario venían con fondos que no eran transpa
 - Todo invitado nuevo se crea con `AUN NO CONFIRMADO` (`PAGO_POR_DEFECTO`), venga del popup de alta rápida o de la hoja completa. Editar: el panel manda `pago` solo si se cambió; el servidor valida contra `PAGO_VALORES` y, si no llega, no toca la celda. Un valor que no esté en la lista (o vacío) se muestra tal cual en el selector y no se pisa.
 - `confirmarInvitado()` (confirmación desde la web) NO toca esta columna.
 - Probado: funciones del script con Sheet simulado (por defecto, no filtrado en buscador/lista, sin pisar, inválido rechazado, encabezado en otra columna) y 12 verificaciones en Chrome. Requiere publicar el `.gs` nuevo.
+
+## 2026-10-19 — El desplegable de "Pagado" en las filas nuevas
+
+- Las filas que crea el panel con `appendRow` no heredaban la validación de datos (el desplegable de F; tampoco otras como casillas de verificación). `copiarValidaciones()` copia la validación de toda la fila de arriba (`PASTE_DATA_VALIDATION`, así conserva el estilo del Sheet) y, si ahí no hay ninguna, arma la lista `SI / NO / AUN NO CONFIRMADO`. Si falla, el invitado igual queda guardado y el error va a la pestaña "Errores".
+- `repararListasPago()`: se corre UNA vez a mano desde el editor de Apps Script para ponerles el desplegable a las filas que ya se habían agregado sin él (toma el de la fila más cercana de arriba que lo tenga).
+- Probado con un Sheet simulado (herencia, lista de respaldo, falla al copiar, primera fila, reparación). Requiere publicar el `.gs`.
+
+## 2026-10-19 — Columna "Capitán" (admin)
+
+- Columna del Sheet con una **C** para los invitados que son capitanes (vacío = no). Se busca por el encabezado (que contenga "capit", sin importar tildes ni mayúsculas) porque no tiene lugar fijo (`columnaCapitan()`); si no existe, `adminListarInvitados` devuelve `capitanDisponible: false` y el panel no muestra el campo ni se escribe nada.
+- En la lista del panel, una **cinta naranja con una C** (`.cinta`) al lado del nombre de los capitanes. En el detalle, un selector **Capitán SI / NO**: SI escribe `C` en el Sheet, NO la borra (`capitan` boolean; solo viaja si se cambió, el servidor ignora cualquier valor que no sea true/false). Invitado nuevo: vacío.
+- Dato interno como Pagado: no sale por `buscarInvitado`/`getInvitados`/JSON público ni por el CSV. `confirmarInvitado` no lo toca. `copiarValidaciones()` copia las validaciones de la fila de arriba hasta esta columna.
+- Probado: funciones del script con Sheet simulado (C/c, marcar, desmarcar, sin mandar, nuevo, columna en otro lugar, sin columna) y 13 verificaciones en Chrome. Requiere publicar el `.gs`.

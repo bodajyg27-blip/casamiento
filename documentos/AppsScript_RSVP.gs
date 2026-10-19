@@ -222,7 +222,8 @@ function setGaleriaVisible(params) {
 // E=detalle restricción, F=Pagado ("SI", "NO" o "AUN NO CONFIRMADO": solo lo
 // ven y editan los admin, ver PAGO_* más abajo), G=Tipo ("Familiar" o
 // "Invitado") — define a qué variante de invitación redirige el buscador de
-// index.html.
+// index.html. Más una columna "Capitán" ("C" o vacío, también solo admin;
+// se busca por el encabezado, ver columnaCapitan()).
 
 const INVITADOS_CACHE_TTL = 60;      // segundos
 const BUSQUEDA_MIN_LETRAS = 3;
@@ -595,6 +596,7 @@ function adminListarInvitados() {
   const sheet = libro().getSheetByName("Invitados");
   const data = sheet.getDataRange().getValues();
   const colPago = columnaPago(data);
+  const colCapitan = columnaCapitan(data, colPago);
   const invitados = [];
   for (let i = 1; i < data.length; i++) {
     if (!data[i][0]) continue;
@@ -608,10 +610,11 @@ function adminListarInvitados() {
       restricciones: String(data[i][3] || "").split(/,\s*/).map(x => x.trim()).filter(Boolean),
       detalle: String(data[i][4] || ""),
       pago: String(data[i][colPago] || "").trim(),
+      capitan: colCapitan >= 0 && String(data[i][colCapitan] || "").trim().toUpperCase() === "C",
       tipo: String(data[i][6] || "").trim()
     });
   }
-  return jsonOut({ ok: true, invitados });
+  return jsonOut({ ok: true, invitados, capitanDisponible: colCapitan >= 0 });
 }
 
 const TIPOS_INVITADO = ["Familiar", "Invitado"];
@@ -633,6 +636,63 @@ function columnaPago(data) {
     if (normalizarTexto(encabezado[c]).indexOf("pag") !== -1) return c;
   }
   return 5;
+}
+
+// El desplegable de "Pagado" (y cualquier otra validación, como casillas de
+// verificación) es una validación de datos de cada celda: una fila agregada
+// con appendRow NO la hereda. Se copia de la fila de arriba y, si ahí no hay
+// ninguna, se arma la lista de PAGO_VALORES.
+function copiarValidaciones(sheet, fila, colPago, colCapitan) {
+  try {
+    if (fila > 2) {
+      const ancho = Math.max(7, colPago + 1, (colCapitan === undefined ? -1 : colCapitan) + 1);
+      sheet.getRange(fila - 1, 1, 1, ancho).copyTo(
+        sheet.getRange(fila, 1, 1, ancho), SpreadsheetApp.CopyPasteType.PASTE_DATA_VALIDATION, false);
+    }
+    const celda = sheet.getRange(fila, colPago + 1);
+    if (!celda.getDataValidation()) {
+      celda.setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(PAGO_VALORES, true).setAllowInvalid(false).build());
+    }
+  } catch (err) {
+    logError(err);   // el invitado ya está guardado: que falle esto no lo deshace
+  }
+}
+
+// Para correr UNA vez a mano desde el editor: les pone el desplegable de
+// "Pagado" a las filas que se agregaron antes de que se copiara solo (tomándolo
+// de la fila más cercana de arriba que lo tenga).
+function repararListasPago() {
+  const sheet = libro().getSheetByName("Invitados");
+  const data = sheet.getDataRange().getValues();
+  const col = columnaPago(data) + 1;
+  let arreglados = 0;
+  for (let fila = 3; fila <= data.length; fila++) {
+    const celda = sheet.getRange(fila, col);
+    if (celda.getDataValidation()) continue;
+    for (let f = fila - 1; f >= 2; f--) {
+      const origen = sheet.getRange(f, col);
+      if (origen.getDataValidation()) {
+        origen.copyTo(celda, SpreadsheetApp.CopyPasteType.PASTE_DATA_VALIDATION, false);
+        arreglados++;
+        break;
+      }
+    }
+  }
+  Logger.log("Filas arregladas: " + arreglados);
+}
+
+// Columna "Capitán": una "C" marca a los invitados que son capitanes, vacío
+// para el resto. Se busca por el encabezado (que contenga "capit") porque no
+// tiene un lugar fijo; si no existe, la función se desactiva (el panel no
+// muestra el interruptor y no se escribe nada). Dato interno, igual que Pagado:
+// solo viaja en las acciones de admin.
+function columnaCapitan(data, colPago) {
+  const encabezado = data[0] || [];
+  for (let c = 0; c < encabezado.length; c++) {
+    if ([0, 1, 2, 3, 4, 6, colPago].includes(c)) continue;
+    if (normalizarTexto(encabezado[c]).indexOf("capit") !== -1) return c;
+  }
+  return -1;
 }
 
 // Busca la fila de un invitado: la indicada si todavía tiene ese nombre y,
@@ -665,9 +725,14 @@ function adminGuardarInvitado(params) {
       if (!PAGO_VALORES.includes(pago)) return jsonOut({ ok: false, error: "Valor de pago inválido" });
     }
 
+    // "capitan" es opcional: si no llega, en un invitado existente no se toca
+    // y en uno nuevo queda vacío.
+    const capitan = typeof params.capitan === "boolean" ? params.capitan : null;
+
     const sheet = libro().getSheetByName("Invitados");
     const data = sheet.getDataRange().getValues();
     const colPago = columnaPago(data);
+    const colCapitan = columnaCapitan(data, colPago);
     const esNuevo = !params.nombreOriginal;
     const fila = esNuevo ? 0 : filaDeInvitado(data, params.fila, params.nombreOriginal);
     if (!esNuevo && !fila) return jsonOut({ ok: false, error: "No se encontró ese invitado: la lista cambió, recargá" });
@@ -683,9 +748,11 @@ function adminGuardarInvitado(params) {
     if (esNuevo) {
       // Columnas A..G (F = Pagado)
       const filaNueva = [nombre, confirmado, confirmado ? fecha : "", restricciones, detalle, "", tipo];
-      while (filaNueva.length <= colPago) filaNueva.push("");
+      while (filaNueva.length <= Math.max(colPago, colCapitan)) filaNueva.push("");
       filaNueva[colPago] = pago === null ? PAGO_POR_DEFECTO : pago;
+      if (colCapitan >= 0) filaNueva[colCapitan] = capitan ? "C" : "";
       sheet.appendRow(filaNueva);
+      copiarValidaciones(sheet, sheet.getLastRow(), colPago, colCapitan);
     } else {
       const yaConfirmado = data[fila - 1][1] === true || data[fila - 1][1] === "TRUE";
       sheet.getRange(fila, 1).setValue(nombre);
@@ -697,6 +764,7 @@ function adminGuardarInvitado(params) {
       sheet.getRange(fila, 5).setValue(detalle);
       sheet.getRange(fila, 7).setValue(tipo);
       if (pago !== null) sheet.getRange(fila, colPago + 1).setValue(pago);
+      if (colCapitan >= 0 && capitan !== null) sheet.getRange(fila, colCapitan + 1).setValue(capitan ? "C" : "");
     }
     CacheService.getScriptCache().remove("invitados_lista");
     return jsonOut({ ok: true });

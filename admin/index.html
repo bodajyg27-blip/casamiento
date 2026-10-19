@@ -202,6 +202,8 @@
   .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--chip); color: var(--muted); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; flex: none; }
   .invitado.conf .avatar { background: var(--olive); color: var(--cream); }
   .inv-nombre { font-weight: 600; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* Cinta naranja con una C: marca a los capitanes (solo se ve en el panel). */
+  .cinta { display: inline-block; vertical-align: 1px; margin-right: 8px; padding: 0 12px 0 8px; background: #e8870e; color: #fff; font-size: 14px; font-weight: 700; line-height: 20px; clip-path: polygon(0 0, 100% 0, calc(100% - 6px) 50%, 100% 100%, 0 100%); }
   .inv-sub { font-size: 14px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .fab { position: fixed; right: 18px; bottom: calc(86px + env(safe-area-inset-bottom)); z-index: 15; width: 56px; height: 56px; border-radius: 50%; border: none; background: var(--olive); color: var(--cream); box-shadow: 0 6px 16px rgba(0,0,0,.28); display: flex; align-items: center; justify-content: center; cursor: pointer; }
   .fab svg { width: 26px; height: 26px; }
@@ -572,6 +574,8 @@
       <div class="sw"><div><b>Confirmó asistencia</b><div class="small muted" id="iFecha"></div></div><button class="toggle" id="iConf" aria-label="Confirmó asistencia"></button></div>
       <!-- Dato interno: solo se ve acá, en el detalle. No está en la lista, en los filtros, en el CSV ni en lo que ven los invitados. -->
       <div class="campo" style="margin-top:2px"><label for="iPago">Pagado</label><select id="iPago"></select></div>
+      <!-- Solo si el Sheet tiene la columna "Capitán" (el servidor avisa). También dato interno. -->
+      <div class="campo" id="iCapFila" style="margin-top:2px"><label for="iCap">Capitán</label><select id="iCap"><option value="NO">NO</option><option value="SI">SI</option></select><div class="ayuda"><span>SI escribe una C en el Sheet; NO la saca</span></div></div>
       <div class="campo" style="margin-top:6px"><label>Restricciones alimentarias</label><div class="restr" id="iRestr"></div></div>
       <div class="campo"><label for="iDetalle">Detalle (opcional)</label><textarea id="iDetalle" rows="2" maxlength="300" placeholder="Ej.: alergia a los frutos secos"></textarea></div>
       <div class="acciones"><button class="btn" id="iGuardar">Guardar</button></div>
@@ -1059,6 +1063,7 @@
   let textoBusqueda = '';
   let editando = null;       // el invitado que se edita, o null si es uno nuevo
   let formConf = false, formRestr = [], formTipo = 'Invitado';
+  let capitanDisponible = false;   // el servidor avisa si el Sheet tiene la columna Capitán
   const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   const fmtDiaMes = f => f ? new Date(f).toLocaleDateString('es-AR', { day: 'numeric', month: 'numeric' }) : '';
 
@@ -1067,6 +1072,7 @@
     try {
       const data = await gas('adminListarInvitados');
       invitados = data.invitados.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+      capitanDisponible = data.capitanDisponible === true;
       cargadas.invitados = true;
       $('#invCargando').classList.add('hidden');
       pintarInvitados();
@@ -1100,7 +1106,7 @@
       const sub = [i.tipo || 'Sin tipo'].concat(i.restricciones.length ? [i.restricciones.join(', ')] : []).join(' · ');
       return `<div class="invitado ${i.confirmado ? 'conf' : ''}" data-fila="${i.fila}">
         <div class="avatar">${esc(i.nombre[0] || '?')}</div>
-        <div class="grow"><div class="inv-nombre">${esc(i.nombre)}</div><div class="inv-sub">${esc(sub)}</div></div>
+        <div class="grow"><div class="inv-nombre">${i.capitan ? '<span class="cinta" title="Capitán">C</span>' : ''}${esc(i.nombre)}</div><div class="inv-sub">${esc(sub)}</div></div>
         <span class="pill ${i.confirmado ? 'ok' : ''}">${i.confirmado ? 'Confirmó' + (i.fecha ? ' ' + fmtDiaMes(i.fecha) : '') : 'Pendiente'}</span>
       </div>`;
     }).join('') : '<div class="estado-vacio">' + (total ? 'Nadie coincide con la búsqueda.' : 'Todavía no hay invitados.') + '</div>';
@@ -1192,6 +1198,8 @@
     $('#iDetalle').value = inv ? inv.detalle : '';
     $('#iFecha').textContent = inv && inv.confirmado ? 'Confirmó el ' + fmtDiaMes(inv.fecha) : 'Todavía no confirmó';
     formConf = inv ? inv.confirmado : false;
+    $('#iCap').value = inv && inv.capitan ? 'SI' : 'NO';
+    $('#iCapFila').classList.toggle('hidden', !capitanDisponible);
     formRestr = inv ? inv.restricciones.slice() : [];
     formTipo = inv && TIPOS.includes(inv.tipo) ? inv.tipo : 'Invitado';
     $('#iBorrar').classList.toggle('hidden', !inv);
@@ -1229,6 +1237,9 @@
       // "Pagado" solo viaja si se cambió: así nunca se pisa un valor que el
       // panel no entiende. Un invitado nuevo lo recibe del servidor (AUN NO CONFIRMADO).
       if (editando && $('#iPago').value !== editando.pago) datos.pago = $('#iPago').value;
+      // Lo mismo con "Capitán": solo viaja si se cambió (y si el Sheet tiene la columna).
+      const esCapitan = $('#iCap').value === 'SI';
+      if (capitanDisponible && esCapitan !== (editando ? !!editando.capitan : false)) datos.capitan = esCapitan;
       await gas('adminGuardarInvitado', datos);
       cerrar('ovInvitado');
       toast(editando ? 'Cambios guardados' : 'Invitado agregado');
