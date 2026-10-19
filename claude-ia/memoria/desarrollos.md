@@ -210,3 +210,9 @@ Varias imágenes provistas por el usuario venían con fondos que no eran transpa
 - Las fotos y videos que estaban en Drive no se migraron (eran de prueba).
 - El carrusel también pasó al Worker (`/carrusel`), y `AppsScript_RSVP.gs` quedó solo con el Sheet (de 765 a ~300 líneas, sin `DriveApp`).
 - Pendiente: probar en el navegador de punta a punta; que el usuario publique el Worker, suba las fotos del carrusel a R2, publique el script nuevo y borre en Google la API key de Drive y las carpetas.
+
+## 2026-10-19 — Admin reordenado + respaldo en Drive
+
+- `admin/` menú principal por secciones: Estado, Contenido (fotos/mensajes con el total al lado), Pantalla del salón (los 3 accesos a `tv/`, antes íconos sueltos en la barra), Sitio web (modo + visibilidad en una tarjeta), Respaldo, Herramientas.
+- Botón **Sincronizar** (sección Respaldo): llama a `sincronizarDrive()` del Apps Script (POST `tipo: "sincronizarDrive"` + clave), que copia a la carpeta "Casamiento J&G - Respaldo" (subcarpetas Fotos y Mensajes, ID en Config → `CarpetaRespaldo`) lo que el Worker tiene y Drive no. Detecta lo ya copiado por el id al final del nombre del archivo. Cada llamada trabaja ~90 s; el admin repite hasta que no falte nada. Solo copia, nunca borra.
+- Requiere autorizar Drive + UrlFetch: correr `autorizarRespaldo()` desde el editor **antes** de publicar la versión nueva. Ver [[bugs-conocidos]].

@@ -1,9 +1,14 @@
-// Este script solo lee y escribe el Google Sheet (invitados/RSVP,
-// canciones, regalo, modo del sitio, visibilidad de la galería y la clave
-// del admin). No toca Drive: las fotos de la galería, el carrusel y los
-// mensajes de video viven en Cloudflare R2 y los sirve el Worker de
-// worker/ (ver claude-ia/memoria/decisiones-tecnicas.md). El Worker
-// consulta acá ?tipo=verificarClave para autorizar los borrados del admin.
+// Este script lee y escribe el Google Sheet (invitados/RSVP, canciones,
+// regalo, modo del sitio, visibilidad de la galería y la clave del admin).
+// Las fotos de la galería, el carrusel y los mensajes de video viven en
+// Cloudflare R2 y los sirve el Worker de worker/ (ver
+// claude-ia/memoria/decisiones-tecnicas.md). El Worker consulta acá
+// ?tipo=verificarClave para autorizar los borrados del admin.
+//
+// Drive se usa solo para el respaldo: el botón "Sincronizar" del admin
+// llama a sincronizarDrive(), que copia a una carpeta de Drive las fotos y
+// videos del Worker que todavía no estén ahí. Nada del sitio depende de
+// Drive para funcionar.
 //
 // Es un proyecto de Apps Script independiente (no atado al Sheet), con el
 // proyecto de Google Cloud que administra Google: así la autorización no
@@ -64,6 +69,10 @@ function doPost(e) {
     if (params.tipo === "setGaleriaVisible") {
       if (!claveValida(params.clave)) return errorNoAutorizado();
       return setGaleriaVisible(params);
+    }
+    if (params.tipo === "sincronizarDrive") {
+      if (!claveValida(params.clave)) return errorNoAutorizado();
+      return sincronizarDrive();
     }
     return confirmarInvitado(params);
   } catch (err) {
@@ -313,4 +322,151 @@ function getRegalo() {
   }
   return ContentService.createTextOutput(JSON.stringify(regalo))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ---------- RESPALDO EN DRIVE (botón "Sincronizar" del admin) ----------
+// Copia a Drive las fotos y videos del Worker que todavía no estén. La
+// carpeta se crea sola la primera vez ("Casamiento J&G - Respaldo", con
+// subcarpetas Fotos y Mensajes) y su ID queda en Config, fila
+// "CarpetaRespaldo": se puede mover o renombrar en Drive sin problema.
+//
+// Cada archivo se nombra "<fecha> - <id>": el id es el mismo del Worker,
+// así se sabe qué ya está copiado sin llevar otra lista. Cada llamada
+// trabaja como mucho RESPALDO_TIEMPO_MAX_MS y devuelve cuántos faltan: el
+// admin vuelve a llamar hasta que no quede nada (Apps Script corta a los
+// 6 minutos). Solo copia, nunca borra: lo que se borre en el Worker queda
+// en Drive.
+//
+// La primera vez hay que autorizar Drive y UrlFetch corriendo
+// autorizarRespaldo() desde el editor, ANTES de publicar la versión nueva
+// (si no, el sitio entero queda pidiendo permisos; ver bugs-conocidos.md).
+
+const MEDIA_URL = "https://boda-media.bodajyg.workers.dev";
+const RESPALDO_NOMBRE_CARPETA = "Casamiento J&G - Respaldo";
+const RESPALDO_TIEMPO_MAX_MS = 90 * 1000;
+const RESPALDO_TANDA = 6;            // descargas en paralelo por tanda
+const RESPALDO_ZONA = "America/Argentina/Buenos_Aires";
+
+function autorizarRespaldo() {
+  DriveApp.getRootFolder();
+  UrlFetchApp.fetch(MEDIA_URL + "/carrusel");
+}
+
+function leerConfig(nombre) {
+  const sheet = libro().getSheetByName("Config");
+  if (!sheet) return "";
+  const data = sheet.getDataRange().getValues();
+  for (let i = 0; i < data.length; i++) {
+    if (String(data[i][0]).trim().toLowerCase() === nombre.toLowerCase()) {
+      return String(data[i][1] || "").trim();
+    }
+  }
+  return "";
+}
+
+function guardarConfig(nombre, valor) {
+  const sheet = libro().getSheetByName("Config");
+  const data = sheet.getDataRange().getValues();
+  for (let i = 0; i < data.length; i++) {
+    if (String(data[i][0]).trim().toLowerCase() === nombre.toLowerCase()) {
+      sheet.getRange(i + 1, 2).setValue(valor);
+      return;
+    }
+  }
+  sheet.appendRow([nombre, valor]);
+}
+
+function carpetaRespaldo() {
+  const id = leerConfig("CarpetaRespaldo");
+  if (id) {
+    try {
+      const carpeta = DriveApp.getFolderById(id);
+      if (!carpeta.isTrashed()) return carpeta;
+    } catch (err) {}
+  }
+  const nueva = DriveApp.createFolder(RESPALDO_NOMBRE_CARPETA);
+  guardarConfig("CarpetaRespaldo", nueva.getId());
+  return nueva;
+}
+
+function subcarpeta(padre, nombre) {
+  const it = padre.getFoldersByName(nombre);
+  return it.hasNext() ? it.next() : padre.createFolder(nombre);
+}
+
+// Ids que ya están en la carpeta, sacados del final del nombre.
+function idsEnCarpeta(carpeta) {
+  const ids = new Set();
+  const archivos = carpeta.getFiles();
+  while (archivos.hasNext()) {
+    const m = archivos.next().getName().match(/(\d{13}-[0-9a-f]{8}\.[a-z0-9]{2,5})$/);
+    if (m) ids.add(m[1]);
+  }
+  return ids;
+}
+
+function listarWorker(ruta) {
+  const res = UrlFetchApp.fetch(MEDIA_URL + ruta, { muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) throw new Error("El Worker respondió " + res.getResponseCode() + " en " + ruta);
+  const lista = JSON.parse(res.getContentText());
+  if (!Array.isArray(lista)) throw new Error("Listado inválido en " + ruta);
+  return lista;
+}
+
+function sincronizarDrive() {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(1000)) {
+    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: "Ya hay una sincronización en curso" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  try {
+    const inicio = Date.now();
+    const raiz = carpetaRespaldo();
+    const grupos = [
+      { carpeta: subcarpeta(raiz, "Fotos"), lista: listarWorker("/fotos") },
+      { carpeta: subcarpeta(raiz, "Mensajes"), lista: listarWorker("/mensajes") }
+    ];
+
+    // Todo lo que falta, de las dos carpetas, en una sola cola.
+    let total = 0;
+    const faltan = [];
+    grupos.forEach(g => {
+      total += g.lista.length;
+      const ya = idsEnCarpeta(g.carpeta);
+      g.lista.forEach(item => {
+        if (!ya.has(item.id)) faltan.push({ carpeta: g.carpeta, item });
+      });
+    });
+
+    let copiadas = 0;
+    let fallidas = 0;
+    let i = 0;
+    while (i < faltan.length && Date.now() - inicio < RESPALDO_TIEMPO_MAX_MS) {
+      const tanda = faltan.slice(i, i + RESPALDO_TANDA);
+      i += tanda.length;
+      const respuestas = UrlFetchApp.fetchAll(tanda.map(t => ({ url: t.item.url, muteHttpExceptions: true })));
+      respuestas.forEach((res, j) => {
+        const t = tanda[j];
+        if (res.getResponseCode() !== 200) { fallidas++; return; }
+        const fecha = Utilities.formatDate(new Date(t.item.fecha), RESPALDO_ZONA, "yyyy-MM-dd HH.mm.ss");
+        t.carpeta.createFile(res.getBlob().setName(fecha + " - " + t.item.id));
+        copiadas++;
+      });
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({
+      ok: true,
+      total,
+      copiadas,
+      fallidas,
+      pendientes: faltan.length - i,
+      carpetaUrl: raiz.getUrl()
+    })).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    logError(err);
+    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: err.message }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    lock.releaseLock();
+  }
 }
