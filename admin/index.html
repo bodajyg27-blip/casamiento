@@ -1270,8 +1270,9 @@
   $('#btnExportar').addEventListener('click', () => {
     if (!invitados.length) { toast('No hay invitados para exportar'); return; }
     const celda = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-    const filas = [['Nombre', 'Tipo', 'Confirmó', 'Fecha de confirmación', 'Restricciones', 'Detalle']].concat(invitados.map(i => [
-      i.nombre, i.tipo, i.confirmado ? 'Sí' : 'No', i.fecha ? new Date(i.fecha).toLocaleDateString('es-AR') : '', i.restricciones.join(', '), i.detalle
+    // Solo estas tres columnas: nada de tipo, confirmación, pago ni capitán.
+    const filas = [['Nombre', 'Restricciones', 'Detalle']].concat(invitados.map(i => [
+      i.nombre, i.restricciones.join(', '), i.detalle
     ]));
     const blob = new Blob(['﻿' + filas.map(f => f.map(celda).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
     const a = document.createElement('a');

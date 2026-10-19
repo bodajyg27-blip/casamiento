@@ -281,3 +281,7 @@ Varias imágenes provistas por el usuario venían con fondos que no eran transpa
 - En la lista del panel, una **cinta naranja con una C** (`.cinta`) al lado del nombre de los capitanes. En el detalle, un selector **Capitán SI / NO**: SI escribe `C` en el Sheet, NO la borra (`capitan` boolean; solo viaja si se cambió, el servidor ignora cualquier valor que no sea true/false). Invitado nuevo: vacío.
 - Dato interno como Pagado: no sale por `buscarInvitado`/`getInvitados`/JSON público ni por el CSV. `confirmarInvitado` no lo toca. `copiarValidaciones()` copia las validaciones de la fila de arriba hasta esta columna.
 - Probado: funciones del script con Sheet simulado (C/c, marcar, desmarcar, sin mandar, nuevo, columna en otro lugar, sin columna) y 13 verificaciones en Chrome. Requiere publicar el `.gs`.
+
+## 2026-10-19 — Exportar solo Nombre, Restricciones y Detalle
+
+- El CSV de Invitados (botón Exportar) lleva únicamente `Nombre`, `Restricciones` y `Detalle` (todos los invitados, una fila cada uno). Se sacaron Tipo, Confirmó y Fecha; Pagado y Capitán ya no iban. Sigue con BOM para que Excel abra bien los acentos.
