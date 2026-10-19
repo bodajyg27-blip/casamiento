@@ -22,7 +22,7 @@ El usuario fue pasando imágenes de referencia y se fueron reemplazando seccione
 
 ## Pendiente — Redeploy de Apps Script tras cada cambio en AppsScript_RSVP.gs
 
-**Redeploy pendiente (2026-10-19, respaldo en Drive):** el script ahora usa `DriveApp` y `UrlFetchApp` para el botón Sincronizar del admin. Pegar el código, correr **`autorizarRespaldo()`** desde el editor y aceptar los permisos (Google avisa "app no verificada": Configuración avanzada → Ir a…), y recién después Implementar → Administrar implementaciones → editar → Nueva versión (misma URL). Si se publica sin autorizar, todos los endpoints quedan pidiendo permisos.
+**Redeploy hecho (2026-10-19, respaldo en Drive; autorizado y publicado por el usuario):** el script ahora usa `DriveApp` y `UrlFetchApp` para el botón Sincronizar del admin. Pegar el código, correr **`autorizarRespaldo()`** desde el editor y aceptar los permisos (Google avisa "app no verificada": Configuración avanzada → Ir a…), y recién después Implementar → Administrar implementaciones → editar → Nueva versión (misma URL). Si se publica sin autorizar, todos los endpoints quedan pidiendo permisos.
 
 **Redeploy hecho (2026-10-19):** el script nuevo (solo Sheet, sin Drive) está publicado en `AKfycbxC-pfS4VL6...` y verificado en vivo (modoIndex, galeriaVisible, buscarInvitado, regalo, canciones, verificarClave; lista completa sin clave → `[]`).
 
