@@ -172,6 +172,15 @@
     transition: opacity 0.25s ease;
   }
   .pin img.ready { opacity: 1; }
+  /* Formas de tarjeta (ver formaDePin()). "natural" no recorta. */
+  .pin[data-forma="cuadrada"] img,
+  .pin[data-forma="alta"] img,
+  .pin[data-forma="media"] img,
+  .pin[data-forma="apaisada"] img { object-fit: cover; }
+  .pin[data-forma="cuadrada"] img { aspect-ratio: 1 / 1; }
+  .pin[data-forma="alta"] img { aspect-ratio: 2 / 3; }
+  .pin[data-forma="media"] img { aspect-ratio: 4 / 5; }
+  .pin[data-forma="apaisada"] img { aspect-ratio: 4 / 3; }
 
   #scrollSentinel { height: 1px; }
 
@@ -725,6 +734,23 @@
     return (conMiniatura && foto.thumb) ? [foto.thumb, foto.directo] : [foto.directo];
   }
 
+  // Estilo Pinterest aunque todas las fotos tengan la misma proporción
+  // (p. ej. una tanda de verticales del mismo celular): algunas tarjetas
+  // recortan la foto a otra forma. La forma sale del id de la foto y no de
+  // su posición: con CSS columns un patrón por posición se repite igual en
+  // cada columna y las filas quedan alineadas. Así cada foto tiene siempre
+  // la misma forma. Las horizontales casi no se recortan. En el lightbox
+  // se ve completa.
+  const FORMAS_VERTICAL = ['natural', 'cuadrada', 'alta', 'media', 'natural', 'alta', 'cuadrada'];
+  const FORMAS_HORIZONTAL = ['natural', 'apaisada'];
+
+  function formaDePin(id, ancho, alto) {
+    const formas = alto > ancho ? FORMAS_VERTICAL : FORMAS_HORIZONTAL;
+    let h = 0;
+    for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    return formas[h % formas.length];
+  }
+
   function agregarFotosAlGrid(fotos) {
     const grid = document.getElementById('masonryGrid');
     // Si entran fotos nuevas mientras alguien recorre la galería, las
@@ -750,6 +776,7 @@
       let iRuta = 0;
       img.dataset.src = rutas[0];
       img.addEventListener('load', () => {
+        if (!pin.dataset.forma) pin.dataset.forma = formaDePin(foto.id, img.naturalWidth, img.naturalHeight);
         img.classList.add('ready');
         pin.classList.add('loaded');
         pin.style.minHeight = '';
@@ -904,6 +931,51 @@
     }, 'image/webp');
   })();
 
+  // ---------- Fotos HEIC (iPhone) ----------
+  // Chrome, Firefox y Edge no saben abrir HEIC: el <img> de resizeImage()
+  // falla y la foto nunca se sube. En el celular casi no pasa (el selector
+  // del iPhone ya entrega JPEG), pero sí al subir desde una compu archivos
+  // pasados del iPhone. En ese caso se convierte a JPEG con heic2any, que
+  // pesa ~1,3 MB y por eso se carga solo cuando hace falta.
+  const HEIC2ANY_URL = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
+  let heic2anyPromesa = null;
+
+  function esHeic(file) {
+    return /image\/hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name || '');
+  }
+
+  function cargarHeic2any() {
+    if (!heic2anyPromesa) {
+      heic2anyPromesa = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = HEIC2ANY_URL;
+        script.onload = () => resolve(window.heic2any);
+        script.onerror = () => { heic2anyPromesa = null; reject(new Error('No se pudo cargar el conversor HEIC')); };
+        document.head.appendChild(script);
+      });
+    }
+    return heic2anyPromesa;
+  }
+
+  function sePuedeAbrir(file) {
+    return new Promise(resolve => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => { URL.revokeObjectURL(url); resolve(true); };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(false); };
+      img.src = url;
+    });
+  }
+
+  // Devuelve algo que el navegador pueda dibujar: el mismo archivo o, si
+  // es un HEIC que no sabe abrir, su conversión a JPEG.
+  async function archivoDibujable(file) {
+    if (!esHeic(file) || await sePuedeAbrir(file)) return file;
+    const heic2any = await cargarHeic2any();
+    const convertido = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+    return Array.isArray(convertido) ? convertido[0] : convertido;
+  }
+
   function resizeImage(file, maxDim, calidad) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -988,10 +1060,30 @@
     form.append('foto', new File([record.blob], record.nombre, { type: record.mimeType }));
     if (record.thumb) form.append('thumb', record.thumb, 'thumb');
     form.append('nombre', record.nombre);
-    const res = await fetch(MEDIA_URL + '/fotos', { method: 'POST', body: form });
+    // Con tiempo límite: si la conexión se cuelga a mitad de camino, la
+    // cola no puede quedar "subiendo" (y los botones deshabilitados) para
+    // siempre.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), SUBIDA_TIMEOUT_MS);
+    let res;
+    try {
+      res = await fetch(MEDIA_URL + '/fotos', { method: 'POST', body: form, signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+    // 400/413/415: el Worker rechazó esta foto en sí (formato o tamaño).
+    // Reintentarla no sirve y, como la cola va en orden, trabaría a todas
+    // las que vienen detrás.
+    if ([400, 413, 415].includes(res.status)) throw new FotoRechazada(res.status);
     const data = await res.json();
     if (!data.success) throw new Error('El servidor no confirmó la subida');
     registrarSubidaPropia(data.id, record);
+  }
+
+  const SUBIDA_TIMEOUT_MS = 90 * 1000;
+
+  class FotoRechazada extends Error {
+    constructor(status) { super('Foto rechazada (' + status + ')'); }
   }
 
   let uploadingQueue = false;
@@ -1002,6 +1094,7 @@
     const camBtn = document.getElementById('cameraBtn');
     const pill = document.getElementById('uploadPill');
     let subidas = 0;
+    let rechazadas = 0;
     try {
       const pending = await getAllPending();
       if (!pending.length) return;
@@ -1016,6 +1109,12 @@
           await deletePending(pending[i].id);
           subidas++;
         } catch (err) {
+          if (err instanceof FotoRechazada) {
+            console.error('Foto rechazada por el servidor', pending[i].nombre, err);
+            await deletePending(pending[i].id);
+            rechazadas++;
+            continue;
+          }
           break; // probablemente se cortó la conexión de nuevo; se reintenta más tarde
         }
       }
@@ -1031,6 +1130,11 @@
         showToast(`📸 ${subidas} foto${subidas > 1 ? 's' : ''} subida${subidas > 1 ? 's' : ''}`);
         loadGaleria();
       }
+      if (rechazadas > 0) {
+        showToast(rechazadas > 1
+          ? `${rechazadas} fotos no se pudieron subir (formato o tamaño no admitido)`
+          : 'Una foto no se pudo subir (formato o tamaño no admitido)');
+      }
     }
   }
 
@@ -1039,26 +1143,38 @@
   tryUploadPending();
 
   async function handleFiles(fileList) {
-    const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+    // Algunos navegadores entregan los HEIC con type vacío: se miran
+    // también por la extensión.
+    const files = Array.from(fileList).filter(f => f.type.startsWith('image/') || esHeic(f));
     if (!files.length) return;
 
     const input = document.getElementById('photoInput');
     let guardadas = 0;
+    let fallidas = 0;
+    const hayHeic = files.some(esHeic);
+    if (hayHeic) showToast('Preparando fotos del iPhone…');
     for (let i = 0; i < files.length; i++) {
       try {
-        const resized = await resizeImage(files[i], MAX_DIM);
+        const fuente = await archivoDibujable(files[i]);
+        const resized = await resizeImage(fuente, MAX_DIM);
         // La miniatura es un extra: si no se puede generar, la foto se
         // sube igual y la grilla usa la original.
         let thumb = null;
-        try { thumb = await resizeImage(files[i], THUMB_DIM, 0.75); } catch (err) {}
+        try { thumb = await resizeImage(fuente, THUMB_DIM, 0.75); } catch (err) {}
         const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${i}`;
         await savePending({ id, blob: resized, thumb, nombre: files[i].name, mimeType: outputMime, createdAt: Date.now() });
         guardadas++;
       } catch (err) {
-        console.error('Error preparando foto', err);
+        console.error('Error preparando foto', files[i].name, err);
+        fallidas++;
       }
     }
     input.value = '';
+    if (fallidas && guardadas) {
+      showToast(fallidas > 1
+        ? `${fallidas} fotos no se pudieron abrir; las demás se suben igual`
+        : 'Una foto no se pudo abrir; las demás se suben igual');
+    }
 
     if (guardadas > 0) {
       if (!navigator.onLine) {

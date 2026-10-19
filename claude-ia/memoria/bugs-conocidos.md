@@ -1,5 +1,11 @@
 # Bugs / pendientes conocidos — Invitación de casamiento
 
+## Resuelto — Fotos HEIC no se subían desde Chrome (galeria/index.html) — 2026-10-19
+
+**Síntoma:** al elegir fotos en la galería desde Chrome en la Mac no pasaba nada; la consola mostraba "Error preparando foto" con un `Event` de tipo `error` del `<img>`. Al Worker no llegaba ningún POST (verificado con `wrangler tail`).
+**Causa:** las fotos eran HEIC (pasadas del iPhone). `resizeImage()` las carga en un `<img>` para achicarlas con canvas, y Chrome/Firefox/Edge no decodifican HEIC (Safari sí; el selector de fotos del iPhone ya entrega JPEG, por eso en el celular no pasaba). El error quedaba solo en la consola.
+**Fix:** `archivoDibujable()` detecta HEIC (por type o extensión, porque a veces viene con type vacío) que el navegador no abre y lo convierte a JPEG con `heic2any` (jsDelivr, ~1,3 MB, se carga solo en ese caso). Probado en Chrome con un HEIC real (vía CDP). De paso: la cola de subidas tiene tiempo límite de 90 s y una foto rechazada por el Worker (400/413/415) se descarta con aviso en vez de trabar la cola.
+
 ## Resuelto — tv/index.html se quedaba en "Todavía no hay fotos ni mensajes"
 
 Al proteger `mensaje/admin.html` con clave (ver [[decisiones-tecnicas]]), se le agregó el chequeo `claveValida()` a `getMensajes`/`getMensajeVideo` en `doGet` — pero `tv/index.html` usa esos mismos endpoints para armar el slideshow y nunca mandaba clave, así que empezó a recibir `{"error":"No autorizado"}` en vez de la lista real. Eso rompía `construirPlaylist()` (`mensajes.map is not a function` al no ser un array), la playlist quedaba vacía y la pantalla mostraba el estado de "no hay contenido" aunque sí hubiera fotos y mensajes.
