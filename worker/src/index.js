@@ -12,10 +12,14 @@
 //   POST /borrar                     → JSON { tipo: "foto"|"mensaje", id, clave }
 //   GET  /carrusel                   → fotos de "Nuestra historia", ordenadas por nombre
 //   GET  /c/<nombre>                 → una foto del carrusel
+//   POST /carrusel                   → FormData: foto, clave (solo admin); va al final
+//   POST /borrar                     → también { tipo: "carrusel", id: <nombre>, clave }
 //
-// Las fotos del carrusel se cargan a mano desde el panel de Cloudflare:
-// R2 → boda-fotos → carpeta "carrusel", con nombres "1.jpg", "2.jpg"...
-// para elegir el orden.
+// Las fotos del carrusel se cargan desde admin/ (ya convertidas a WebP o
+// JPEG en el navegador) y quedan en R2 → boda-fotos → carpeta "carrusel".
+// El orden sale del número del principio del nombre ("3-lq2x9a.webp"):
+// cada foto nueva toma el siguiente. También se pueden subir a mano desde
+// el panel de Cloudflare con nombres "1.jpg", "2.jpg"...
 //
 // Mismos campos que devolvía Apps Script (id, nombre, fecha, url, download,
 // directo, thumb) para tocar lo menos posible las páginas. La diferencia es
@@ -258,6 +262,38 @@ async function subirMensaje(request, env, url) {
   return json(request, { ok: true, id, nombre });
 }
 
+// ---------- Carrusel (solo admin) ----------
+
+const TIPOS_CARRUSEL = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+
+async function subirCarrusel(request, env, base) {
+  let form;
+  try {
+    form = await request.formData();
+  } catch (err) {
+    return json(request, { ok: false, error: 'Formato inválido' }, 400);
+  }
+  if (!(await claveValida(env, form.get('clave')))) return json(request, { ok: false, error: 'No autorizado' }, 403);
+  const foto = form.get('foto');
+  if (!foto || typeof foto === 'string') return json(request, { ok: false, error: 'Falta la foto' }, 400);
+  const ext = TIPOS_CARRUSEL[foto.type];
+  if (!ext) return json(request, { ok: false, error: 'Tipo no permitido' }, 415);
+  if (foto.size > MAX_FOTO) return json(request, { ok: false, error: 'Foto demasiado grande' }, 413);
+
+  // Siguiente número después del mayor que haya. El sufijo al azar hace
+  // que un nombre no se repita nunca (si se borra la última y se sube
+  // otra), porque /c/ deja las fotos una hora en la caché del navegador.
+  const actuales = await env.FOTOS.list({ prefix: 'carrusel/', limit: 1000 });
+  const mayor = actuales.objects.reduce((max, o) => {
+    const n = parseInt(o.key.slice('carrusel/'.length), 10);
+    return Number.isFinite(n) && n > max ? n : max;
+  }, 0);
+  const nombre = `${mayor + 1}-${Date.now().toString(36)}.${ext}`;
+  await env.FOTOS.put('carrusel/' + nombre, foto, { httpMetadata: { contentType: foto.type } });
+  olvidar('carrusel');
+  return json(request, { ok: true, id: nombre, url: `${base}/c/${encodeURIComponent(nombre)}` });
+}
+
 // ---------- Borrar (solo admin) ----------
 
 async function claveValida(env, clave) {
@@ -278,10 +314,14 @@ async function borrar(request, env) {
   } catch (err) {
     return json(request, { ok: false, error: 'Formato inválido' }, 400);
   }
-  if (!idValido(params.id)) return json(request, { ok: false, error: 'Id inválido' }, 400);
+  const idOk = params.tipo === 'carrusel' ? nombreCarruselValido(params.id) : idValido(params.id);
+  if (!idOk) return json(request, { ok: false, error: 'Id inválido' }, 400);
   if (!(await claveValida(env, params.clave))) return json(request, { ok: false, error: 'No autorizado' }, 403);
 
-  if (params.tipo === 'foto') {
+  if (params.tipo === 'carrusel') {
+    await env.FOTOS.delete('carrusel/' + params.id);
+    olvidar('carrusel');
+  } else if (params.tipo === 'foto') {
     await env.FOTOS.delete(['fotos/' + params.id, 'miniaturas/' + params.id]);
     olvidar('fotos');
   } else if (params.tipo === 'mensaje') {
@@ -333,6 +373,7 @@ export default {
       if (request.method === 'POST') {
         if (ruta === '/fotos') return subirFoto(request, env);
         if (ruta === '/mensajes') return subirMensaje(request, env, url);
+        if (ruta === '/carrusel') return subirCarrusel(request, env, base);
         if (ruta === '/borrar') return borrar(request, env);
       }
 

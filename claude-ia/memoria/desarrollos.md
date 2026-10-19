@@ -216,3 +216,9 @@ Varias imágenes provistas por el usuario venían con fondos que no eran transpa
 - `admin/` menú principal por secciones: Estado, Contenido (fotos/mensajes con el total al lado), Pantalla del salón (los 3 accesos a `tv/`, antes íconos sueltos en la barra), Sitio web (modo + visibilidad en una tarjeta), Respaldo, Herramientas.
 - Botón **Sincronizar** (sección Respaldo): llama a `sincronizarDrive()` del Apps Script (POST `tipo: "sincronizarDrive"` + clave), que copia a la carpeta "Casamiento J&G - Respaldo" (subcarpetas Fotos y Mensajes, ID en Config → `CarpetaRespaldo`) lo que el Worker tiene y Drive no. Detecta lo ya copiado por el id al final del nombre del archivo. Cada llamada trabaja ~90 s; el admin repite hasta que no falte nada. Solo copia, nunca borra.
 - Requiere autorizar Drive + UrlFetch: correr `autorizarRespaldo()` desde el editor **antes** de publicar la versión nueva. Ver [[bugs-conocidos]].
+
+## 2026-10-19 — Carga del carrusel desde el admin
+
+- `admin/` → Contenido → **Carrusel «Nuestra historia»**: lista las fotos en orden (número, miniatura, ver, borrar) y botón **Cargar fotos** (varias a la vez). Cada foto se prepara en el navegador: HEIC → JPEG con `heic2any` si el navegador no lo abre, y se achica a 1600 px en WebP (JPEG si no hay WebP). Se suben en orden de nombre de archivo.
+- Worker: `POST /carrusel` (FormData `foto` + `clave`, valida la clave contra Apps Script, solo jpeg/png/webp) guarda `carrusel/<n>-<base36>.<ext>` con n = mayor + 1; el sufijo evita reutilizar nombres (las fotos de `/c/` se cachean 1 h). `POST /borrar` acepta `tipo: "carrusel"` con el nombre como id.
+- No hay reordenar: para cambiar el orden, borrar y volver a cargar.
