@@ -298,6 +298,10 @@
   .restr { display: flex; flex-wrap: wrap; gap: 8px; }
   .restr .chip { padding: 6px 12px; }
   .modal { background: var(--cream); border-radius: 18px; padding: 22px 20px; width: calc(100% - 40px); max-width: 340px; text-align: center; align-self: center; }
+  .modal.form { text-align: left; max-width: 380px; }
+  .modal.form h3 { font-size: 22px; margin-bottom: 14px; }
+  @keyframes destello { 0%, 60% { background: #dfe8c2; } 100% { background: var(--cream); } }
+  .invitado.nuevo { animation: destello 2.2s ease; }
   .modal .acciones { display: flex; gap: 10px; margin-top: 16px; }
   .modal .acciones .btn { flex: 1; }
   .visor { background: #14130a; border-radius: 16px; width: calc(100% - 24px); max-width: 640px; align-self: center; overflow: hidden; }
@@ -433,7 +437,7 @@
           <button class="chip" data-f="Invitado">Invitados</button>
           <button class="chip" data-f="restr">Con restricciones</button>
         </div>
-        <div class="lista-cab"><span id="contador"></span><button class="btn ghost" style="padding:3px 12px" id="btnExportar"><i data-i="download" style="width:16px;height:16px"></i>Exportar</button></div>
+        <div class="lista-cab"><span id="contador"></span><span class="row" style="gap:8px"><button class="btn ghost" style="padding:3px 12px" id="btnExportar"><i data-i="download" style="width:16px;height:16px"></i>Exportar</button><button class="btn" style="padding:3px 14px" id="btnNuevo"><i data-i="plus" style="width:16px;height:16px"></i>Agregar</button></span></div>
         <div id="invCargando" class="cargando"><div class="spinner"></div><span>Cargando invitados…</span></div>
         <div id="listaInvitados"></div>
         <button class="fab hidden" id="fabInvitado" title="Agregar invitado"><i data-i="plus"></i></button>
@@ -572,6 +576,16 @@
       <!-- Aparte y lejos de Guardar, para no tocarlo sin querer -->
       <button class="btn danger full" id="iBorrar" style="margin-top:34px"><i data-i="trash" style="width:17px;height:17px"></i>Borrar invitado</button>
     </div>
+  </div>
+
+  <!-- Popup: agregar un invitado (solo nombre y tipo) -->
+  <div class="overlay" id="ovNuevo" style="align-items:center">
+    <form class="modal form" id="formNuevo" autocomplete="off">
+      <h3>Agregar invitado</h3>
+      <div class="campo"><label for="nNombre">Nombre completo</label><input id="nNombre" maxlength="100" placeholder="Ej.: Ana García"></div>
+      <div class="campo"><label>Tipo de invitación</label><div class="seg" id="nTipo"><button type="button" data-v="Familiar">Familiar</button><button type="button" data-v="Invitado">Invitado</button></div></div>
+      <div class="acciones"><button type="button" class="btn sec" data-cerrar="ovNuevo">Cancelar</button><button type="submit" class="btn" id="nGuardar">Agregar</button></div>
+    </form>
   </div>
 
   <!-- Visor de una foto -->
@@ -1100,7 +1114,53 @@
     const el = e.target.closest('.invitado');
     if (el) abrirInvitado(invitados.find(i => String(i.fila) === el.dataset.fila));
   });
-  $('#fabInvitado').addEventListener('click', () => abrirInvitado(null));
+  $('#fabInvitado').addEventListener('click', abrirNuevo);
+  $('#btnNuevo').addEventListener('click', abrirNuevo);
+
+  // Alta rápida: solo nombre y tipo. Lo demás (confirmó, restricciones,
+  // detalle) se completa después editando al invitado.
+  let tipoNuevo = 'Invitado';
+  function pintarTipoNuevo() {
+    $$('#nTipo button').forEach(b => b.classList.toggle('on', b.dataset.v === tipoNuevo));
+  }
+  function abrirNuevo() {
+    $('#nNombre').value = '';
+    tipoNuevo = 'Invitado';
+    pintarTipoNuevo();
+    abrir('ovNuevo');
+    setTimeout(() => $('#nNombre').focus(), 60);
+  }
+  $('#nTipo').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { tipoNuevo = b.dataset.v; pintarTipoNuevo(); } });
+  $('#formNuevo').addEventListener('submit', async e => {
+    e.preventDefault();
+    const nombre = $('#nNombre').value.trim();
+    if (!nombre) { toast('Falta el nombre'); $('#nNombre').focus(); return; }
+    const btn = $('#nGuardar');
+    btn.disabled = true;
+    btn.textContent = 'Agregando…';
+    try {
+      await gas('adminGuardarInvitado', {
+        fila: null, nombreOriginal: '', nombre,
+        tipoInvitado: tipoNuevo, confirmado: false, restricciones: [], detalle: ''
+      });
+      cerrar('ovNuevo');
+      toast(nombre + ' agregado/a');
+      // Para que se vea el recién agregado, se limpia la búsqueda y el filtro.
+      textoBusqueda = '';
+      $('#buscar').value = '';
+      filtro = 'todos';
+      $$('#filtros .chip').forEach(x => x.classList.toggle('on', x.dataset.f === 'todos'));
+      await cargarInvitados();
+      const fila = [...document.querySelectorAll('#listaInvitados .invitado')]
+        .find(el => (invitados.find(i => String(i.fila) === el.dataset.fila) || {}).nombre === nombre);
+      if (fila) { fila.classList.add('nuevo'); fila.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+    } catch (err) {
+      toast(err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Agregar';
+    }
+  });
 
   function pintarFormInvitado() {
     $('#iConf').classList.toggle('on', formConf);

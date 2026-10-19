@@ -256,3 +256,7 @@ Varias imágenes provistas por el usuario venían con fondos que no eran transpa
 
 - Todos los borrados del panel ya pedían confirmación (`confirmar()`). Ahora, además: el aviso ignora cualquier toque que llegue en los primeros 600 ms (un doble toque o el mismo toque que lo abrió no confirma) y el botón dice "Sí, borrar" en el caso de invitados. En la hoja de edición de un invitado, "Borrar invitado" quedó aparte, abajo y lejos de "Guardar".
 - Probado en Chrome: el aviso abre, un toque inmediato no borra, Cancelar no borra y deja la hoja abierta, y confirmando tras una pausa sí borra.
+
+## 2026-10-19 — Alta rápida de invitados (admin)
+
+- Botón **Agregar** en la cabecera de la lista de Invitados (y el **+** flotante) abre un popup chico con solo nombre y tipo (Familiar/Invitado, por defecto Invitado). Se envía como `adminGuardarInvitado` sin `nombreOriginal` (confirmó = no, sin restricciones); lo demás se completa después editando. Valida nombre vacío y repetido (el popup queda abierto para corregir), limpia la búsqueda y el filtro, y resalta al recién agregado. La hoja completa queda solo para editar. Probado en Chrome (12 verificaciones).
