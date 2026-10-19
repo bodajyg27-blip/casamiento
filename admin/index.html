@@ -1602,6 +1602,39 @@
     return heic2anyPromesa;
   }
 
+  // Conversor principal: heic-to (libheif reciente, ~3 MB, se carga solo si
+  // hace falta). Lo anterior, heic2any, usa una libheif vieja que falla con
+  // "ERR_LIBHEIF format not supported" en fotos de iPhone recientes; queda
+  // de respaldo.
+  const HEICTO_URL = 'https://cdn.jsdelivr.net/npm/heic-to@1.6.6/dist/iife/heic-to.js';
+  let heicToPromesa = null;
+
+  function cargarHeicTo() {
+    if (!heicToPromesa) {
+      heicToPromesa = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = HEICTO_URL;
+        script.onload = () => resolve(window.HeicTo);
+        script.onerror = () => { heicToPromesa = null; reject(new Error('No se pudo cargar el conversor HEIC')); };
+        document.head.appendChild(script);
+      });
+    }
+    return heicToPromesa;
+  }
+
+  // HEIC → JPEG probando un conversor y, si falla, el otro.
+  async function convertirHeic(file, calidad) {
+    try {
+      const heicTo = await cargarHeicTo();
+      return await heicTo({ blob: file, type: 'image/jpeg', quality: calidad });
+    } catch (err) {
+      console.warn('heic-to no pudo convertirla, se prueba heic2any:', err);
+    }
+    const heic2any = await cargarHeic2any();
+    const convertido = await heic2any({ blob: file, toType: 'image/jpeg', quality: calidad });
+    return Array.isArray(convertido) ? convertido[0] : convertido;
+  }
+
   function abrirImagen(blob) {
     return new Promise((resolve, reject) => {
       const url = URL.createObjectURL(blob);
@@ -1622,9 +1655,7 @@
       img = await abrirImagen(file);
     } catch (err) {
       if (!esHeic(file)) throw err;
-      const heic2any = await cargarHeic2any();
-      const convertido = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.92 });
-      img = await abrirImagen(Array.isArray(convertido) ? convertido[0] : convertido);
+      img = await abrirImagen(await convertirHeic(file, 0.92));
     }
     const escala = Math.min(1, CARRUSEL_MAX_DIM / Math.max(img.width, img.height));
     const canvas = document.createElement('canvas');
@@ -1779,7 +1810,8 @@
           continue;
         }
         console.error('No se pudo subir al carrusel', files[i].name, err);
-        fallas.push(files[i].name);
+        const motivo = err && err.message ? err.message : (err && err.type) || 'no se pudo abrir';
+        fallas.push(files[i].name + ' (' + motivo + ')');
       }
     }
     carruselBtn.disabled = false;

@@ -1001,6 +1001,39 @@
     return heic2anyPromesa;
   }
 
+  // Conversor principal: heic-to (libheif reciente, ~3 MB, se carga solo si
+  // hace falta). Lo anterior, heic2any, usa una libheif vieja que falla con
+  // "ERR_LIBHEIF format not supported" en fotos de iPhone recientes; queda
+  // de respaldo.
+  const HEICTO_URL = 'https://cdn.jsdelivr.net/npm/heic-to@1.6.6/dist/iife/heic-to.js';
+  let heicToPromesa = null;
+
+  function cargarHeicTo() {
+    if (!heicToPromesa) {
+      heicToPromesa = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = HEICTO_URL;
+        script.onload = () => resolve(window.HeicTo);
+        script.onerror = () => { heicToPromesa = null; reject(new Error('No se pudo cargar el conversor HEIC')); };
+        document.head.appendChild(script);
+      });
+    }
+    return heicToPromesa;
+  }
+
+  // HEIC → JPEG probando un conversor y, si falla, el otro.
+  async function convertirHeic(file, calidad) {
+    try {
+      const heicTo = await cargarHeicTo();
+      return await heicTo({ blob: file, type: 'image/jpeg', quality: calidad });
+    } catch (err) {
+      log('heic-to no pudo convertirla, se prueba heic2any:', err);
+    }
+    const heic2any = await cargarHeic2any();
+    const convertido = await heic2any({ blob: file, toType: 'image/jpeg', quality: calidad });
+    return Array.isArray(convertido) ? convertido[0] : convertido;
+  }
+
   function sePuedeAbrir(file) {
     return new Promise(resolve => {
       const url = URL.createObjectURL(file);
@@ -1015,9 +1048,7 @@
   // es un HEIC que no sabe abrir, su conversión a JPEG.
   async function archivoDibujable(file) {
     if (!esHeic(file) || await sePuedeAbrir(file)) return file;
-    const heic2any = await cargarHeic2any();
-    const convertido = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
-    return Array.isArray(convertido) ? convertido[0] : convertido;
+    return convertirHeic(file, 0.9);
   }
 
   function resizeImage(file, maxDim, calidad) {
