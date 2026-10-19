@@ -17,6 +17,7 @@
 //                                      409 si ya hay una foto con ese hash
 //   POST /borrar                     → también { tipo: "carrusel", id: <nombre>, clave }
 //   POST /uso                        → JSON { clave }: uso del plan gratis (solo admin)
+//   POST /carrusel/orden             → JSON { clave, orden: [nombres en el orden nuevo] } (solo admin)
 //
 // Las fotos del carrusel se cargan desde admin/ (ya convertidas a WebP o
 // JPEG en el navegador) y quedan en R2 → boda-fotos → carpeta "carrusel".
@@ -322,6 +323,49 @@ async function subirCarrusel(request, env, base) {
   return json(request, { ok: true, id: nombre, url: `${base}/c/${encodeURIComponent(nombre)}` });
 }
 
+// Reordenar: el orden sale del número del principio del nombre, y R2 no
+// permite renombrar, así que cada foto se vuelve a guardar con su número
+// nuevo (el resto del nombre se conserva: nunca se reutiliza el nombre de
+// otra foto, y /c/ cachea una hora) y recién después se borran los nombres
+// viejos. Si algo falla antes de borrar, no se pierde ninguna foto.
+async function ordenarCarrusel(request, env) {
+  let params;
+  try {
+    params = await request.json();
+  } catch (err) {
+    return json(request, { ok: false, error: 'Formato inválido' }, 400);
+  }
+  if (!(await claveValida(env, params.clave))) return json(request, { ok: false, error: 'No autorizado' }, 403);
+  const orden = params.orden;
+  if (!Array.isArray(orden) || !orden.length || orden.length > 60 || !orden.every(nombreCarruselValido)) {
+    return json(request, { ok: false, error: 'Orden inválido' }, 400);
+  }
+
+  const actuales = (await env.FOTOS.list({ prefix: 'carrusel/', limit: 1000 })).objects
+    .map(o => o.key.slice('carrusel/'.length)).filter(nombreCarruselValido);
+  // Tiene que ser exactamente el mismo conjunto de fotos, solo reordenado.
+  if (actuales.length !== orden.length || new Set(orden).size !== orden.length || !orden.every(n => actuales.includes(n))) {
+    return json(request, { ok: false, error: 'La lista cambió, recargá' }, 409);
+  }
+
+  const nuevos = orden.map((nombre, i) => ({ nombre, nuevo: `${i + 1}${nombre.replace(/^\d+/, '')}` }));
+  const cambian = nuevos.filter(n => n.nuevo !== n.nombre);
+  // Primero se lee todo (así dos fotos pueden intercambiar nombre sin pisarse)
+  const leidos = await Promise.all(cambian.map(async n => {
+    const obj = await env.FOTOS.get('carrusel/' + n.nombre);
+    if (!obj) throw new Error('Falta ' + n.nombre);
+    return { n, cuerpo: await obj.arrayBuffer(), http: obj.httpMetadata, custom: obj.customMetadata };
+  }));
+  for (const l of leidos) {
+    await env.FOTOS.put('carrusel/' + l.n.nuevo, l.cuerpo, { httpMetadata: l.http, customMetadata: l.custom });
+  }
+  const nombresNuevos = new Set(nuevos.map(n => n.nuevo));
+  const sobran = cambian.filter(n => !nombresNuevos.has(n.nombre)).map(n => 'carrusel/' + n.nombre);
+  if (sobran.length) await env.FOTOS.delete(sobran);
+  olvidar('carrusel');
+  return json(request, { ok: true });
+}
+
 // ---------- Uso del plan gratis (solo admin) ----------
 // Lo que muestra admin/ para saber si se está por pasar de lo gratis:
 //   - Pedidos al Worker hoy (100.000 por día; el día es UTC, o sea que se
@@ -500,6 +544,7 @@ export default {
         if (ruta === '/fotos') return subirFoto(request, env);
         if (ruta === '/mensajes') return subirMensaje(request, env, url);
         if (ruta === '/carrusel') return subirCarrusel(request, env, base);
+        if (ruta === '/carrusel/orden') return ordenarCarrusel(request, env);
         if (ruta === '/borrar') return borrar(request, env);
         if (ruta === '/uso') return uso(request, env);
       }

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Panel — Administración</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
 
   :root {
     --olive: #4b5320;
@@ -14,22 +14,24 @@
     --bg: #eeecd4;
     --border: #ddd9ae;
     --muted: #8a8757;
+    --chip: #eceed6;
+    --ok: #6f9a2a;
+    --warn: #d9a514;
     --danger: #b8453f;
     --danger-dark: #9c3a35;
   }
-
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-  html, body { height: 100%; }
-
+  html, body { min-height: 100%; }
   body {
     background: var(--bg);
     font-family: 'Cormorant Garamond', serif;
+    font-size: 17px;
     color: #3f3e28;
     -webkit-font-smoothing: antialiased;
   }
-
+  button, input, select, textarea { font: inherit; color: inherit; }
   .hidden { display: none !important; }
+  svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
   /* ---------- Passcode gate ---------- */
 
@@ -104,504 +106,227 @@
   .key.backspace { color: #8a8757; }
   .key svg { width: 22px; height: 22px; }
 
-  /* ---------- Panel ---------- */
-
-  #panel { min-height: 100dvh; display: flex; flex-direction: column; }
-
+  /* ---------- Barra superior ---------- */
   .topbar {
-    position: sticky;
-    top: 0;
-    z-index: 5;
-    background: var(--olive);
-    color: var(--cream);
-    padding: max(16px, env(safe-area-inset-top)) 20px 16px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    justify-content: space-between;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+    position: sticky; top: 0; z-index: 20;
+    background: var(--olive); color: var(--cream);
+    padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
+    display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.15);
   }
-  .topbar-title { display: flex; flex-direction: column; flex: 1; min-width: 0; }
-  .topbar-title .kicker { font-style: italic; font-size: 15px; opacity: 0.85; line-height: 1; }
-  .topbar-title h1 {
-    font-size: 21px;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    font-weight: 600;
-  }
-  .topbar-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-  .count-badge {
-    background: rgba(255,255,255,0.16);
-    color: var(--cream);
-    font-size: 14px;
-    padding: 4px 12px;
-    border-radius: 20px;
-    min-width: 20px;
-    text-align: center;
-  }
-  .icon-btn {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: none;
-    background: rgba(255,255,255,0.14);
-    color: var(--cream);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    flex-shrink: 0;
-    text-decoration: none;
-    transition: background 0.15s ease, transform 0.4s ease;
-  }
-  .icon-btn:active { background: rgba(255,255,255,0.28); }
-  .icon-btn svg { width: 19px; height: 19px; }
-  .icon-btn.spinning svg { animation: spin 0.8s linear infinite; }
+  .topbar .kicker { font-style: italic; font-size: 15px; opacity: .85; line-height: 1; }
+  .topbar h1 { font-size: 24px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; line-height: 1.1; }
+  .grow { flex: 1; min-width: 0; }
+  .icon-btn { width: 40px; height: 40px; border-radius: 50%; border: none; background: rgba(255,255,255,.14); color: inherit; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .icon-btn:active { background: rgba(255,255,255,.28); }
   @keyframes spin { to { transform: rotate(360deg); } }
+  .icon-btn.spinning svg { animation: spin .8s linear infinite; }
 
-  .content {
-    flex: 1;
-    max-width: 640px;
-    width: 100%;
-    margin: 0 auto;
-    padding: 18px 16px calc(40px + env(safe-area-inset-bottom));
-  }
+  /* ---------- Contenido ---------- */
+  main { max-width: 680px; margin: 0 auto; padding: 16px 16px 110px; }
+  .tab { display: none; }
+  .tab.active { display: block; animation: aparece .18s ease; }
+  @keyframes aparece { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
-  .modo-switch-card {
-    background: var(--cream);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 14px 16px;
-    box-shadow: 0 2px 8px rgba(75,83,32,0.06);
-    margin-bottom: 16px;
-  }
-  /* Estado del sistema: semáforo de los servicios de los que depende la
-     fiesta (Apps Script, Worker de fotos y videos). */
-  .estado-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 10px;
-  }
-  .estado-titulo { font-size: 14px; color: var(--muted); }
-  .estado-pill {
-    font-size: 13px;
-    font-weight: 600;
-    padding: 4px 12px;
-    border-radius: 20px;
-    background: #eceed6;
-    color: var(--muted);
-    white-space: nowrap;
-  }
-  .estado-pill.ok { background: #dfe8c2; color: #3f5a14; }
-  .estado-pill.lento { background: #f3e3b3; color: #7a5a08; }
-  .estado-pill.falla { background: #f3d2cf; color: var(--danger-dark); }
-  .estado-fila {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 7px 0;
-    border-top: 1px solid var(--border);
-    font-size: 15px;
-    color: var(--olive-dark);
-  }
-  .estado-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: #cfcda4;
-    flex: none;
-  }
-  .estado-fila.ok .estado-dot { background: #6f9a2a; }
-  .estado-fila.lento .estado-dot { background: #d9a514; }
-  .estado-fila.falla .estado-dot { background: var(--danger); }
-  .estado-nombre { flex: 1; }
-  .estado-detalle { font-size: 13px; color: var(--muted); text-align: right; }
-  .estado-fila.falla .estado-detalle { color: var(--danger-dark); }
-  .estado-pie {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    border-top: 1px solid var(--border);
-    padding-top: 9px;
-    margin-top: 2px;
-    font-size: 13px;
-    color: var(--muted);
-  }
-  .estado-btn {
-    font: inherit;
-    font-size: 13px;
-    color: var(--olive);
-    background: none;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 4px 12px;
-    cursor: pointer;
-  }
-  .estado-btn:disabled { opacity: 0.5; cursor: default; }
-  .estado-ayuda {
-    font-size: 13px;
-    color: var(--danger-dark);
-    padding: 2px 0 8px;
-  }
+  .card { background: var(--cream); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; box-shadow: 0 2px 8px rgba(75,83,32,.06); margin-bottom: 14px; }
+  .card-title { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+  .row { display: flex; align-items: center; gap: 12px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 14px; }
+  h2.sec { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 22px 4px 10px; }
+  h2.sec:first-child { margin-top: 2px; }
+  .estado-vacio { text-align: center; color: var(--muted); padding: 34px 10px; }
+  .cargando { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; color: var(--muted); padding: 40px 10px; }
+  .spinner { width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--olive); border-radius: 50%; animation: spin .8s linear infinite; }
 
-  .modo-switch-label {
-    font-size: 14px;
-    color: var(--muted);
-    margin-bottom: 10px;
-    text-align: center;
-  }
-  .modo-switch {
-    display: flex;
-    background: #eceed6;
-    border-radius: 10px;
-    padding: 4px;
-    gap: 4px;
-  }
-  .modo-btn {
-    flex: 1;
-    padding: 10px;
-    border: none;
-    border-radius: 8px;
-    background: transparent;
-    color: #6b6942;
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
-  }
-  .modo-btn.active {
-    background: var(--olive);
-    color: var(--cream);
-  }
-  .modo-btn:disabled { opacity: 0.6; cursor: default; }
+  /* Segmentados */
+  .seg { display: flex; background: var(--chip); border-radius: 10px; padding: 4px; gap: 4px; }
+  .seg button { flex: 1; padding: 9px 6px; border: none; border-radius: 8px; background: transparent; color: #6b6942; cursor: pointer; white-space: nowrap; }
+  .seg button.on { background: var(--olive); color: var(--cream); }
+  .seg button:disabled { opacity: .6; cursor: default; }
+  .seg button .n { font-size: 13px; opacity: .75; margin-left: 4px; }
 
-  /* ---------- Menú principal ---------- */
+  /* Pastillas */
+  .pill { display: inline-block; font-size: 13px; font-weight: 600; padding: 3px 11px; border-radius: 20px; background: var(--chip); color: var(--muted); white-space: nowrap; }
+  .pill.ok { background: #dfe8c2; color: #3f5a14; }
+  .pill.warn { background: #f3e3b3; color: #7a5a08; }
+  .pill.bad { background: #f3d2cf; color: var(--danger-dark); }
 
-  .menu-actions { display: flex; flex-direction: column; gap: 12px; }
-  .menu-card {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    background: var(--cream);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 16px;
-    box-shadow: 0 2px 8px rgba(75,83,32,0.06);
-    cursor: pointer;
-    text-align: left;
-    width: 100%;
-    font-family: 'Cormorant Garamond', serif;
-    transition: background 0.15s ease;
-  }
-  .menu-card:active { background: #f0efdc; }
-  .menu-icon {
-    flex-shrink: 0;
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
-    background: #eceed6;
-    color: var(--olive);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .menu-icon svg { width: 24px; height: 24px; }
-  .menu-text { flex: 1; min-width: 0; }
-  .menu-title { font-size: 19px; font-weight: 600; color: #3f3e28; }
-  .menu-sub { font-size: 14px; color: var(--muted); margin-top: 2px; }
-  .menu-chevron { color: var(--muted); flex-shrink: 0; }
-  .menu-chevron svg { width: 18px; height: 18px; }
+  /* Botones */
+  .btn { border: none; border-radius: 10px; padding: 10px 18px; font-weight: 600; cursor: pointer; background: var(--olive); color: var(--cream); display: inline-flex; align-items: center; gap: 8px; justify-content: center; }
+  .btn:active { background: var(--olive-dark); }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .btn.sec { background: var(--chip); color: var(--olive); }
+  .btn.ghost { background: transparent; color: var(--olive); border: 1px solid var(--border); }
+  .btn.danger { background: transparent; color: var(--danger); border: 1px solid #e2bcb9; }
+  .btn.full { width: 100%; }
 
-  .menu-card.compacta { padding: 12px 16px; }
-  .menu-card.compacta .menu-icon { width: 42px; height: 42px; }
-  .menu-card.compacta .menu-title { font-size: 17px; }
-
-  /* Títulos de sección del menú principal. */
-  .seccion-titulo {
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin: 26px 4px 10px;
-  }
-  .seccion-titulo:first-child { margin-top: 4px; }
-  .modo-switch-label.separada { margin-top: 16px; }
-
-  /* Uso del plan gratis de Cloudflare: una barra por límite. */
-  .uso-fila { padding: 8px 0; border-top: 1px solid var(--border); }
-  .uso-linea {
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
-    font-size: 15px;
-    color: var(--olive-dark);
-  }
-  .uso-cifra { font-size: 13px; color: var(--muted); text-align: right; white-space: nowrap; }
-  .uso-nota { font-size: 12px; color: var(--muted); margin-top: 2px; }
-  .uso-barra {
-    height: 6px;
-    border-radius: 3px;
-    background: #eceed6;
-    margin-top: 6px;
-    overflow: hidden;
-  }
-  .uso-barra span { display: block; height: 100%; background: #6f9a2a; }
-  .uso-fila.lento .uso-barra span { background: #d9a514; }
-  .uso-fila.falla .uso-barra span { background: var(--danger); }
-  .uso-fila.falla .uso-cifra { color: var(--danger-dark); }
-
-  /* Pantalla del salón: tres accesos a tv/ en una fila. */
+  /* ---------- INICIO ---------- */
+  .estado-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; margin-top: 12px; }
+  .estado-item { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+  .estado-item .dot { width: 10px; height: 10px; border-radius: 50%; background: #cfcda4; flex: none; }
+  .estado-item.ok .dot { background: var(--ok); }
+  .estado-item.lento .dot { background: var(--warn); }
+  .estado-item.falla .dot { background: var(--danger); }
+  .estado-item .d { margin-left: auto; font-size: 13px; color: var(--muted); text-align: right; }
+  .estado-item.falla .d { color: var(--danger-dark); }
+  .ayuda-roja { font-size: 14px; color: var(--danger-dark); margin-top: 10px; }
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+  .kpi { background: var(--cream); border: 1px solid var(--border); border-radius: 16px; padding: 12px 8px; text-align: center; cursor: pointer; box-shadow: 0 2px 8px rgba(75,83,32,.06); }
+  .kpi:active { background: #f0efdc; }
+  .kpi b { display: block; font-size: 30px; line-height: 1.05; color: var(--olive); }
+  .kpi span { font-size: 14px; color: var(--muted); }
   .tv-links { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-  .tv-link {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    padding: 14px 6px;
-    background: var(--cream);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    box-shadow: 0 2px 8px rgba(75,83,32,0.06);
-    color: var(--olive);
-    text-decoration: none;
-    font-size: 15px;
-    text-align: center;
-  }
-  .tv-link:active { background: #f0efdc; }
+  .tv-link { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 4px; background: var(--chip); border-radius: 12px; color: var(--olive); font-size: 15px; text-align: center; cursor: pointer; border: none; text-decoration: none; }
   .tv-link svg { width: 24px; height: 24px; }
+  .switch-label { font-size: 14px; color: var(--muted); text-align: center; margin: 12px 0 8px; }
+  .switch-label:first-child { margin-top: 0; }
 
-  /* Respaldo en Drive. */
-  .respaldo-titulo { font-size: 18px; font-weight: 600; color: #3f3e28; }
-  .respaldo-texto { font-size: 14px; color: var(--muted); margin-top: 2px; }
-  .respaldo-estado { font-size: 14px; color: var(--olive-dark); margin-top: 12px; }
-  #vistaCarrusel > .modo-switch-card { margin-bottom: 18px; }
-  .item-orden {
-    flex-shrink: 0;
-    width: 26px;
-    text-align: center;
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--muted);
-  }
-  .respaldo-estado.error { color: var(--danger-dark); }
-  .respaldo-barra {
-    height: 6px;
-    border-radius: 3px;
-    background: #eceed6;
-    margin-top: 8px;
-    overflow: hidden;
-  }
-  .respaldo-barra span {
-    display: block;
-    height: 100%;
-    width: 0;
-    background: var(--olive);
-    transition: width 0.4s ease;
-  }
+  /* ---------- INVITADOS ---------- */
+  .bar { height: 8px; background: var(--chip); border-radius: 4px; overflow: hidden; margin-top: 10px; }
+  .bar span { display: block; height: 100%; background: var(--ok); border-radius: 4px; transition: width .3s ease; }
+  .resumen { display: flex; justify-content: space-between; text-align: center; }
+  .resumen b { display: block; font-size: 28px; color: var(--olive); line-height: 1.1; }
+  .resumen span { font-size: 14px; color: var(--muted); }
+  .buscador { position: relative; margin-bottom: 10px; }
+  .buscador svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+  .buscador input { width: 100%; padding: 12px 14px 12px 42px; border-radius: 12px; border: 1px solid var(--border); background: var(--cream); outline: none; }
+  .buscador input:focus { border-color: var(--olive); }
+  .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { flex: none; border: 1px solid var(--border); background: var(--cream); color: #6b6942; border-radius: 20px; padding: 6px 14px; font-size: 15px; cursor: pointer; }
+  .chip.on { background: var(--olive); border-color: var(--olive); color: var(--cream); }
+  .lista-cab { display: flex; align-items: center; justify-content: space-between; margin: 4px 4px 8px; color: var(--muted); font-size: 14px; }
+  .invitado { display: flex; align-items: center; gap: 12px; padding: 11px 14px; background: var(--cream); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 8px; cursor: pointer; }
+  .invitado:active { background: #f0efdc; }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--chip); color: var(--muted); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; flex: none; }
+  .invitado.conf .avatar { background: var(--olive); color: var(--cream); }
+  .inv-nombre { font-weight: 600; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .inv-sub { font-size: 14px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .fab { position: fixed; right: 18px; bottom: calc(86px + env(safe-area-inset-bottom)); z-index: 15; width: 56px; height: 56px; border-radius: 50%; border: none; background: var(--olive); color: var(--cream); box-shadow: 0 6px 16px rgba(0,0,0,.28); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .fab svg { width: 26px; height: 26px; }
+
+  /* ---------- CONTENIDO ---------- */
+  .grid-fotos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 12px; }
+  .foto { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; cursor: pointer; background: var(--chip); }
+  .foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .foto .ck { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border-radius: 50%; border: 2px solid #fff; background: rgba(0,0,0,.25); display: none; align-items: center; justify-content: center; color: #fff; }
+  .sel-modo .foto .ck { display: flex; }
+  .foto.sel { outline: 3px solid var(--olive); outline-offset: -3px; }
+  .foto.sel .ck { background: var(--olive); }
+  .foto .ck svg { width: 14px; height: 14px; stroke-width: 3; opacity: 0; }
+  .foto.sel .ck svg { opacity: 1; }
+  .accion-flotante { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(86px + env(safe-area-inset-bottom)); z-index: 16; background: var(--olive-dark); color: var(--cream); border-radius: 30px; padding: 8px 10px 8px 20px; display: flex; align-items: center; gap: 14px; box-shadow: 0 6px 18px rgba(0,0,0,.3); }
+  .accion-flotante .btn { background: var(--danger); padding: 8px 16px; }
+  .item { background: var(--cream); border: 1px solid var(--border); border-radius: 14px; padding: 10px 12px; margin-bottom: 8px; transition: opacity .25s ease, transform .25s ease; }
+  .item.removing { opacity: 0; transform: scale(.96); }
+  .item .row { gap: 12px; }
+  .item .thumb { width: 46px; height: 46px; border-radius: 10px; flex: none; object-fit: cover; background: var(--chip); }
+  .item .orden { width: 22px; text-align: center; font-weight: 700; color: var(--muted); font-size: 18px; }
+  .item-nombre { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mini { width: 36px; height: 36px; border-radius: 50%; border: none; background: var(--chip); color: var(--olive); display: flex; align-items: center; justify-content: center; cursor: pointer; flex: none; }
+  .mini.danger { color: var(--danger); }
+  .mini:disabled { opacity: .35; cursor: default; }
+  .mini svg { width: 17px; height: 17px; }
+  .menu-icon { width: 46px; height: 46px; border-radius: 50%; background: var(--chip); color: var(--olive); display: flex; align-items: center; justify-content: center; flex: none; }
+  .player-wrap { max-height: 0; overflow: hidden; transition: max-height .3s ease, margin-top .3s ease; }
+  .player-wrap.open { max-height: 640px; margin-top: 12px; }
+  video.player { width: 100%; border-radius: 12px; display: block; background: #000; }
+
+  /* ---------- REGALO ---------- */
+  .campo { margin-bottom: 14px; }
+  .campo label { display: block; font-size: 14px; color: var(--muted); margin-bottom: 4px; }
+  .campo input, .campo textarea { width: 100%; padding: 11px 13px; border: 1px solid var(--border); border-radius: 10px; background: #fff; outline: none; }
+  .campo input:focus, .campo textarea:focus { border-color: var(--olive); }
+  .campo .ayuda { font-size: 13px; color: var(--muted); margin-top: 3px; display: flex; justify-content: space-between; }
+  .campo .ayuda.err { color: var(--danger-dark); }
+  .prefijo { position: relative; }
+  .prefijo span { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+  .prefijo input { padding-left: 30px; }
+  .vista-regalo { background: #fff; border: 1px dashed var(--border); border-radius: 14px; padding: 18px 16px; text-align: center; }
+  .vista-regalo .monto { font-size: 36px; font-weight: 600; color: var(--olive); line-height: 1.1; margin: 4px 0 10px; }
+  .vista-regalo .dato { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-top: 1px solid #efedd9; text-align: left; font-size: 16px; }
+  .vista-regalo .dato span:first-child { color: var(--muted); }
+  .vista-regalo .dato b { font-weight: 600; word-break: break-all; text-align: right; }
+  .guardar-barra { position: sticky; bottom: calc(66px + env(safe-area-inset-bottom)); display: flex; gap: 10px; padding: 10px 0 8px; margin-top: 10px; background: linear-gradient(to top, var(--bg) 78%, rgba(238,236,212,0)); z-index: 12; }
+
+  /* ---------- SISTEMA ---------- */
+  .uso { padding: 8px 0; border-top: 1px solid var(--border); }
+  .uso:first-of-type { border-top: none; padding-top: 0; }
+  .uso-l { display: flex; justify-content: space-between; gap: 10px; }
+  .uso-l span:last-child { font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .uso .bar { margin-top: 6px; height: 6px; }
+  .uso.lento .bar span { background: var(--warn); }
+  .uso.falla .bar span { background: var(--danger); }
+  .uso.falla .uso-l span:last-child { color: var(--danger-dark); }
+  .uso-nota { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .respaldo-barra { height: 6px; border-radius: 3px; background: var(--chip); margin-top: 8px; overflow: hidden; }
+  .respaldo-barra span { display: block; height: 100%; width: 0; background: var(--olive); transition: width .4s ease; }
   /* Mientras el script trabaja, la parte que falta se anima para que no
      parezca trabado entre una tanda y otra. */
-  .respaldo-barra.trabajando {
-    background: repeating-linear-gradient(135deg, #eceed6 0 10px, #dfe3bd 10px 20px);
-    background-size: 28px 28px;
-    animation: respaldoRayas 0.8s linear infinite;
-  }
-  @keyframes respaldoRayas { to { background-position: 28px 0; } }
-  .respaldo-pie {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 14px;
-    margin-top: 14px;
-  }
-  .respaldo-link { font-size: 15px; color: var(--olive); }
-  .respaldo-btn {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--cream);
-    background: var(--olive);
-    border: none;
-    border-radius: 10px;
-    padding: 9px 20px;
-    cursor: pointer;
-  }
-  .respaldo-btn:active { background: var(--olive-dark); }
-  .respaldo-btn:disabled { opacity: 0.6; cursor: default; }
+  .respaldo-barra.trabajando { background: repeating-linear-gradient(135deg, #eceed6 0 10px, #dfe3bd 10px 20px); background-size: 28px 28px; animation: rayas .8s linear infinite; }
+  @keyframes rayas { to { background-position: 28px 0; } }
+  .menu-card { display: flex; align-items: center; gap: 14px; width: 100%; background: var(--cream); border: 1px solid var(--border); border-radius: 16px; padding: 12px 14px; text-align: left; cursor: pointer; margin-bottom: 10px; }
+  .menu-card .menu-icon { width: 42px; height: 42px; }
 
-  .state-msg {
-    text-align: center;
-    color: var(--muted);
-    margin-top: 60px;
-    font-size: 18px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 14px;
+  /* ---------- Barra de pestañas ---------- */
+  .tabbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+    display: flex; background: var(--cream); border-top: 1px solid var(--border);
+    padding-bottom: env(safe-area-inset-bottom);
+    box-shadow: 0 -2px 12px rgba(75,83,32,.1);
   }
-  .spinner {
-    width: 30px;
-    height: 30px;
-    border: 3px solid var(--border);
-    border-top-color: var(--olive);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
-  .state-msg svg { width: 46px; height: 46px; color: var(--border); }
+  .tabbar button { flex: 1; border: none; background: none; padding: 9px 2px 8px; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 13px; cursor: pointer; position: relative; }
+  .tabbar button svg { width: 23px; height: 23px; }
+  .tabbar button.on { color: var(--olive); font-weight: 700; }
+  .tabbar button.on::before { content: ''; position: absolute; top: 0; left: 28%; right: 28%; height: 3px; border-radius: 0 0 3px 3px; background: var(--olive); }
+  .tabbar .badge { position: absolute; top: 5px; left: calc(50% + 8px); min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: var(--danger); color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
 
-  #list, #listFotos, #listCarrusel { display: flex; flex-direction: column; gap: 12px; }
+  /* ---------- Hojas y modales ---------- */
+  .overlay { position: fixed; inset: 0; z-index: 50; background: rgba(30,28,10,.5); display: none; align-items: flex-end; justify-content: center; }
+  .overlay.open { display: flex; }
+  .sheet { background: var(--bg); width: 100%; max-width: 560px; max-height: 92vh; overflow-y: auto; border-radius: 22px 22px 0 0; padding: 18px 18px calc(18px + env(safe-area-inset-bottom)); animation: sube .22s ease; }
+  @keyframes sube { from { transform: translateY(40px); opacity: .4; } to { transform: none; opacity: 1; } }
+  .sheet h3 { font-size: 22px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; }
+  .sheet .acciones { display: flex; gap: 10px; margin-top: 18px; }
+  .sheet .acciones .btn { flex: 1; }
+  .sheet .acciones .btn.danger { flex: 0 0 auto; }
+  .sw { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; }
+  .toggle { width: 50px; height: 30px; border-radius: 15px; background: #cfcda4; border: none; position: relative; cursor: pointer; transition: background .15s; flex: none; }
+  .toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: transform .15s; }
+  .toggle.on { background: var(--ok); } .toggle.on::after { transform: translateX(20px); }
+  .restr { display: flex; flex-wrap: wrap; gap: 8px; }
+  .restr .chip { padding: 6px 12px; }
+  .modal { background: var(--cream); border-radius: 18px; padding: 22px 20px; width: calc(100% - 40px); max-width: 340px; text-align: center; align-self: center; }
+  .modal .acciones { display: flex; gap: 10px; margin-top: 16px; }
+  .modal .acciones .btn { flex: 1; }
+  .visor { background: #14130a; border-radius: 16px; width: calc(100% - 24px); max-width: 640px; align-self: center; overflow: hidden; }
+  .visor img { display: block; width: 100%; max-height: 68vh; object-fit: contain; background: #000; }
+  .visor-pie { display: flex; align-items: center; gap: 8px; padding: 10px 12px; color: var(--cream); background: var(--olive-dark); }
+  .visor-pie .info { flex: 1; min-width: 0; font-size: 14px; }
+  .visor-pie .info b { display: block; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .visor-pie .mini { background: rgba(255,255,255,.14); color: var(--cream); }
+  .visor-pie .mini.danger { color: #ffb4ae; }
 
-  .item {
-    background: var(--cream);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 14px 16px;
-    box-shadow: 0 2px 8px rgba(75,83,32,0.06);
-    transition: opacity 0.25s ease, transform 0.25s ease, max-height 0.3s ease;
-    overflow: hidden;
-  }
-  .item.removing { opacity: 0; transform: scale(0.96); max-height: 0; padding-top: 0; padding-bottom: 0; margin: 0; border-width: 0; }
+  .toast { position: fixed; left: 50%; bottom: calc(150px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px); background: #2e2c18; color: var(--cream); padding: 10px 20px; border-radius: 24px; opacity: 0; pointer-events: none; transition: .25s; z-index: 80; font-size: 16px; max-width: calc(100% - 32px); text-align: center; box-shadow: 0 8px 20px rgba(0,0,0,.25); }
+  .toast.show { opacity: 1; transform: translateX(-50%); }
 
-  .item-row { display: flex; align-items: center; gap: 12px; }
-  .item-icon {
-    flex-shrink: 0;
-    width: 46px;
-    height: 46px;
-    border-radius: 50%;
-    background: #eceed6;
-    color: var(--olive);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  /* ---------- Escritorio: barra lateral ---------- */
+  @media (min-width: 900px) {
+    .tabbar { top: 0; bottom: 0; right: auto; width: 190px; flex-direction: column; justify-content: flex-start; border-top: none; border-right: 1px solid var(--border); padding-top: 84px; gap: 4px; }
+    .tabbar button { flex: none; flex-direction: row; gap: 12px; padding: 13px 22px; font-size: 17px; }
+    .tabbar button.on::before { top: 8px; bottom: 8px; left: 0; right: auto; width: 4px; height: auto; border-radius: 0 4px 4px 0; }
+    .tabbar .badge { position: static; margin-left: auto; }
+    .topbar { margin-left: 190px; }
+    main { max-width: 760px; padding-bottom: 60px; margin-left: calc(190px + (100vw - 190px - 760px) / 2); margin-right: auto; }
+    .fab, .accion-flotante { bottom: 28px; }
+    .accion-flotante { left: calc(50% + 95px); }
+    .overlay { align-items: center; }
+    .sheet { border-radius: 22px; }
+    .guardar-barra { bottom: 0; background: var(--bg); }
+    .toast { bottom: 90px; }
+    .grid-fotos { grid-template-columns: repeat(5, 1fr); }
   }
-  .item-icon svg { width: 21px; height: 21px; }
-  .item-thumb {
-    flex-shrink: 0;
-    width: 46px;
-    height: 46px;
-    border-radius: 10px;
-    object-fit: cover;
-    background: #eceed6;
-  }
-  .item-info { flex: 1; min-width: 0; }
-  .item-name { font-size: 17px; font-weight: 600; color: #3f3e28; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .item-date { color: var(--muted); font-size: 14px; margin-top: 1px; }
-  .item-actions { display: flex; gap: 8px; flex-shrink: 0; }
-
-  .icon-btn.small {
-    width: 38px;
-    height: 38px;
-    background: #eceed6;
-    color: var(--olive);
-  }
-  .icon-btn.small:active { background: #dfe1c2; }
-  .icon-btn.small svg { width: 17px; height: 17px; }
-  .icon-btn.danger-outline { color: var(--danger); }
-  .icon-btn.danger-outline:active { background: #f3dedc; }
-  .icon-btn.small:disabled { opacity: 0.5; }
-
-  .player-wrap {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease, margin-top 0.3s ease;
-  }
-  .player-wrap.open { max-height: 640px; margin-top: 12px; }
-  video.player {
-    width: 100%;
-    border-radius: 12px;
-    display: block;
-    background: #000;
-  }
-  .photo-wrap {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease, margin-top 0.3s ease;
-  }
-  .photo-wrap.open { max-height: 640px; margin-top: 12px; }
-  img.photo-full {
-    width: 100%;
-    border-radius: 12px;
-    display: block;
-    background: #000;
-  }
-
-  /* ---------- Modal de confirmación ---------- */
-
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(30,28,10,0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    z-index: 20;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
-  }
-  .modal-overlay.open { opacity: 1; pointer-events: auto; }
-  .modal {
-    background: var(--cream);
-    border-radius: 18px;
-    max-width: 320px;
-    width: 100%;
-    padding: 26px 24px 20px;
-    text-align: center;
-    transform: translateY(10px) scale(0.97);
-    transition: transform 0.2s ease;
-  }
-  .modal-overlay.open .modal { transform: translateY(0) scale(1); }
-  .modal-icon {
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
-    background: #f3dedc;
-    color: var(--danger);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 14px;
-  }
-  .modal-icon svg { width: 24px; height: 24px; }
-  .modal-title { font-size: 19px; font-weight: 600; margin-bottom: 6px; }
-  .modal-text { font-size: 15px; color: var(--muted); margin-bottom: 20px; }
-  .modal-actions { display: flex; gap: 10px; }
-  .modal-btn {
-    flex: 1;
-    padding: 12px;
-    border-radius: 10px;
-    border: none;
-    font-size: 15px;
-    font-family: 'Cormorant Garamond', serif;
-    letter-spacing: 0.5px;
-    cursor: pointer;
-  }
-  .modal-btn.cancel { background: #eceed6; color: #3f3e28; }
-  .modal-btn.confirm { background: var(--danger); color: #fff; }
-  .modal-btn.confirm:active { background: var(--danger-dark); }
-  .modal-btn.cancel:active { background: #dfe1c2; }
-
-  .toast {
-    position: fixed;
-    left: 50%;
-    bottom: calc(24px + env(safe-area-inset-bottom));
-    transform: translateX(-50%) translateY(20px);
-    background: #2e2c18;
-    color: #f9f8ec;
-    padding: 12px 20px;
-    border-radius: 30px;
-    font-size: 15px;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.25);
-    opacity: 0;
-    transition: opacity 0.25s ease, transform 0.25s ease;
-    pointer-events: none;
-    z-index: 30;
-  }
-  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 </style>
 </head>
 <body>
@@ -632,216 +357,244 @@
   </div>
 
   <div id="panel" class="hidden">
-    <div class="topbar">
-      <button class="icon-btn hidden" id="btn-back" aria-label="Volver">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-      </button>
-      <div class="topbar-title">
-        <span class="kicker">Julieta &amp; Gabriel</span>
-        <h1 id="topbar-h1">Panel</h1>
-      </div>
-      <div class="topbar-actions">
-        <span class="count-badge hidden" id="count-badge">0</span>
-        <button class="icon-btn hidden" id="btn-refresh" aria-label="Actualizar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-        </button>
-      </div>
-    </div>
 
-    <div class="content">
+    <header class="topbar">
+      <div class="grow">
+        <div class="kicker">Julieta &amp; Gabriel</div>
+        <h1 id="titulo">Inicio</h1>
+      </div>
+      <button class="icon-btn" id="btnRefresh" title="Actualizar"><i data-i="refresh"></i></button>
+    </header>
 
-      <!-- MENÚ PRINCIPAL -->
-      <!-- Secciones de arriba hacia abajo según cuánto se usan en la
-           fiesta: estado, contenido, la pantalla del salón, lo que ve el
-           sitio, el respaldo y, al final, herramientas técnicas. -->
-      <div id="vistaHome">
-        <div class="seccion-titulo">Estado</div>
-        <div class="modo-switch-card" id="estadoCard">
-          <div class="estado-head">
-            <span class="estado-titulo">Estado del sistema</span>
-            <span class="estado-pill" id="estadoPill">Revisando…</span>
+    <main>
+
+      <!-- ===================== INICIO ===================== -->
+      <section class="tab active" id="tab-inicio">
+        <div class="kpis">
+          <div class="kpi" data-ir="invitados"><b id="kConf">–</b><span>confirmados</span></div>
+          <div class="kpi" data-ir="contenido" data-sub="fotos"><b id="kFotos">–</b><span>fotos</span></div>
+          <div class="kpi" data-ir="contenido" data-sub="mensajes"><b id="kMensajes">–</b><span>mensajes</span></div>
+        </div>
+
+        <div class="card" id="estadoCard">
+          <div class="row"><span class="card-title" style="margin:0">Estado del sistema</span><span class="grow"></span><span class="pill" id="estadoPill">Revisando…</span></div>
+          <div class="estado-grid">
+            <div class="estado-item" data-check="servidor"><span class="dot"></span>Servidor<span class="d">—</span></div>
+            <div class="estado-item" data-check="galeria"><span class="dot"></span>Galería<span class="d">—</span></div>
+            <div class="estado-item" data-check="fotos"><span class="dot"></span>Fotos<span class="d">—</span></div>
+            <div class="estado-item" data-check="mensajes"><span class="dot"></span>Mensajes<span class="d">—</span></div>
           </div>
-          <div class="estado-ayuda hidden" id="estadoAyuda"></div>
-          <div class="estado-fila" data-check="servidor"><span class="estado-dot"></span><span class="estado-nombre">Servidor (Apps Script)</span><span class="estado-detalle">—</span></div>
-          <div class="estado-fila" data-check="galeria"><span class="estado-dot"></span><span class="estado-nombre">Lista de la galería</span><span class="estado-detalle">—</span></div>
-          <div class="estado-fila" data-check="fotos"><span class="estado-dot"></span><span class="estado-nombre">Fotos</span><span class="estado-detalle">—</span></div>
-          <div class="estado-fila" data-check="mensajes"><span class="estado-dot"></span><span class="estado-nombre">Mensajes de video</span><span class="estado-detalle">—</span></div>
-          <div class="estado-pie">
-            <span id="estadoHora">Sin revisar todavía</span>
-            <button class="estado-btn" id="estadoBtn">Revisar ahora</button>
+          <div class="ayuda-roja hidden" id="estadoAyuda"></div>
+          <div class="row small muted" style="margin-top:12px"><span class="grow" id="estadoHora">Sin revisar todavía</span><button class="btn ghost" style="padding:4px 12px" id="estadoBtn">Revisar ahora</button></div>
+        </div>
+
+        <h2 class="sec">Sitio web</h2>
+        <div class="card">
+          <div class="switch-label">Qué se muestra en la web principal</div>
+          <div class="seg" id="modoSwitch">
+            <button data-modo="savethedate">Save the Date</button>
+            <button data-modo="invitacion">Invitación</button>
+            <button data-modo="galeria">Galería</button>
+          </div>
+          <div class="switch-label">Fotos de la galería</div>
+          <div class="seg" id="galeriaSwitch">
+            <button data-visible="true">Visibles</button>
+            <button data-visible="false">Ocultas</button>
           </div>
         </div>
 
-        <div class="modo-switch-card" id="usoCard">
-          <div class="estado-head">
-            <span class="estado-titulo">Plan gratis de Cloudflare</span>
-            <span class="estado-pill" id="usoPill">Revisando…</span>
+        <h2 class="sec">Pantalla del salón</h2>
+        <div class="card">
+          <div class="tv-links">
+            <a class="tv-link" href="../tv/"><i data-i="tv"></i>Fotos y videos</a>
+            <a class="tv-link" href="../tv/?modo=fotos"><i data-i="image"></i>Solo fotos</a>
+            <a class="tv-link" href="../tv/?modo=videos"><i data-i="video"></i>Solo mensajes</a>
           </div>
-          <div class="estado-ayuda hidden" id="usoAyuda"></div>
+        </div>
+      </section>
+
+      <!-- ===================== INVITADOS ===================== -->
+      <section class="tab" id="tab-invitados">
+        <div class="card">
+          <div class="resumen">
+            <div><b id="rTotal">–</b><span>invitados</span></div>
+            <div><b id="rConf">–</b><span>confirmaron</span></div>
+            <div><b id="rPend">–</b><span>pendientes</span></div>
+          </div>
+          <div class="bar"><span id="rBarra" style="width:0"></span></div>
+        </div>
+
+        <div class="buscador"><i data-i="search"></i><input id="buscar" type="search" placeholder="Buscar por nombre…" autocomplete="off"></div>
+        <div class="chips" id="filtros">
+          <button class="chip on" data-f="todos">Todos</button>
+          <button class="chip" data-f="conf">Confirmados</button>
+          <button class="chip" data-f="pend">Pendientes</button>
+          <button class="chip" data-f="Familiar">Familiares</button>
+          <button class="chip" data-f="Invitado">Invitados</button>
+          <button class="chip" data-f="restr">Con restricciones</button>
+        </div>
+        <div class="lista-cab"><span id="contador"></span><button class="btn ghost" style="padding:3px 12px" id="btnExportar"><i data-i="download" style="width:16px;height:16px"></i>Exportar</button></div>
+        <div id="invCargando" class="cargando"><div class="spinner"></div><span>Cargando invitados…</span></div>
+        <div id="listaInvitados"></div>
+        <button class="fab hidden" id="fabInvitado" title="Agregar invitado"><i data-i="plus"></i></button>
+      </section>
+
+      <!-- ===================== CONTENIDO ===================== -->
+      <section class="tab" id="tab-contenido">
+        <div class="seg" id="segContenido">
+          <button class="on" data-c="fotos">Fotos<span class="n" id="nFotos"></span></button>
+          <button data-c="mensajes">Mensajes<span class="n" id="nMensajes"></span></button>
+          <button data-c="carrusel">Carrusel<span class="n" id="nCarrusel"></span></button>
+        </div>
+
+        <div id="c-fotos">
+          <div class="row" style="margin-top:14px">
+            <span class="muted small grow" id="fotosInfo"></span>
+            <button class="btn ghost" style="padding:5px 14px" id="btnSel">Seleccionar</button>
+          </div>
+          <div class="cargando" id="fotosCargando"><div class="spinner"></div><span>Cargando fotos…</span></div>
+          <div class="estado-vacio hidden" id="fotosVacio">Todavía no hay fotos.</div>
+          <div class="grid-fotos" id="gridFotos"></div>
+          <button class="btn sec full hidden" style="margin-top:12px" id="btnMasFotos">Ver más</button>
+        </div>
+
+        <div id="c-mensajes" class="hidden" style="margin-top:14px">
+          <div class="cargando" id="mensajesCargando"><div class="spinner"></div><span>Cargando mensajes…</span></div>
+          <div class="estado-vacio hidden" id="mensajesVacio">Todavía no hay mensajes.</div>
+          <div id="listaMensajes"></div>
+        </div>
+
+        <div id="c-carrusel" class="hidden" style="margin-top:14px">
+          <div class="card">
+            <div class="small muted" style="margin-bottom:10px">Se ven en este orden en la invitación («Nuestra historia»). Podés subir fotos con cualquier nombre: las nuevas van al final y las ordenás con las flechas. También sirven las HEIC del iPhone: se convierten solas.</div>
+            <div class="small hidden" id="carruselEstado" style="margin-bottom:10px"></div>
+            <button class="btn full" id="carruselBtn"><i data-i="upload"></i>Cargar fotos</button>
+            <input type="file" id="carruselInput" accept="image/*,.heic,.heif" multiple class="hidden">
+          </div>
+          <div class="cargando" id="carruselCargando"><div class="spinner"></div><span>Cargando fotos…</span></div>
+          <div class="estado-vacio hidden" id="carruselVacio">Todavía no hay fotos en el carrusel.</div>
+          <div id="listaCarrusel"></div>
+        </div>
+      </section>
+
+      <!-- ===================== REGALO ===================== -->
+      <section class="tab" id="tab-regalo">
+        <div class="cargando" id="regaloCargando"><div class="spinner"></div><span>Cargando…</span></div>
+        <div id="regaloForm" class="hidden">
+          <div class="card">
+            <div class="card-title">Datos para el regalo</div>
+            <div class="campo">
+              <label for="gMonto">Monto sugerido</label>
+              <div class="prefijo"><span>$</span><input id="gMonto" inputmode="numeric" autocomplete="off"></div>
+            </div>
+            <div class="campo"><label for="gTitular">Titular de la cuenta</label><input id="gTitular" autocomplete="off"></div>
+            <div class="campo"><label for="gBanco">Banco o billetera</label><input id="gBanco" autocomplete="off"></div>
+            <div class="campo">
+              <label for="gCbu">CBU / CVU</label>
+              <input id="gCbu" inputmode="numeric" maxlength="22" autocomplete="off">
+              <div class="ayuda" id="gCbuAyuda"><span></span><span></span></div>
+            </div>
+            <div class="campo"><label for="gAlias">Alias</label><input id="gAlias" autocomplete="off" style="text-transform:uppercase"></div>
+          </div>
+
+          <h2 class="sec">Así lo ven los invitados</h2>
+          <div class="vista-regalo">
+            <div class="small muted">Monto sugerido</div>
+            <div class="monto" id="pMonto"></div>
+            <div class="dato"><span>Titular</span><b id="pTitular"></b></div>
+            <div class="dato"><span>Banco</span><b id="pBanco"></b></div>
+            <div class="dato"><span>CBU</span><b id="pCbu"></b></div>
+            <div class="dato"><span>Alias</span><b id="pAlias"></b></div>
+          </div>
+
+          <div class="guardar-barra">
+            <button class="btn ghost" id="gDescartar" disabled>Descartar</button>
+            <button class="btn grow" id="gGuardar" disabled>Guardar cambios</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== SISTEMA ===================== -->
+      <section class="tab" id="tab-sistema">
+        <h2 class="sec">Plan gratis de Cloudflare</h2>
+        <div class="card">
+          <div class="row" style="margin-bottom:10px"><span class="grow small muted" id="usoHora">—</span><span class="pill" id="usoPill">Revisando…</span></div>
+          <div class="ayuda-roja hidden" id="usoAyuda" style="margin:0 0 10px"></div>
           <div id="usoFilas"></div>
-          <div class="estado-pie">
-            <span id="usoHora">—</span>
-          </div>
         </div>
 
-        <div class="seccion-titulo">Contenido</div>
-        <div class="menu-actions">
-          <button class="menu-card" id="btn-ir-fotos">
-            <div class="menu-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-            </div>
-            <div class="menu-text">
-              <div class="menu-title">Fotos de la galería</div>
-              <div class="menu-sub" id="subFotos">Ver y borrar las fotos subidas</div>
-            </div>
-            <div class="menu-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
-          </button>
-          <button class="menu-card" id="btn-ir-videos">
-            <div class="menu-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
-            </div>
-            <div class="menu-text">
-              <div class="menu-title">Mensajes de video</div>
-              <div class="menu-sub" id="subMensajes">Ver y borrar los mensajes grabados</div>
-            </div>
-            <div class="menu-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
-          </button>
-          <button class="menu-card" id="btn-ir-carrusel">
-            <div class="menu-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M20 8v8"/><path d="M23 10v4"/></svg>
-            </div>
-            <div class="menu-text">
-              <div class="menu-title">Carrusel «Nuestra historia»</div>
-              <div class="menu-sub">Cargar y borrar las fotos de la invitación</div>
-            </div>
-            <div class="menu-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
-          </button>
-        </div>
-
-        <div class="seccion-titulo">Pantalla del salón</div>
-        <div class="tv-links">
-          <a class="tv-link" href="../tv/">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            <span>Fotos y videos</span>
-          </a>
-          <a class="tv-link" href="../tv/?modo=fotos">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-            <span>Solo fotos</span>
-          </a>
-          <a class="tv-link" href="../tv/?modo=videos">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
-            <span>Solo mensajes</span>
-          </a>
-        </div>
-
-        <div class="seccion-titulo">Sitio web</div>
-        <div class="modo-switch-card">
-          <div class="modo-switch-label">Qué se muestra en la web principal</div>
-          <div class="modo-switch" id="modoSwitch">
-            <button class="modo-btn" data-modo="savethedate">Save the Date</button>
-            <button class="modo-btn" data-modo="invitacion">Invitación</button>
-            <button class="modo-btn" data-modo="galeria">Galería</button>
-          </div>
-          <div class="modo-switch-label separada">Fotos de la galería</div>
-          <div class="modo-switch" id="galeriaSwitch">
-            <button class="modo-btn" data-visible="true">Visibles</button>
-            <button class="modo-btn" data-visible="false">Ocultas</button>
-          </div>
-        </div>
-
-        <div class="seccion-titulo">Respaldo</div>
-        <div class="modo-switch-card">
-          <div class="respaldo-head">
-            <div>
-              <div class="respaldo-titulo">Copia en Google Drive</div>
-              <div class="respaldo-texto">Baja a Drive las fotos y los videos que todavía no estén copiados. Solo agrega: lo que se borre acá queda en Drive.</div>
-            </div>
-          </div>
-          <div class="respaldo-estado hidden" id="respaldoEstado"></div>
+        <h2 class="sec">Respaldo en Google Drive</h2>
+        <div class="card">
+          <div class="small muted">Baja a Drive las fotos y los videos que todavía no estén copiados. Solo agrega: lo que se borre acá queda en Drive.</div>
+          <div class="small hidden" id="respaldoEstado" style="margin-top:12px"></div>
           <div class="respaldo-barra hidden" id="respaldoBarra"><span id="respaldoBarraFill"></span></div>
-          <div class="respaldo-pie">
-            <a class="respaldo-link hidden" id="respaldoLink" target="_blank" rel="noopener">Abrir carpeta</a>
-            <button class="respaldo-btn" id="respaldoBtn">Sincronizar</button>
+          <div class="row" style="margin-top:12px;justify-content:flex-end;gap:14px">
+            <a class="hidden" id="respaldoLink" target="_blank" rel="noopener" style="color:var(--olive)">Abrir carpeta</a>
+            <button class="btn" id="respaldoBtn">Sincronizar</button>
           </div>
         </div>
 
-        <div class="seccion-titulo">Herramientas</div>
-        <div class="menu-actions">
-          <button class="menu-card compacta" id="btn-verificar-json">
-            <div class="menu-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-            </div>
-            <div class="menu-text">
-              <div class="menu-title">Verificar JSON</div>
-              <div class="menu-sub">Abrir la lista de invitados tal como la entrega el servidor</div>
-            </div>
-            <div class="menu-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
-          </button>
-        </div>
-      </div>
+        <h2 class="sec">Herramientas</h2>
+        <button class="menu-card" id="btnVerificarJson">
+          <span class="menu-icon"><i data-i="code"></i></span>
+          <span class="grow"><b>Verificar JSON</b><br><span class="small muted">Lista de invitados tal como la entrega el servidor</span></span>
+          <i data-i="chevron" class="muted"></i>
+        </button>
+        <button class="menu-card" id="btnSalir">
+          <span class="menu-icon"><i data-i="lock"></i></span>
+          <span class="grow"><b>Cerrar sesión</b><br><span class="small muted">Vuelve a pedir la clave</span></span>
+          <i data-i="chevron" class="muted"></i>
+        </button>
+      </section>
+    </main>
 
-      <!-- VISTA MENSAJES -->
-      <div id="vistaMensajes" class="hidden">
-        <div id="loading" class="state-msg">
-          <div class="spinner"></div>
-          <span>Cargando mensajes...</span>
-        </div>
-        <div id="empty" class="state-msg hidden">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          <span>Todavía no hay mensajes.</span>
-        </div>
-        <div id="list"></div>
-      </div>
+    <nav class="tabbar" id="tabbar">
+      <button class="on" data-tab="inicio"><i data-i="home"></i>Inicio</button>
+      <button data-tab="invitados"><i data-i="users"></i>Invitados<span class="badge hidden" id="badgePend">0</span></button>
+      <button data-tab="contenido"><i data-i="image"></i>Contenido</button>
+      <button data-tab="regalo"><i data-i="gift"></i>Regalo</button>
+      <button data-tab="sistema"><i data-i="settings"></i>Sistema</button>
+    </nav>
 
-      <!-- VISTA GALERÍA -->
-      <div id="vistaGaleria" class="hidden">
-        <div id="loadingFotos" class="state-msg">
-          <div class="spinner"></div>
-          <span>Cargando fotos...</span>
-        </div>
-        <div id="emptyFotos" class="state-msg hidden">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-          <span>Todavía no hay fotos.</span>
-        </div>
-        <div id="listFotos"></div>
-      </div>
+    <div class="accion-flotante hidden" id="accionSel"><span id="selTexto">0 seleccionadas</span><button class="btn" id="btnBorrarSel"><i data-i="trash" style="width:17px;height:17px"></i>Borrar</button></div>
+  </div>
 
-      <!-- VISTA CARRUSEL -->
-      <div id="vistaCarrusel" class="hidden">
-        <div class="modo-switch-card">
-          <div class="respaldo-titulo">Fotos de «Nuestra historia»</div>
-          <div class="respaldo-texto">Se ven en este orden en la invitación. Las nuevas van al final. Podés elegir varias a la vez, también HEIC del iPhone: se convierten solas.</div>
-          <div class="respaldo-estado hidden" id="carruselEstado"></div>
-          <div class="respaldo-pie">
-            <button class="respaldo-btn" id="carruselBtn">Cargar fotos</button>
-          </div>
-          <input type="file" id="carruselInput" accept="image/*,.heic,.heif" multiple class="hidden">
-        </div>
-        <div id="loadingCarrusel" class="state-msg">
-          <div class="spinner"></div>
-          <span>Cargando fotos...</span>
-        </div>
-        <div id="emptyCarrusel" class="state-msg hidden">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-          <span>Todavía no hay fotos en el carrusel.</span>
-        </div>
-        <div id="listCarrusel"></div>
+  <!-- Hoja: editar / agregar invitado -->
+  <div class="overlay" id="ovInvitado">
+    <div class="sheet">
+      <h3><span id="shTitulo">Editar invitado</span><button class="mini" data-cerrar="ovInvitado"><i data-i="x"></i></button></h3>
+      <div class="campo"><label for="iNombre">Nombre completo</label><input id="iNombre" autocomplete="off" maxlength="100"></div>
+      <div class="campo"><label>Tipo de invitación</label><div class="seg" id="iTipo"><button data-v="Familiar">Familiar</button><button data-v="Invitado">Invitado</button></div></div>
+      <div class="sw"><div><b>Confirmó asistencia</b><div class="small muted" id="iFecha"></div></div><button class="toggle" id="iConf" aria-label="Confirmó asistencia"></button></div>
+      <div class="campo" style="margin-top:6px"><label>Restricciones alimentarias</label><div class="restr" id="iRestr"></div></div>
+      <div class="campo"><label for="iDetalle">Detalle (opcional)</label><textarea id="iDetalle" rows="2" maxlength="300" placeholder="Ej.: alergia a los frutos secos"></textarea></div>
+      <div class="acciones">
+        <button class="btn danger" id="iBorrar"><i data-i="trash" style="width:17px;height:17px"></i>Borrar</button>
+        <button class="btn" id="iGuardar">Guardar</button>
       </div>
-
     </div>
   </div>
 
-  <div class="modal-overlay" id="modal-overlay">
+  <!-- Visor de una foto -->
+  <div class="overlay" id="ovFoto" style="align-items:center">
+    <div class="visor">
+      <img id="visorImg" alt="">
+      <div class="visor-pie">
+        <button class="mini" id="visorAnt" aria-label="Anterior"><i data-i="chevL"></i></button>
+        <button class="mini" id="visorSig" aria-label="Siguiente"><i data-i="chevron"></i></button>
+        <div class="info"><b id="visorNombre"></b><span id="visorFecha"></span></div>
+        <button class="mini danger" id="visorBorrar" aria-label="Borrar"><i data-i="trash"></i></button>
+        <button class="mini" data-cerrar="ovFoto" aria-label="Cerrar"><i data-i="x"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirmación -->
+  <div class="overlay" id="ovConfirm" style="align-items:center">
     <div class="modal">
-      <div class="modal-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-      </div>
-      <div class="modal-title" id="modal-title">Borrar</div>
-      <div class="modal-text">Esta acción no se puede deshacer.</div>
-      <div class="modal-actions">
-        <button class="modal-btn cancel" id="modal-cancel">Cancelar</button>
-        <button class="modal-btn confirm" id="modal-confirm">Borrar</button>
-      </div>
+      <b id="cTitulo" style="font-size:20px"></b>
+      <p class="small muted" id="cTexto" style="margin-top:6px"></p>
+      <div class="acciones"><button class="btn sec" id="cCancelar">Cancelar</button><button class="btn" style="background:var(--danger)" id="cOk">Borrar</button></div>
     </div>
   </div>
 
@@ -850,186 +603,120 @@
 <script>
   const GAS_URL = "https://script.google.com/macros/s/AKfycbxC-pfS4VL6-8teZ8T3Pt5cXYdHQIrkn5gslkQ6HcKk6qQmlMVVL8Cz5HWzsuM6ExMN/exec";
   // Fotos y videos: Worker de Cloudflare con R2 (ver worker/src/index.js).
-  // Apps Script queda para la clave, el modo del sitio y la visibilidad.
+  // Apps Script maneja el Sheet: clave, modo del sitio, invitados y regalo.
   const MEDIA_URL = "https://boda-media.bodajyg.workers.dev";
   let claveActual = sessionStorage.getItem('mensajes-admin-clave') || '';
 
-  const ICON_PLAY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
-  const ICON_STOP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>';
-  const ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
-  const ICON_VIDEO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>';
+  // ---------- Íconos ----------
+  const P = {
+    home: '<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>',
+    users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>',
+    gift: '<polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>',
+    settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+    refresh: '<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>',
+    search: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+    plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+    x: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+    trash: '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+    download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+    upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
+    tv: '<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>',
+    video: '<polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>',
+    play: '<polygon points="5 3 19 12 5 21 5 3"/>',
+    stop: '<rect x="5" y="5" width="14" height="14" rx="2"/>',
+    code: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>',
+    lock: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+    chevron: '<polyline points="9 18 15 12 9 6"/>',
+    chevL: '<polyline points="15 18 9 12 15 6"/>',
+    up: '<polyline points="18 15 12 9 6 15"/>',
+    down: '<polyline points="6 9 12 15 18 9"/>',
+    check: '<polyline points="20 6 9 17 4 12"/>'
+  };
+  const icono = n => `<svg class="i" viewBox="0 0 24 24">${P[n]}</svg>`;
+  document.querySelectorAll('i[data-i]').forEach(el => {
+    el.outerHTML = icono(el.dataset.i).replace('class="i"', `class="i ${el.className || ''}" style="${el.getAttribute('style') || ''}"`);
+  });
 
-  // ---------- Passcode gate ----------
+  const $ = s => document.querySelector(s);
+  const $$ = s => [...document.querySelectorAll(s)];
+  const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fmtFecha = f => new Date(f).toLocaleString('es-AR', { dateStyle: 'medium', timeStyle: 'short' });
+  const fmtNum = n => Number(n).toLocaleString('es-AR');
 
-  const gate = document.getElementById('gate');
-  const panel = document.getElementById('panel');
-  const gateDots = document.getElementById('gate-dots');
-  const gateError = document.getElementById('gate-error');
-  const keypad = document.getElementById('keypad');
+  // ---------- Toast, overlays y confirmación ----------
+
+  let toastTimer = null;
+  function toast(msg) {
+    const el = $('#toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+  }
+  const abrir = id => document.getElementById(id).classList.add('open');
+  const cerrar = id => document.getElementById(id).classList.remove('open');
+  $$('.overlay').forEach(o => o.addEventListener('click', e => { if (e.target === o) cerrar(o.id); }));
+  $$('[data-cerrar]').forEach(b => b.addEventListener('click', () => cerrar(b.dataset.cerrar)));
+
+  let confirmarOk = null;
+  function confirmar(titulo, texto) {
+    $('#cTitulo').textContent = titulo;
+    $('#cTexto').textContent = texto || 'Esta acción no se puede deshacer.';
+    abrir('ovConfirm');
+    return new Promise(resolve => { confirmarOk = resolve; });
+  }
+  $('#cOk').addEventListener('click', () => { cerrar('ovConfirm'); if (confirmarOk) confirmarOk(true); });
+  $('#cCancelar').addEventListener('click', () => { cerrar('ovConfirm'); if (confirmarOk) confirmarOk(false); });
+  $('#ovConfirm').addEventListener('click', e => { if (e.target.id === 'ovConfirm' && confirmarOk) confirmarOk(false); });
+
+  // ---------- Pedidos a Apps Script y al Worker ----------
+
+  // Acciones de admin de Apps Script: POST con la clave. text/plain para
+  // que sea un pedido simple (sin preflight) y se pueda leer la respuesta.
+  async function gas(accion, datos) {
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(Object.assign({ tipo: accion, clave: claveActual }, datos || {}))
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'No se pudo completar');
+    return data;
+  }
+
+  // El Worker valida la clave contra Apps Script y responde {ok}: si no se
+  // borró (clave inválida, Apps Script caído), se avisa en vez de sacar el
+  // ítem de la lista como si nada.
+  async function borrarEnWorker(tipo, id) {
+    const res = await fetch(MEDIA_URL + '/borrar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tipo, id, clave: claveActual })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'No se pudo borrar');
+  }
+
+  // ---------- Pantalla de la clave ----------
+
+  const gate = $('#gate');
+  const panel = $('#panel');
+  const gateDots = $('#gate-dots');
+  const gateError = $('#gate-error');
+  const keypad = $('#keypad');
   let entrada = '';
 
   function pintarDots() {
     [...gateDots.children].forEach((dot, i) => dot.classList.toggle('filled', i < entrada.length));
   }
 
-  // ---------- Estado del sistema ----------
-  // Cuatro chequeos de solo lectura contra los mismos endpoints que usan
-  // los invitados. Sirve para enterarse durante la fiesta si Apps Script
-  // (el "Acceso denegado" de bugs-conocidos.md) o el Worker de fotos y
-  // videos dejaron de responder, sin esperar a que alguien avise. Se repite solo cada minuto mientras
-  // el panel está en el menú principal y la pestaña visible.
-  const ESTADO_LENTO_MS = 4000;
-  const ESTADO_TIMEOUT_MS = 15000;
-  let estadoRevisando = false;
-
-  async function pedirJsonEstado(url) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), ESTADO_TIMEOUT_MS);
-    try {
-      const res = await fetch(url, { signal: controller.signal });
-      return await res.json();
-    } finally {
-      clearTimeout(timer);
-    }
-  }
-
-  function cargarImagenEstado(url) {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      const timer = setTimeout(() => reject(new Error('timeout')), ESTADO_TIMEOUT_MS);
-      img.onload = () => { clearTimeout(timer); resolve(); };
-      img.onerror = () => { clearTimeout(timer); reject(new Error('no cargó')); };
-      img.src = url;
-    });
-  }
-
-  function pintarEstado(check, estado, detalle) {
-    const fila = document.querySelector(`.estado-fila[data-check="${check}"]`);
-    fila.classList.remove('ok', 'lento', 'falla');
-    if (estado) fila.classList.add(estado);
-    fila.querySelector('.estado-detalle').textContent = detalle;
-  }
-
-  // Corre un chequeo, mide cuánto tarda y pinta su fila. Devuelve
-  // { estado, valor }, donde valor es lo que devolvió fn().
-  async function chequear(check, fn, describir) {
-    const t0 = performance.now();
-    try {
-      const valor = await fn();
-      const ms = Math.round(performance.now() - t0);
-      const estado = ms > ESTADO_LENTO_MS ? 'lento' : 'ok';
-      const seg = (ms / 1000).toFixed(1).replace('.', ',') + ' s';
-      pintarEstado(check, estado, describir(valor) + ' · ' + seg);
-      return { estado, valor };
-    } catch (err) {
-      pintarEstado(check, 'falla', 'No responde');
-      return { estado: 'falla', valor: null };
-    }
-  }
-
-  async function revisarEstado() {
-    if (estadoRevisando) return;
-    estadoRevisando = true;
-    const pill = document.getElementById('estadoPill');
-    const btn = document.getElementById('estadoBtn');
-    const ayuda = document.getElementById('estadoAyuda');
-    btn.disabled = true;
-    pill.className = 'estado-pill';
-    pill.textContent = 'Revisando…';
-
-    const [servidor, galeria, mensajes] = await Promise.all([
-      chequear('servidor', async () => {
-        const d = await pedirJsonEstado(GAS_URL + '?tipo=modoIndex');
-        if (!d || !d.modo) throw new Error('respuesta inválida');
-        return d;
-      }, () => 'Responde'),
-      chequear('galeria', async () => {
-        const d = await pedirJsonEstado(MEDIA_URL + '/fotos?pagina=0&porPagina=1');
-        if (!d || typeof d.total !== 'number') throw new Error('respuesta inválida');
-        return d;
-      }, d => d.total + (d.total === 1 ? ' foto' : ' fotos')),
-      chequear('mensajes', async () => {
-        const d = await pedirJsonEstado(MEDIA_URL + '/mensajes');
-        if (!Array.isArray(d)) throw new Error('respuesta inválida');
-        return d;
-      }, d => d.length + (d.length === 1 ? ' mensaje' : ' mensajes')),
-    ]);
-
-    // De paso, los totales quedan a la vista en el menú de Contenido.
-    if (galeria.valor) {
-      document.getElementById('subFotos').textContent =
-        galeria.valor.total + (galeria.valor.total === 1 ? ' foto subida' : ' fotos subidas') + ' · ver y borrar';
-    }
-    if (mensajes.valor) {
-      document.getElementById('subMensajes').textContent =
-        mensajes.valor.length + (mensajes.valor.length === 1 ? ' mensaje grabado' : ' mensajes grabados') + ' · ver y borrar';
-    }
-
-    // "Fotos": baja de verdad una foto por el mismo camino que la
-    // galería. Necesita que la lista haya respondido y que haya al menos
-    // una foto.
-    let fotos;
-    const primera = galeria.valor && galeria.valor.fotos && galeria.valor.fotos[0];
-    if (galeria.estado === 'falla') {
-      pintarEstado('fotos', 'falla', 'No se pudo probar');
-      fotos = { estado: 'falla' };
-    } else if (!primera) {
-      pintarEstado('fotos', null, 'Sin fotos para probar');
-      fotos = { estado: 'ok' };
-    } else {
-      fotos = await chequear('fotos', () => cargarImagenEstado(primera.thumb || primera.directo), () => 'Se ven');
-    }
-
-    const estados = [servidor.estado, galeria.estado, mensajes.estado, fotos.estado];
-    const fallas = estados.filter(e => e === 'falla').length;
-    if (fallas) {
-      pill.className = 'estado-pill falla';
-      pill.textContent = fallas === estados.length ? 'No funciona' : 'Hay problemas';
-    } else if (estados.includes('lento')) {
-      pill.className = 'estado-pill lento';
-      pill.textContent = 'Funciona lento';
-    } else {
-      pill.className = 'estado-pill ok';
-      pill.textContent = 'Todo funcionando';
-    }
-
-    // Pista según qué falló.
-    let pista = '';
-    if (servidor.estado === 'falla' && galeria.estado === 'falla' && mensajes.estado === 'falla') {
-      pista = 'No responde nada: revisá si este dispositivo tiene internet.';
-    } else if (servidor.estado === 'falla') {
-      pista = 'Apps Script no responde (buscador de invitados, modo del sitio, clave). Revisá el deploy del script: puede estar pidiendo autorización de nuevo. Fotos y videos siguen andando.';
-    } else if (galeria.estado === 'falla' || mensajes.estado === 'falla') {
-      pista = 'El Worker de fotos y videos (Cloudflare) no responde. Revisá el panel de Cloudflare: puede haberse agotado el cupo diario de pedidos.';
-    } else if (fotos.estado === 'falla') {
-      pista = 'La lista funciona pero las fotos no cargan desde el Worker.';
-    }
-    ayuda.textContent = pista;
-    ayuda.classList.toggle('hidden', !pista);
-
-    const ahora = new Date();
-    const dos = n => String(n).padStart(2, '0');
-    document.getElementById('estadoHora').textContent =
-      'Última revisión: ' + dos(ahora.getHours()) + ':' + dos(ahora.getMinutes()) + ':' + dos(ahora.getSeconds());
-    btn.disabled = false;
-    estadoRevisando = false;
-    cargarUso();
-  }
-
-  document.getElementById('estadoBtn').addEventListener('click', revisarEstado);
-  setInterval(() => {
-    if (claveActual && vistaActual === 'home' && document.visibilityState === 'visible') revisarEstado();
-  }, 60000);
-
   function unlockOk(clave) {
     claveActual = clave;
     sessionStorage.setItem('mensajes-admin-clave', clave);
     gate.classList.add('hidden');
     panel.classList.remove('hidden');
-    mostrarHome();
-    cargarModoSwitch();
-    cargarGaleriaSwitch();
-    revisarEstado();
+    iniciarPanel();
   }
 
   function unlockFail(mensaje) {
@@ -1081,184 +768,626 @@
     if (e.key === 'Backspace') keypad.querySelector('[data-k="back"]')?.click();
   });
 
-  // ---------- Toast ----------
+  // ---------- Pestañas ----------
 
-  let toastTimer = null;
-  function toast(msg) {
-    const el = document.getElementById('toast');
-    el.textContent = msg;
-    el.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+  const TITULOS = { inicio: 'Inicio', invitados: 'Invitados', contenido: 'Contenido', regalo: 'Regalo', sistema: 'Sistema' };
+  const cargadas = {};   // qué pestañas ya pidieron sus datos
+  let tabActual = 'inicio';
+
+  function ir(tab, sub) {
+    tabActual = tab;
+    $$('.tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + tab));
+    $$('#tabbar button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+    $('#titulo').textContent = TITULOS[tab];
+    $('#fabInvitado').classList.toggle('hidden', tab !== 'invitados');
+    if (tab !== 'contenido') salirSeleccion();
+    window.scrollTo(0, 0);
+    history.replaceState(null, '', '#' + tab);
+    if (tab === 'invitados' && !cargadas.invitados) cargarInvitados();
+    if (tab === 'contenido') irSub(sub || subActual);
+    if (tab === 'regalo' && !cargadas.regalo) cargarRegalo();
+    if (tab === 'sistema' && !cargadas.uso) cargarUso();
   }
+  $('#tabbar').addEventListener('click', e => { const b = e.target.closest('button'); if (b) ir(b.dataset.tab); });
+  $$('[data-ir]').forEach(el => el.addEventListener('click', () => ir(el.dataset.ir, el.dataset.sub)));
 
-  // ---------- Modal de confirmación ----------
-
-  const modalOverlay = document.getElementById('modal-overlay');
-  const modalTitleEl = document.getElementById('modal-title');
-  let modalResolver = null;
-
-  function pedirConfirmacion(titulo) {
-    modalTitleEl.textContent = titulo || 'Borrar';
-    modalOverlay.classList.add('open');
-    return new Promise((resolve) => { modalResolver = resolve; });
-  }
-  document.getElementById('modal-cancel').addEventListener('click', () => {
-    modalOverlay.classList.remove('open');
-    if (modalResolver) modalResolver(false);
-  });
-  document.getElementById('modal-confirm').addEventListener('click', () => {
-    modalOverlay.classList.remove('open');
-    if (modalResolver) modalResolver(true);
-  });
-  modalOverlay.addEventListener('click', (e) => {
-    if (e.target === modalOverlay) {
-      modalOverlay.classList.remove('open');
-      if (modalResolver) modalResolver(false);
+  // El botón de arriba recarga lo que se está mirando.
+  $('#btnRefresh').addEventListener('click', async () => {
+    const btn = $('#btnRefresh');
+    btn.classList.add('spinning');
+    try {
+      if (tabActual === 'inicio') { await Promise.all([revisarEstado(), cargarModoSwitch(), cargarGaleriaSwitch()]); }
+      else if (tabActual === 'invitados') await cargarInvitados();
+      else if (tabActual === 'contenido') await recargarSub();
+      else if (tabActual === 'regalo') await cargarRegalo();
+      else if (tabActual === 'sistema') await cargarUso();
+    } finally {
+      btn.classList.remove('spinning');
     }
   });
 
-  // ---------- Navegación entre vistas ----------
-
-  const vistaHome = document.getElementById('vistaHome');
-  const vistaMensajes = document.getElementById('vistaMensajes');
-  const vistaGaleria = document.getElementById('vistaGaleria');
-  const vistaCarrusel = document.getElementById('vistaCarrusel');
-  const topbarH1 = document.getElementById('topbar-h1');
-  const btnBack = document.getElementById('btn-back');
-  const btnRefresh = document.getElementById('btn-refresh');
-  const countBadge = document.getElementById('count-badge');
-
-  let vistaActual = 'home';
-  let mensajesCargados = false;
-  let fotosCargadas = false;
-  let carruselCargado = false;
-
-  function mostrarHome() {
-    vistaActual = 'home';
-    vistaHome.classList.remove('hidden');
-    vistaMensajes.classList.add('hidden');
-    vistaGaleria.classList.add('hidden');
-    vistaCarrusel.classList.add('hidden');
-    topbarH1.textContent = 'Panel';
-    btnBack.classList.add('hidden');
-    btnRefresh.classList.add('hidden');
-    countBadge.classList.add('hidden');
-  }
-
-  function mostrarVistaMensajes() {
-    vistaActual = 'mensajes';
-    vistaHome.classList.add('hidden');
-    vistaMensajes.classList.remove('hidden');
-    vistaGaleria.classList.add('hidden');
-    vistaCarrusel.classList.add('hidden');
-    topbarH1.textContent = 'Mensajes';
-    btnBack.classList.remove('hidden');
-    btnRefresh.classList.remove('hidden');
-    if (!mensajesCargados) cargarMensajes();
-  }
-
-  function mostrarVistaGaleria() {
-    vistaActual = 'galeria';
-    vistaHome.classList.add('hidden');
-    vistaMensajes.classList.add('hidden');
-    vistaGaleria.classList.remove('hidden');
-    vistaCarrusel.classList.add('hidden');
-    topbarH1.textContent = 'Fotos';
-    btnBack.classList.remove('hidden');
-    btnRefresh.classList.remove('hidden');
-    if (!fotosCargadas) cargarGaleria();
-  }
-
-  function mostrarVistaCarrusel() {
-    vistaActual = 'carrusel';
-    vistaHome.classList.add('hidden');
-    vistaMensajes.classList.add('hidden');
-    vistaGaleria.classList.add('hidden');
-    vistaCarrusel.classList.remove('hidden');
-    topbarH1.textContent = 'Carrusel';
-    btnBack.classList.remove('hidden');
-    btnRefresh.classList.remove('hidden');
-    if (!carruselCargado) cargarCarrusel();
-  }
-
-  document.getElementById('btn-ir-videos').addEventListener('click', mostrarVistaMensajes);
-  document.getElementById('btn-ir-carrusel').addEventListener('click', mostrarVistaCarrusel);
-  // "Verificar JSON": abre en otra pestaña la respuesta cruda del script
-  // con la lista de invitados. Va por la URL fija del script (GAS_URL) y
-  // no por un enlace script.googleusercontent.com/macros/echo?..., porque
-  // esos son temporales (Google genera uno distinto por pedido). La lista
-  // completa exige la clave de admin, por eso se manda la de esta sesión.
-  document.getElementById('btn-verificar-json').addEventListener('click', () => {
-    window.open(GAS_URL + '?clave=' + encodeURIComponent(claveActual), '_blank', 'noopener');
-  });
-  document.getElementById('btn-ir-fotos').addEventListener('click', mostrarVistaGaleria);
-  btnBack.addEventListener('click', mostrarHome);
-  btnRefresh.addEventListener('click', () => {
-    if (vistaActual === 'mensajes') cargarMensajes();
-    else if (vistaActual === 'galeria') cargarGaleria();
-    else if (vistaActual === 'carrusel') cargarCarrusel();
-  });
-
-  if (claveActual) {
-    gate.classList.add('hidden');
-    panel.classList.remove('hidden');
-    mostrarHome();
+  function iniciarPanel() {
     cargarModoSwitch();
     cargarGaleriaSwitch();
     revisarEstado();
+    // Para los contadores de Inicio y la insignia de la pestaña.
+    cargarInvitados();
+    const inicial = location.hash.slice(1);
+    ir(TITULOS[inicial] ? inicial : 'inicio');
   }
 
-  // ---------- Lista de mensajes ----------
+  // ---------- Estado del sistema ----------
+  // Cuatro chequeos de solo lectura contra los mismos endpoints que usan
+  // los invitados. Sirve para enterarse durante la fiesta si Apps Script
+  // (el "Acceso denegado" de bugs-conocidos.md) o el Worker de fotos y
+  // videos dejaron de responder, sin esperar a que alguien avise. Se repite
+  // solo cada minuto mientras se mira Inicio con la pestaña visible.
+  const ESTADO_LENTO_MS = 4000;
+  const ESTADO_TIMEOUT_MS = 15000;
+  let estadoRevisando = false;
 
-  const listEl = document.getElementById('list');
-  const loadingEl = document.getElementById('loading');
-  const emptyEl = document.getElementById('empty');
+  async function pedirJsonEstado(url) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ESTADO_TIMEOUT_MS);
+    try {
+      const res = await fetch(url, { signal: controller.signal });
+      return await res.json();
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  function cargarImagenEstado(url) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const timer = setTimeout(() => reject(new Error('timeout')), ESTADO_TIMEOUT_MS);
+      img.onload = () => { clearTimeout(timer); resolve(); };
+      img.onerror = () => { clearTimeout(timer); reject(new Error('no cargó')); };
+      img.src = url;
+    });
+  }
+
+  function pintarEstado(check, estado, detalle) {
+    const fila = document.querySelector(`.estado-item[data-check="${check}"]`);
+    fila.classList.remove('ok', 'lento', 'falla');
+    if (estado) fila.classList.add(estado);
+    fila.querySelector('.d').textContent = detalle;
+  }
+
+  // Corre un chequeo, mide cuánto tarda y pinta su fila. Devuelve
+  // { estado, valor }, donde valor es lo que devolvió fn().
+  async function chequear(check, fn, describir) {
+    const t0 = performance.now();
+    try {
+      const valor = await fn();
+      const ms = Math.round(performance.now() - t0);
+      const estado = ms > ESTADO_LENTO_MS ? 'lento' : 'ok';
+      const seg = (ms / 1000).toFixed(1).replace('.', ',') + ' s';
+      pintarEstado(check, estado, describir(valor) + ' · ' + seg);
+      return { estado, valor };
+    } catch (err) {
+      pintarEstado(check, 'falla', 'No responde');
+      return { estado: 'falla', valor: null };
+    }
+  }
+
+  async function revisarEstado() {
+    if (estadoRevisando) return;
+    estadoRevisando = true;
+    const pill = $('#estadoPill');
+    const btn = $('#estadoBtn');
+    const ayuda = $('#estadoAyuda');
+    btn.disabled = true;
+    pill.className = 'pill';
+    pill.textContent = 'Revisando…';
+
+    const [servidor, galeria, mensajes] = await Promise.all([
+      chequear('servidor', async () => {
+        const d = await pedirJsonEstado(GAS_URL + '?tipo=modoIndex');
+        if (!d || !d.modo) throw new Error('respuesta inválida');
+        return d;
+      }, () => 'Responde'),
+      chequear('galeria', async () => {
+        const d = await pedirJsonEstado(MEDIA_URL + '/fotos?pagina=0&porPagina=1');
+        if (!d || typeof d.total !== 'number') throw new Error('respuesta inválida');
+        return d;
+      }, d => d.total + (d.total === 1 ? ' foto' : ' fotos')),
+      chequear('mensajes', async () => {
+        const d = await pedirJsonEstado(MEDIA_URL + '/mensajes');
+        if (!Array.isArray(d)) throw new Error('respuesta inválida');
+        return d;
+      }, d => d.length + (d.length === 1 ? ' mensaje' : ' mensajes')),
+    ]);
+
+    if (galeria.valor) { $('#kFotos').textContent = fmtNum(galeria.valor.total); }
+    if (mensajes.valor) { $('#kMensajes').textContent = fmtNum(mensajes.valor.length); }
+
+    // "Fotos": baja de verdad una foto por el mismo camino que la
+    // galería. Necesita que la lista haya respondido y que haya al menos
+    // una foto.
+    let fotosCheck;
+    const primera = galeria.valor && galeria.valor.fotos && galeria.valor.fotos[0];
+    if (galeria.estado === 'falla') {
+      pintarEstado('fotos', 'falla', 'No se pudo probar');
+      fotosCheck = { estado: 'falla' };
+    } else if (!primera) {
+      pintarEstado('fotos', null, 'Sin fotos');
+      fotosCheck = { estado: 'ok' };
+    } else {
+      fotosCheck = await chequear('fotos', () => cargarImagenEstado(primera.thumb || primera.directo), () => 'Se ven');
+    }
+
+    const estados = [servidor.estado, galeria.estado, mensajes.estado, fotosCheck.estado];
+    const fallas = estados.filter(e => e === 'falla').length;
+    if (fallas) {
+      pill.className = 'pill bad';
+      pill.textContent = fallas === estados.length ? 'No funciona' : 'Hay problemas';
+    } else if (estados.includes('lento')) {
+      pill.className = 'pill warn';
+      pill.textContent = 'Funciona lento';
+    } else {
+      pill.className = 'pill ok';
+      pill.textContent = 'Todo funcionando';
+    }
+
+    // Pista según qué falló.
+    let pista = '';
+    if (servidor.estado === 'falla' && galeria.estado === 'falla' && mensajes.estado === 'falla') {
+      pista = 'No responde nada: revisá si este dispositivo tiene internet.';
+    } else if (servidor.estado === 'falla') {
+      pista = 'Apps Script no responde (buscador de invitados, modo del sitio, clave). Revisá el deploy del script: puede estar pidiendo autorización de nuevo. Fotos y videos siguen andando.';
+    } else if (galeria.estado === 'falla' || mensajes.estado === 'falla') {
+      pista = 'El Worker de fotos y videos (Cloudflare) no responde. Revisá el panel de Cloudflare: puede haberse agotado el cupo diario de pedidos.';
+    } else if (fotosCheck.estado === 'falla') {
+      pista = 'La lista funciona pero las fotos no cargan desde el Worker.';
+    }
+    ayuda.textContent = pista;
+    ayuda.classList.toggle('hidden', !pista);
+
+    const ahora = new Date();
+    const dos = n => String(n).padStart(2, '0');
+    $('#estadoHora').textContent =
+      'Última revisión: ' + dos(ahora.getHours()) + ':' + dos(ahora.getMinutes()) + ':' + dos(ahora.getSeconds());
+    btn.disabled = false;
+    estadoRevisando = false;
+  }
+
+  $('#estadoBtn').addEventListener('click', revisarEstado);
+  setInterval(() => {
+    if (claveActual && tabActual === 'inicio' && document.visibilityState === 'visible') revisarEstado();
+  }, 60000);
+
+  // ---------- Switches del sitio (modo y visibilidad de la galería) ----------
+
+  const modoBtns = $$('#modoSwitch button');
+  const galeriaBtns = $$('#galeriaSwitch button');
+
+  async function cargarModoSwitch() {
+    try {
+      const res = await fetch(GAS_URL + '?tipo=modoIndex');
+      const data = await res.json();
+      modoBtns.forEach(b => b.classList.toggle('on', b.dataset.modo === data.modo));
+    } catch (err) {}
+  }
+
+  async function cargarGaleriaSwitch() {
+    try {
+      const res = await fetch(GAS_URL + '?tipo=galeriaVisible');
+      const data = await res.json();
+      galeriaBtns.forEach(b => b.classList.toggle('on', (b.dataset.visible === 'true') === data.visible));
+    } catch (err) {}
+  }
+
+  const MENSAJES_MODO = {
+    savethedate: 'Ahora se muestra el Save the Date',
+    invitacion: 'Ahora se muestra la invitación',
+    galeria: 'Ahora se muestra la galería'
+  };
+
+  modoBtns.forEach(btn => btn.addEventListener('click', async () => {
+    if (btn.classList.contains('on')) return;
+    modoBtns.forEach(b => b.disabled = true);
+    try {
+      await fetch(GAS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: JSON.stringify({ tipo: 'setModoIndex', modo: btn.dataset.modo, clave: claveActual })
+      });
+      modoBtns.forEach(b => b.classList.toggle('on', b === btn));
+      toast(MENSAJES_MODO[btn.dataset.modo]);
+    } catch (err) {
+      toast('No se pudo cambiar el modo, probá de nuevo');
+    } finally {
+      modoBtns.forEach(b => b.disabled = false);
+    }
+  }));
+
+  galeriaBtns.forEach(btn => btn.addEventListener('click', async () => {
+    if (btn.classList.contains('on')) return;
+    const visible = btn.dataset.visible === 'true';
+    galeriaBtns.forEach(b => b.disabled = true);
+    try {
+      await fetch(GAS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: JSON.stringify({ tipo: 'setGaleriaVisible', visible, clave: claveActual })
+      });
+      galeriaBtns.forEach(b => b.classList.toggle('on', b === btn));
+      toast(visible ? 'Las fotos vuelven a ser visibles' : 'Las fotos quedan ocultas hasta que las muestres');
+    } catch (err) {
+      toast('No se pudo cambiar la visibilidad, probá de nuevo');
+    } finally {
+      galeriaBtns.forEach(b => b.disabled = false);
+    }
+  }));
+
+  // ---------- INVITADOS ----------
+
+  // Las mismas opciones que ofrece el formulario de confirmación de la
+  // invitación (invitacion/index.html). Si en el Sheet hay otra, también
+  // se muestra para poder quitarla.
+  const RESTRICCIONES = ['Celiaquía', 'Diabetes', 'Vegetariano', 'Intolerancia', 'Otros'];
+  const TIPOS = ['Familiar', 'Invitado'];
+  let invitados = [];
+  let filtro = 'todos';
+  let textoBusqueda = '';
+  let editando = null;       // el invitado que se edita, o null si es uno nuevo
+  let formConf = false, formRestr = [], formTipo = 'Invitado';
+  const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const fmtDiaMes = f => f ? new Date(f).toLocaleDateString('es-AR', { day: 'numeric', month: 'numeric' }) : '';
+
+  async function cargarInvitados() {
+    $('#invCargando').classList.remove('hidden');
+    try {
+      const data = await gas('adminListarInvitados');
+      invitados = data.invitados.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+      cargadas.invitados = true;
+      $('#invCargando').classList.add('hidden');
+      pintarInvitados();
+    } catch (err) {
+      $('#invCargando').innerHTML = '<span>No pudimos cargar los invitados: ' + esc(err.message) + '</span>';
+    }
+  }
+
+  function pintarInvitados() {
+    const conf = invitados.filter(i => i.confirmado).length;
+    const total = invitados.length;
+    $('#rTotal').textContent = total;
+    $('#rConf').textContent = conf;
+    $('#rPend').textContent = total - conf;
+    $('#rBarra').style.width = (total ? conf / total * 100 : 0) + '%';
+    $('#kConf').textContent = conf;
+    const badge = $('#badgePend');
+    badge.textContent = total - conf;
+    badge.classList.toggle('hidden', total - conf === 0);
+
+    const lista = invitados.filter(i => {
+      if (textoBusqueda && !norm(i.nombre).includes(norm(textoBusqueda))) return false;
+      if (filtro === 'conf') return i.confirmado;
+      if (filtro === 'pend') return !i.confirmado;
+      if (filtro === 'restr') return i.restricciones.length || i.detalle;
+      if (filtro === 'Familiar' || filtro === 'Invitado') return i.tipo === filtro;
+      return true;
+    });
+    $('#contador').textContent = lista.length + (lista.length === 1 ? ' resultado' : ' resultados');
+    $('#listaInvitados').innerHTML = lista.length ? lista.map(i => {
+      const sub = [i.tipo || 'Sin tipo'].concat(i.restricciones.length ? [i.restricciones.join(', ')] : []).join(' · ');
+      return `<div class="invitado ${i.confirmado ? 'conf' : ''}" data-fila="${i.fila}">
+        <div class="avatar">${esc(i.nombre[0] || '?')}</div>
+        <div class="grow"><div class="inv-nombre">${esc(i.nombre)}</div><div class="inv-sub">${esc(sub)}</div></div>
+        <span class="pill ${i.confirmado ? 'ok' : ''}">${i.confirmado ? 'Confirmó' + (i.fecha ? ' ' + fmtDiaMes(i.fecha) : '') : 'Pendiente'}</span>
+      </div>`;
+    }).join('') : '<div class="estado-vacio">' + (total ? 'Nadie coincide con la búsqueda.' : 'Todavía no hay invitados.') + '</div>';
+  }
+
+  $('#buscar').addEventListener('input', e => { textoBusqueda = e.target.value; pintarInvitados(); });
+  $('#filtros').addEventListener('click', e => {
+    const b = e.target.closest('.chip');
+    if (!b) return;
+    filtro = b.dataset.f;
+    $$('#filtros .chip').forEach(x => x.classList.toggle('on', x === b));
+    pintarInvitados();
+  });
+  $('#listaInvitados').addEventListener('click', e => {
+    const el = e.target.closest('.invitado');
+    if (el) abrirInvitado(invitados.find(i => String(i.fila) === el.dataset.fila));
+  });
+  $('#fabInvitado').addEventListener('click', () => abrirInvitado(null));
+
+  function pintarFormInvitado() {
+    $('#iConf').classList.toggle('on', formConf);
+    $$('#iTipo button').forEach(b => b.classList.toggle('on', b.dataset.v === formTipo));
+    const opciones = RESTRICCIONES.concat(formRestr.filter(r => !RESTRICCIONES.includes(r)));
+    $('#iRestr').innerHTML = opciones.map(r => `<button class="chip ${formRestr.includes(r) ? 'on' : ''}" data-r="${esc(r)}">${esc(r)}</button>`).join('');
+  }
+
+  function abrirInvitado(inv) {
+    editando = inv;
+    $('#shTitulo').textContent = inv ? 'Editar invitado' : 'Agregar invitado';
+    $('#iNombre').value = inv ? inv.nombre : '';
+    $('#iDetalle').value = inv ? inv.detalle : '';
+    $('#iFecha').textContent = inv && inv.confirmado ? 'Confirmó el ' + fmtDiaMes(inv.fecha) : 'Todavía no confirmó';
+    formConf = inv ? inv.confirmado : false;
+    formRestr = inv ? inv.restricciones.slice() : [];
+    formTipo = inv && TIPOS.includes(inv.tipo) ? inv.tipo : 'Invitado';
+    $('#iBorrar').classList.toggle('hidden', !inv);
+    pintarFormInvitado();
+    abrir('ovInvitado');
+  }
+
+  $('#iConf').addEventListener('click', () => { formConf = !formConf; pintarFormInvitado(); });
+  $('#iTipo').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { formTipo = b.dataset.v; pintarFormInvitado(); } });
+  $('#iRestr').addEventListener('click', e => {
+    const b = e.target.closest('.chip');
+    if (!b) return;
+    const r = b.dataset.r;
+    formRestr = formRestr.includes(r) ? formRestr.filter(x => x !== r) : formRestr.concat(r);
+    pintarFormInvitado();
+  });
+
+  $('#iGuardar').addEventListener('click', async () => {
+    const nombre = $('#iNombre').value.trim();
+    if (!nombre) { toast('Falta el nombre'); $('#iNombre').focus(); return; }
+    const btn = $('#iGuardar');
+    btn.disabled = true;
+    btn.textContent = 'Guardando…';
+    try {
+      await gas('adminGuardarInvitado', {
+        fila: editando ? editando.fila : null,
+        nombreOriginal: editando ? editando.nombre : '',
+        nombre,
+        // No se llama "tipo": ese campo ya lleva el nombre de la acción.
+        tipoInvitado: formTipo,
+        confirmado: formConf,
+        restricciones: formRestr,
+        detalle: $('#iDetalle').value.trim()
+      });
+      cerrar('ovInvitado');
+      toast(editando ? 'Cambios guardados' : 'Invitado agregado');
+      await cargarInvitados();
+    } catch (err) {
+      toast(err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Guardar';
+    }
+  });
+
+  $('#iBorrar').addEventListener('click', async () => {
+    const inv = editando;
+    const ok = await confirmar('Borrar a ' + inv.nombre, 'Sale de la lista y ya no podrá confirmar su asistencia.');
+    if (!ok) return;
+    try {
+      await gas('adminBorrarInvitado', { fila: inv.fila, nombreOriginal: inv.nombre });
+      cerrar('ovInvitado');
+      toast('Invitado borrado');
+      await cargarInvitados();
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+
+  // Exportar: CSV con BOM para que Excel abra bien los acentos.
+  $('#btnExportar').addEventListener('click', () => {
+    if (!invitados.length) { toast('No hay invitados para exportar'); return; }
+    const celda = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const filas = [['Nombre', 'Tipo', 'Confirmó', 'Fecha de confirmación', 'Restricciones', 'Detalle']].concat(invitados.map(i => [
+      i.nombre, i.tipo, i.confirmado ? 'Sí' : 'No', i.fecha ? new Date(i.fecha).toLocaleDateString('es-AR') : '', i.restricciones.join(', '), i.detalle
+    ]));
+    const blob = new Blob(['﻿' + filas.map(f => f.map(celda).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'invitados.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  });
+
+  // ---------- CONTENIDO: subpestañas ----------
+
+  let subActual = 'fotos';
+  const subCargada = {};
+
+  function irSub(sub) {
+    subActual = sub;
+    $$('#segContenido button').forEach(b => b.classList.toggle('on', b.dataset.c === sub));
+    ['fotos', 'mensajes', 'carrusel'].forEach(c => $('#c-' + c).classList.toggle('hidden', c !== sub));
+    if (sub !== 'fotos') salirSeleccion();
+    if (!subCargada[sub]) { subCargada[sub] = true; recargarSub(); }
+  }
+  $('#segContenido').addEventListener('click', e => { const b = e.target.closest('button'); if (b) irSub(b.dataset.c); });
+
+  function recargarSub() {
+    if (subActual === 'fotos') return cargarFotos();
+    if (subActual === 'mensajes') return cargarMensajes();
+    return cargarCarrusel();
+  }
+
+  // ---------- Fotos de la galería ----------
+
+  const LOTE_FOTOS = 60;
+  let fotos = [];
+  let fotosMostradas = 0;
+  let selModo = false;
+  const seleccion = new Set();
+
+  async function cargarFotos() {
+    $('#fotosCargando').classList.remove('hidden');
+    $('#fotosVacio').classList.add('hidden');
+    $('#gridFotos').innerHTML = '';
+    $('#btnMasFotos').classList.add('hidden');
+    salirSeleccion();
+    try {
+      const res = await fetch(MEDIA_URL + '/fotos');
+      const lista = await res.json();
+      if (!Array.isArray(lista)) throw new Error('respuesta inválida');
+      fotos = lista;
+      fotosMostradas = 0;
+      $('#fotosCargando').classList.add('hidden');
+      actualizarConteoFotos();
+      $('#fotosVacio').classList.toggle('hidden', fotos.length > 0);
+      pintarMasFotos();
+    } catch (err) {
+      $('#fotosCargando').innerHTML = '<span>No pudimos cargar las fotos. Probá actualizar.</span>';
+    }
+  }
+
+  function actualizarConteoFotos() {
+    $('#nFotos').textContent = fotos.length;
+    $('#kFotos').textContent = fmtNum(fotos.length);
+    $('#fotosInfo').textContent = fotos.length + (fotos.length === 1 ? ' foto' : ' fotos') + ' · tocá una para verla';
+  }
+
+  function pintarMasFotos() {
+    const grid = $('#gridFotos');
+    const lote = fotos.slice(fotosMostradas, fotosMostradas + LOTE_FOTOS);
+    const html = lote.map(f => `<div class="foto" data-id="${esc(f.id)}"><img loading="lazy" alt="" src="${esc(f.thumb || f.directo)}"><span class="ck">${icono('check')}</span></div>`).join('');
+    grid.insertAdjacentHTML('beforeend', html);
+    fotosMostradas += lote.length;
+    $('#btnMasFotos').classList.toggle('hidden', fotosMostradas >= fotos.length);
+    $('#btnMasFotos').textContent = 'Ver más (' + (fotos.length - fotosMostradas) + ' restantes)';
+  }
+  $('#btnMasFotos').addEventListener('click', pintarMasFotos);
+
+  function actualizarSeleccion() {
+    const n = seleccion.size;
+    $('#selTexto').textContent = n + (n === 1 ? ' seleccionada' : ' seleccionadas');
+    $('#accionSel').classList.toggle('hidden', !selModo || n === 0);
+  }
+  function salirSeleccion() {
+    selModo = false;
+    seleccion.clear();
+    $('#gridFotos').classList.remove('sel-modo');
+    $('#btnSel').textContent = 'Seleccionar';
+    $$('.foto.sel').forEach(f => f.classList.remove('sel'));
+    actualizarSeleccion();
+  }
+  $('#btnSel').addEventListener('click', () => {
+    if (selModo) { salirSeleccion(); return; }
+    selModo = true;
+    $('#gridFotos').classList.add('sel-modo');
+    $('#btnSel').textContent = 'Cancelar';
+  });
+
+  $('#gridFotos').addEventListener('click', e => {
+    const tile = e.target.closest('.foto');
+    if (!tile) return;
+    const id = tile.dataset.id;
+    if (selModo) {
+      if (seleccion.has(id)) seleccion.delete(id); else seleccion.add(id);
+      tile.classList.toggle('sel', seleccion.has(id));
+      actualizarSeleccion();
+    } else {
+      abrirVisor(fotos.findIndex(f => f.id === id));
+    }
+  });
+
+  $('#btnBorrarSel').addEventListener('click', async () => {
+    const ids = [...seleccion];
+    const ok = await confirmar('Borrar ' + ids.length + (ids.length === 1 ? ' foto' : ' fotos'), 'Se borran de la galería. Lo que ya esté copiado en Drive se queda.');
+    if (!ok) return;
+    const btn = $('#btnBorrarSel');
+    btn.disabled = true;
+    let hechas = 0, fallas = 0;
+    for (const id of ids) {
+      $('#selTexto').textContent = 'Borrando ' + (hechas + fallas + 1) + ' de ' + ids.length + '…';
+      try {
+        await borrarEnWorker('foto', id);
+        quitarFotoDeLaVista(id);
+        hechas++;
+      } catch (err) {
+        fallas++;
+      }
+    }
+    btn.disabled = false;
+    salirSeleccion();
+    actualizarConteoFotos();
+    toast(fallas ? hechas + ' borradas, ' + fallas + ' no se pudieron borrar' : (hechas === 1 ? 'Foto borrada' : hechas + ' fotos borradas'));
+  });
+
+  function quitarFotoDeLaVista(id) {
+    fotos = fotos.filter(f => f.id !== id);
+    seleccion.delete(id);
+    const tile = $('#gridFotos').querySelector(`.foto[data-id="${CSS.escape(id)}"]`);
+    if (tile) { tile.remove(); fotosMostradas = Math.max(0, fotosMostradas - 1); }
+    $('#fotosVacio').classList.toggle('hidden', fotos.length > 0);
+  }
+
+  // Visor de una foto (con anterior / siguiente y borrar).
+  let visorIdx = 0;
+  function mostrarEnVisor() {
+    const f = fotos[visorIdx];
+    $('#visorImg').src = f.directo;
+    $('#visorNombre').textContent = f.nombre;
+    $('#visorFecha').textContent = fmtFecha(f.fecha) + ' · ' + (visorIdx + 1) + ' de ' + fotos.length;
+    $('#visorAnt').disabled = visorIdx === 0;
+    $('#visorSig').disabled = visorIdx >= fotos.length - 1;
+  }
+  function abrirVisor(idx) {
+    if (idx < 0) return;
+    visorIdx = idx;
+    mostrarEnVisor();
+    abrir('ovFoto');
+  }
+  $('#visorAnt').addEventListener('click', () => { if (visorIdx > 0) { visorIdx--; mostrarEnVisor(); } });
+  $('#visorSig').addEventListener('click', () => { if (visorIdx < fotos.length - 1) { visorIdx++; mostrarEnVisor(); } });
+  $('#visorBorrar').addEventListener('click', async () => {
+    const f = fotos[visorIdx];
+    const ok = await confirmar('Borrar foto', 'Lo que ya esté copiado en Drive se queda.');
+    if (!ok) return;
+    try {
+      await borrarEnWorker('foto', f.id);
+      quitarFotoDeLaVista(f.id);
+      actualizarConteoFotos();
+      toast('Foto borrada');
+      if (!fotos.length) { cerrar('ovFoto'); return; }
+      visorIdx = Math.min(visorIdx, fotos.length - 1);
+      mostrarEnVisor();
+    } catch (err) {
+      toast('No se pudo borrar, probá de nuevo');
+    }
+  });
+  window.addEventListener('keydown', e => {
+    if (!$('#ovFoto').classList.contains('open')) return;
+    if (e.key === 'ArrowLeft') $('#visorAnt').click();
+    if (e.key === 'ArrowRight') $('#visorSig').click();
+    if (e.key === 'Escape') cerrar('ovFoto');
+  });
+
+  // ---------- Mensajes de video ----------
 
   async function cargarMensajes() {
-    btnRefresh.classList.add('spinning');
-    loadingEl.classList.remove('hidden');
-    loadingEl.querySelector('span').textContent = 'Cargando mensajes...';
-    emptyEl.classList.add('hidden');
-    listEl.innerHTML = '';
-    countBadge.classList.add('hidden');
+    $('#mensajesCargando').classList.remove('hidden');
+    $('#mensajesVacio').classList.add('hidden');
+    $('#listaMensajes').innerHTML = '';
     try {
       const res = await fetch(MEDIA_URL + '/mensajes');
       const mensajes = await res.json();
       if (!Array.isArray(mensajes)) throw new Error('respuesta inválida');
-      mensajesCargados = true;
-      loadingEl.classList.add('hidden');
-      if (!mensajes.length) {
-        emptyEl.classList.remove('hidden');
-        return;
-      }
-      if (vistaActual === 'mensajes') {
-        countBadge.textContent = mensajes.length;
-        countBadge.classList.remove('hidden');
-      }
-      mensajes.forEach(renderItem);
+      $('#mensajesCargando').classList.add('hidden');
+      actualizarConteoMensajes(mensajes.length);
+      $('#mensajesVacio').classList.toggle('hidden', mensajes.length > 0);
+      mensajes.forEach(renderMensaje);
     } catch (err) {
-      loadingEl.querySelector('span').textContent = 'No pudimos cargar los mensajes. Probá actualizar.';
-    } finally {
-      btnRefresh.classList.remove('spinning');
+      $('#mensajesCargando').innerHTML = '<span>No pudimos cargar los mensajes. Probá actualizar.</span>';
     }
   }
 
-  function renderItem(msg) {
+  function actualizarConteoMensajes(n) {
+    $('#nMensajes').textContent = n;
+    $('#kMensajes').textContent = fmtNum(n);
+  }
+
+  function renderMensaje(msg) {
     const item = document.createElement('div');
     item.className = 'item';
-    const fecha = new Date(msg.fecha).toLocaleString('es-AR', { dateStyle: 'medium', timeStyle: 'short' });
     item.innerHTML = `
-      <div class="item-row">
-        <div class="item-icon">${ICON_VIDEO}</div>
-        <div class="item-info">
-          <div class="item-name">${msg.nombre}</div>
-          <div class="item-date">${fecha}</div>
-        </div>
-        <div class="item-actions">
-          <button class="icon-btn small btn-ver" aria-label="Ver">${ICON_PLAY}</button>
-          <button class="icon-btn small danger-outline btn-borrar" aria-label="Borrar">${ICON_TRASH}</button>
-        </div>
+      <div class="row">
+        <span class="menu-icon">${icono('video')}</span>
+        <div class="grow"><div class="item-nombre">${esc(msg.nombre)}</div><div class="small muted">${esc(fmtFecha(msg.fecha))}</div></div>
+        <button class="mini btn-ver" aria-label="Ver">${icono('play')}</button>
+        <button class="mini danger btn-borrar" aria-label="Borrar">${icono('trash')}</button>
       </div>
       <div class="player-wrap"><video class="player" controls playsinline></video></div>
     `;
@@ -1267,11 +1396,11 @@
     const btnVer = item.querySelector('.btn-ver');
     const btnBorrar = item.querySelector('.btn-borrar');
 
-    btnVer.addEventListener('click', async () => {
+    btnVer.addEventListener('click', () => {
       if (playerWrap.classList.contains('open')) {
         playerWrap.classList.remove('open');
         video.pause();
-        btnVer.innerHTML = ICON_PLAY;
+        btnVer.innerHTML = icono('play');
         return;
       }
       if (!video.src) {
@@ -1279,14 +1408,13 @@
         video.addEventListener('error', () => toast('No se pudo cargar el video'), { once: true });
       }
       playerWrap.classList.add('open');
-      btnVer.innerHTML = ICON_STOP;
+      btnVer.innerHTML = icono('stop');
       video.play();
     });
-
-    video.addEventListener('pause', () => { if (video.currentTime === video.duration) btnVer.innerHTML = ICON_PLAY; });
+    video.addEventListener('pause', () => { if (video.currentTime === video.duration) btnVer.innerHTML = icono('play'); });
 
     btnBorrar.addEventListener('click', async () => {
-      const ok = await pedirConfirmacion('Borrar mensaje');
+      const ok = await confirmar('Borrar mensaje');
       if (!ok) return;
       btnBorrar.disabled = true;
       btnVer.disabled = true;
@@ -1296,13 +1424,10 @@
         toast('Mensaje borrado');
         setTimeout(() => {
           item.remove();
-          const restantes = listEl.children.length;
-          countBadge.textContent = restantes;
-          if (!restantes) {
-            countBadge.classList.add('hidden');
-            emptyEl.classList.remove('hidden');
-          }
-        }, 280);
+          const restantes = $('#listaMensajes').children.length;
+          actualizarConteoMensajes(restantes);
+          $('#mensajesVacio').classList.toggle('hidden', restantes > 0);
+        }, 260);
       } catch (err) {
         btnBorrar.disabled = false;
         btnVer.disabled = false;
@@ -1310,313 +1435,20 @@
       }
     });
 
-    listEl.appendChild(item);
+    $('#listaMensajes').appendChild(item);
   }
 
-  // El Worker valida la clave contra Apps Script y responde {ok}: si no
-  // se borró (clave inválida, Apps Script caído), se avisa en vez de
-  // sacar el ítem de la lista como si nada.
-  async function borrarEnWorker(tipo, id) {
-    const res = await fetch(MEDIA_URL + '/borrar', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tipo, id, clave: claveActual })
-    });
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.error || 'No se pudo borrar');
-  }
-
-  // ---------- Galería de fotos ----------
-
-  const listFotosEl = document.getElementById('listFotos');
-  const loadingFotosEl = document.getElementById('loadingFotos');
-  const emptyFotosEl = document.getElementById('emptyFotos');
-
-  async function cargarGaleria() {
-    btnRefresh.classList.add('spinning');
-    loadingFotosEl.classList.remove('hidden');
-    loadingFotosEl.querySelector('span').textContent = 'Cargando fotos...';
-    emptyFotosEl.classList.add('hidden');
-    listFotosEl.innerHTML = '';
-    countBadge.classList.add('hidden');
-    try {
-      const res = await fetch(MEDIA_URL + '/fotos');
-      const fotos = await res.json();
-      if (!Array.isArray(fotos)) throw new Error('respuesta inválida');
-      fotosCargadas = true;
-      loadingFotosEl.classList.add('hidden');
-      if (!fotos.length) {
-        emptyFotosEl.classList.remove('hidden');
-        return;
-      }
-      if (vistaActual === 'galeria') {
-        countBadge.textContent = fotos.length;
-        countBadge.classList.remove('hidden');
-      }
-      fotos.forEach(renderFotoItem);
-    } catch (err) {
-      loadingFotosEl.querySelector('span').textContent = 'No pudimos cargar las fotos. Probá actualizar.';
-    } finally {
-      btnRefresh.classList.remove('spinning');
-    }
-  }
-
-  function renderFotoItem(foto) {
-    const item = document.createElement('div');
-    item.className = 'item';
-    const fecha = new Date(foto.fecha).toLocaleString('es-AR', { dateStyle: 'medium', timeStyle: 'short' });
-    item.innerHTML = `
-      <div class="item-row">
-        <img class="item-thumb" alt="">
-        <div class="item-info">
-          <div class="item-name">${foto.nombre}</div>
-          <div class="item-date">${fecha}</div>
-        </div>
-        <div class="item-actions">
-          <button class="icon-btn small btn-ver-foto" aria-label="Ver">${ICON_PLAY}</button>
-          <button class="icon-btn small danger-outline btn-borrar-foto" aria-label="Borrar">${ICON_TRASH}</button>
-        </div>
-      </div>
-      <div class="photo-wrap"><img class="photo-full" alt=""></div>
-    `;
-    const thumb = item.querySelector('.item-thumb');
-    const photoWrap = item.querySelector('.photo-wrap');
-    const full = item.querySelector('.photo-full');
-    const btnVer = item.querySelector('.btn-ver-foto');
-    const btnBorrar = item.querySelector('.btn-borrar-foto');
-    thumb.loading = 'lazy';
-    thumb.src = foto.thumb || foto.directo;
-
-    btnVer.addEventListener('click', () => {
-      if (photoWrap.classList.contains('open')) {
-        photoWrap.classList.remove('open');
-        return;
-      }
-      if (!full.src) {
-        full.onerror = () => toast('No se pudo cargar la foto');
-        full.src = foto.directo;
-      }
-      photoWrap.classList.add('open');
-    });
-
-    btnBorrar.addEventListener('click', async () => {
-      const ok = await pedirConfirmacion('Borrar foto');
-      if (!ok) return;
-      btnBorrar.disabled = true;
-      btnVer.disabled = true;
-      try {
-        await borrarEnWorker('foto', foto.id);
-        item.classList.add('removing');
-        toast('Foto borrada');
-        setTimeout(() => {
-          item.remove();
-          const restantes = listFotosEl.children.length;
-          countBadge.textContent = restantes;
-          if (!restantes) {
-            countBadge.classList.add('hidden');
-            emptyFotosEl.classList.remove('hidden');
-          }
-        }, 280);
-      } catch (err) {
-        btnBorrar.disabled = false;
-        btnVer.disabled = false;
-        toast('No se pudo borrar, probá de nuevo');
-      }
-    });
-
-    listFotosEl.appendChild(item);
-  }
-
-  // ---------- Switch de modo (Save the Date / Invitación / Galería) ----------
-
-  const modoSwitch = document.getElementById('modoSwitch');
-  const modoBtns = modoSwitch.querySelectorAll('.modo-btn');
-
-  async function cargarModoSwitch() {
-    try {
-      const res = await fetch(GAS_URL + '?tipo=modoIndex');
-      const data = await res.json();
-      pintarModoActivo(data.modo);
-    } catch (err) {}
-  }
-
-  function pintarModoActivo(modo) {
-    modoBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.modo === modo));
-  }
-
-  modoBtns.forEach(btn => {
-    btn.addEventListener('click', async () => {
-      if (btn.classList.contains('active')) return;
-      modoBtns.forEach(b => b.disabled = true);
-      try {
-        await fetch(GAS_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          body: JSON.stringify({ tipo: 'setModoIndex', modo: btn.dataset.modo, clave: claveActual })
-        });
-        pintarModoActivo(btn.dataset.modo);
-        const mensajes = {
-          savethedate: 'Ahora se muestra el Save the Date',
-          invitacion: 'Ahora se muestra la invitación',
-          galeria: 'Ahora se muestra la galería'
-        };
-        toast(mensajes[btn.dataset.modo]);
-      } catch (err) {
-        toast('No se pudo cambiar el modo, probá de nuevo');
-      } finally {
-        modoBtns.forEach(b => b.disabled = false);
-      }
-    });
-  });
-
-  // ---------- Switch de visibilidad de la galería ----------
-
-  const galeriaSwitch = document.getElementById('galeriaSwitch');
-  const galeriaBtns = galeriaSwitch.querySelectorAll('.modo-btn');
-
-  async function cargarGaleriaSwitch() {
-    try {
-      const res = await fetch(GAS_URL + '?tipo=galeriaVisible');
-      const data = await res.json();
-      pintarGaleriaActiva(data.visible);
-    } catch (err) {}
-  }
-
-  function pintarGaleriaActiva(visible) {
-    galeriaBtns.forEach(btn => btn.classList.toggle('active', (btn.dataset.visible === 'true') === visible));
-  }
-
-  galeriaBtns.forEach(btn => {
-    btn.addEventListener('click', async () => {
-      if (btn.classList.contains('active')) return;
-      const visible = btn.dataset.visible === 'true';
-      galeriaBtns.forEach(b => b.disabled = true);
-      try {
-        await fetch(GAS_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          body: JSON.stringify({ tipo: 'setGaleriaVisible', visible, clave: claveActual })
-        });
-        pintarGaleriaActiva(visible);
-        toast(visible ? 'Las fotos vuelven a ser visibles' : 'Las fotos quedan ocultas hasta que las muestres');
-      } catch (err) {
-        toast('No se pudo cambiar la visibilidad, probá de nuevo');
-      } finally {
-        galeriaBtns.forEach(b => b.disabled = false);
-      }
-    });
-  });
-  // ---------- Respaldo en Drive ----------
-  // Llama a sincronizarDrive() de Apps Script hasta que no quede nada por
-  // copiar: cada llamada trabaja ~90 s y devuelve cuántos faltan. Va por
-  // POST sin no-cors (text/plain, como pedido simple) para poder leer la
-  // respuesta y mostrar el avance.
-
-  const respaldoBtn = document.getElementById('respaldoBtn');
-  const respaldoEstado = document.getElementById('respaldoEstado');
-  const respaldoBarra = document.getElementById('respaldoBarra');
-  const respaldoBarraFill = document.getElementById('respaldoBarraFill');
-  const respaldoLink = document.getElementById('respaldoLink');
-
-  function pintarRespaldo(texto, error) {
-    respaldoEstado.textContent = texto;
-    respaldoEstado.classList.toggle('error', !!error);
-    respaldoEstado.classList.remove('hidden');
-  }
-
-  async function pedirSincronizacionUnaVez() {
-    const res = await fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ tipo: 'sincronizarDrive', clave: claveActual })
-    });
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.error || 'No se pudo sincronizar');
-    return data;
-  }
-
-  // Sincronizar es repetible sin riesgo (copia solo lo que falta), así que
-  // un error pasajero de Drive o de la red se reintenta solo unas veces
-  // antes de mostrarle el error a quien lo está mirando.
-  async function pedirSincronizacion() {
-    for (let intento = 1; ; intento++) {
-      try {
-        return await pedirSincronizacionUnaVez();
-      } catch (err) {
-        if (intento >= 3) throw err;
-        pintarRespaldo('Error pasajero (' + err.message + '). Reintentando…');
-        await new Promise(r => setTimeout(r, 4000));
-      }
-    }
-  }
-
-  respaldoBtn.addEventListener('click', async () => {
-    respaldoBtn.disabled = true;
-    respaldoBtn.textContent = 'Sincronizando…';
-    respaldoBarra.classList.remove('hidden');
-    respaldoBarra.classList.add('trabajando');
-    respaldoBarraFill.style.width = '0';
-    pintarRespaldo('Revisando qué falta copiar…');
-    let copiadas = 0;
-    let fallidas = 0;
-    let motivoFallas = '';
-    try {
-      let data;
-      do {
-        data = await pedirSincronizacion();
-        if (data.ultimoError) motivoFallas = data.ultimoError;
-        copiadas += data.copiadas;
-        // Los que fallan se reintentan en la vuelta siguiente: cuentan
-        // los de la última.
-        fallidas = data.fallidas;
-        respaldoLink.href = data.carpetaUrl;
-        respaldoLink.classList.remove('hidden');
-        // Avance sobre TODO lo que hay (lo que ya estaba en Drive también
-        // cuenta). Lo que falló no está copiado y no se suma.
-        const enDrive = data.total - data.pendientes - fallidas;
-        const pct = data.total ? Math.round(enDrive / data.total * 100) : 100;
-        respaldoBarraFill.style.width = pct + '%';
-        if (data.pendientes) {
-          pintarRespaldo(`Copiando… ${enDrive} de ${data.total} en Drive (${pct} %) · se copiaron ${copiadas} en esta sincronización`);
-        }
-        // Si una vuelta entera no pudo copiar nada, cortar en vez de
-        // insistir para siempre.
-      } while (data.pendientes > 0 && data.copiadas > 0);
-
-      respaldoBarra.classList.remove('trabajando');
-      let texto = copiadas
-        ? 'Listo: ' + copiadas + (copiadas === 1 ? ' archivo nuevo copiado' : ' archivos nuevos copiados') + '.'
-        : 'Ya estaba todo copiado.';
-      if (fallidas) texto += ' ' + fallidas + (fallidas === 1 ? ' no se pudo bajar' : ' no se pudieron bajar') + (motivoFallas ? ' (' + motivoFallas + ')' : '') + ': volvé a sincronizar para reintentar.';
-      if (data.pendientes) texto += ' Quedaron ' + data.pendientes + ' sin copiar: volvé a sincronizar.';
-      pintarRespaldo(texto, fallidas || data.pendientes);
-      respaldoBarraFill.style.width = data.total
-        ? Math.round((data.total - data.pendientes - fallidas) / data.total * 100) + '%' : '100%';
-    } catch (err) {
-      pintarRespaldo((copiadas ? 'Se copiaron ' + copiadas + ', pero después falló: ' : 'No se pudo sincronizar: ') + err.message, true);
-    } finally {
-      respaldoBarra.classList.remove('trabajando');
-      respaldoBtn.disabled = false;
-      respaldoBtn.textContent = 'Sincronizar';
-    }
-  });
   // ---------- Carrusel «Nuestra historia» ----------
   // Las fotos se preparan acá antes de subirlas: los HEIC que el navegador
-  // no abre se pasan a JPEG con heic2any (mismo criterio que
-  // galeria/index.html) y todas se achican a CARRUSEL_MAX_DIM en WebP (o
-  // JPEG si el navegador no sabe generar WebP). El Worker valida la clave
-  // y las guarda al final del orden.
+  // no abre se pasan a JPEG (heic-to, con heic2any de respaldo) y todas se
+  // achican a CARRUSEL_MAX_DIM en WebP (o JPEG si el navegador no sabe
+  // generar WebP). El Worker valida la clave y las guarda al final del
+  // orden con el siguiente número, sin importar cómo se llame el archivo;
+  // el orden se cambia con /carrusel/orden.
 
   const CARRUSEL_MAX_DIM = 1600;
   const HEIC2ANY_URL = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
   let heic2anyPromesa = null;
-
-  const listCarruselEl = document.getElementById('listCarrusel');
-  const loadingCarruselEl = document.getElementById('loadingCarrusel');
-  const emptyCarruselEl = document.getElementById('emptyCarrusel');
-  const carruselBtn = document.getElementById('carruselBtn');
-  const carruselInput = document.getElementById('carruselInput');
-  const carruselEstado = document.getElementById('carruselEstado');
 
   function esHeic(file) {
     return /image\/hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name || '');
@@ -1636,7 +1468,7 @@
   }
 
   // Conversor principal: heic-to (libheif reciente, ~3 MB, se carga solo si
-  // hace falta). Lo anterior, heic2any, usa una libheif vieja que falla con
+  // hace falta). heic2any usa una libheif vieja que falla con
   // "ERR_LIBHEIF format not supported" en fotos de iPhone recientes; queda
   // de respaldo.
   const HEICTO_URL = 'https://cdn.jsdelivr.net/npm/heic-to@1.6.6/dist/iife/heic-to.js';
@@ -1721,104 +1553,101 @@
     if (!data.ok) throw new Error(data.error || 'No se pudo subir');
   }
 
-  // Huellas de lo que ya está en el carrusel (sin la caché de la lista
-  // que se está mostrando, por si otro dispositivo agregó algo).
+  // Huellas de lo que ya está en el carrusel (pedidas de nuevo, por si otro
+  // dispositivo agregó algo).
   async function huellasDelCarrusel() {
     const res = await fetch(MEDIA_URL + '/carrusel');
-    const fotos = await res.json();
-    return new Set(Array.isArray(fotos) ? fotos.map(f => f.hash).filter(Boolean) : []);
+    const lista = await res.json();
+    return new Set(Array.isArray(lista) ? lista.map(f => f.hash).filter(Boolean) : []);
   }
 
+  let carrusel = [];
+
   async function cargarCarrusel() {
-    btnRefresh.classList.add('spinning');
-    loadingCarruselEl.classList.remove('hidden');
-    loadingCarruselEl.querySelector('span').textContent = 'Cargando fotos...';
-    emptyCarruselEl.classList.add('hidden');
-    listCarruselEl.innerHTML = '';
-    countBadge.classList.add('hidden');
+    $('#carruselCargando').classList.remove('hidden');
+    $('#carruselVacio').classList.add('hidden');
+    $('#listaCarrusel').innerHTML = '';
     try {
       const res = await fetch(MEDIA_URL + '/carrusel');
-      const fotos = await res.json();
-      if (!Array.isArray(fotos)) throw new Error('respuesta inválida');
-      carruselCargado = true;
-      loadingCarruselEl.classList.add('hidden');
-      if (!fotos.length) {
-        emptyCarruselEl.classList.remove('hidden');
-        return;
-      }
-      if (vistaActual === 'carrusel') {
-        countBadge.textContent = fotos.length;
-        countBadge.classList.remove('hidden');
-      }
-      fotos.forEach((foto, i) => renderCarruselItem(foto, i + 1));
+      const lista = await res.json();
+      if (!Array.isArray(lista)) throw new Error('respuesta inválida');
+      carrusel = lista;
+      $('#carruselCargando').classList.add('hidden');
+      pintarCarrusel();
     } catch (err) {
-      loadingCarruselEl.querySelector('span').textContent = 'No pudimos cargar el carrusel. Probá actualizar.';
-    } finally {
-      btnRefresh.classList.remove('spinning');
+      $('#carruselCargando').innerHTML = '<span>No pudimos cargar el carrusel. Probá actualizar.</span>';
     }
   }
 
-  function renderCarruselItem(foto, orden) {
-    const item = document.createElement('div');
-    item.className = 'item';
-    item.innerHTML = `
-      <div class="item-row">
-        <span class="item-orden">${orden}</span>
-        <img class="item-thumb" alt="">
-        <div class="item-info">
-          <div class="item-name">Foto ${orden}</div>
-        </div>
-        <div class="item-actions">
-          <button class="icon-btn small btn-ver-foto" aria-label="Ver">${ICON_PLAY}</button>
-          <button class="icon-btn small danger-outline btn-borrar-foto" aria-label="Borrar">${ICON_TRASH}</button>
-        </div>
-      </div>
-      <div class="photo-wrap"><img class="photo-full" alt=""></div>
-    `;
-    const photoWrap = item.querySelector('.photo-wrap');
-    const full = item.querySelector('.photo-full');
-    const btnVer = item.querySelector('.btn-ver-foto');
-    const btnBorrar = item.querySelector('.btn-borrar-foto');
-    item.querySelector('.item-thumb').src = foto.url;
+  function pintarCarrusel() {
+    $('#nCarrusel').textContent = carrusel.length;
+    $('#carruselVacio').classList.toggle('hidden', carrusel.length > 0);
+    $('#listaCarrusel').innerHTML = carrusel.map((f, i) => `
+      <div class="item"><div class="row">
+        <span class="orden">${i + 1}</span>
+        <img class="thumb" alt="" src="${esc(f.url)}">
+        <div class="grow"><div class="item-nombre">Foto ${i + 1}</div></div>
+        <button class="mini" data-mover="${i}" data-d="-1" aria-label="Subir" ${i === 0 ? 'disabled' : ''}>${icono('up')}</button>
+        <button class="mini" data-mover="${i}" data-d="1" aria-label="Bajar" ${i === carrusel.length - 1 ? 'disabled' : ''}>${icono('down')}</button>
+        <button class="mini danger" data-borrar="${i}" aria-label="Borrar">${icono('trash')}</button>
+      </div></div>`).join('');
+  }
 
-    btnVer.addEventListener('click', () => {
-      if (!full.src) full.src = foto.url;
-      photoWrap.classList.toggle('open');
-    });
-
-    btnBorrar.addEventListener('click', async () => {
-      const ok = await pedirConfirmacion('Borrar foto ' + orden + ' del carrusel');
-      if (!ok) return;
-      btnBorrar.disabled = true;
+  $('#listaCarrusel').addEventListener('click', async e => {
+    const mover = e.target.closest('[data-mover]');
+    const borrar = e.target.closest('[data-borrar]');
+    if (mover) {
+      const i = +mover.dataset.mover;
+      const j = i + +mover.dataset.d;
+      const orden = carrusel.map(f => f.id);
+      [orden[i], orden[j]] = [orden[j], orden[i]];
+      $$('#listaCarrusel .mini').forEach(b => b.disabled = true);
       try {
-        await borrarEnWorker('carrusel', foto.id);
-        toast('Foto borrada del carrusel');
-        cargarCarrusel(); // para renumerar
+        const res = await fetch(MEDIA_URL + '/carrusel/orden', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clave: claveActual, orden })
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'No se pudo reordenar');
+        toast('Orden actualizado');
       } catch (err) {
-        btnBorrar.disabled = false;
+        toast(err.message);
+      }
+      await cargarCarrusel();   // siempre se vuelve a leer: es lo que ven los invitados
+    }
+    if (borrar) {
+      const f = carrusel[+borrar.dataset.borrar];
+      const ok = await confirmar('Borrar foto ' + (+borrar.dataset.borrar + 1) + ' del carrusel', 'Se saca de la invitación.');
+      if (!ok) return;
+      try {
+        await borrarEnWorker('carrusel', f.id);
+        toast('Foto borrada del carrusel');
+        await cargarCarrusel();   // para renumerar
+      } catch (err) {
         toast('No se pudo borrar, probá de nuevo');
       }
-    });
-
-    listCarruselEl.appendChild(item);
-  }
+    }
+  });
 
   function pintarCarruselEstado(texto, error) {
-    carruselEstado.textContent = texto;
-    carruselEstado.classList.toggle('error', !!error);
-    carruselEstado.classList.remove('hidden');
+    const el = $('#carruselEstado');
+    el.textContent = texto;
+    el.style.color = error ? 'var(--danger-dark)' : '';
+    el.classList.remove('hidden');
   }
 
-  carruselBtn.addEventListener('click', () => carruselInput.click());
-  carruselInput.addEventListener('change', async () => {
-    // Se suben en el orden en que el navegador las entrega (por nombre de
-    // archivo en la mayoría): nombrarlas 1, 2, 3... antes ayuda a elegirlo.
-    const files = Array.from(carruselInput.files)
+  $('#carruselBtn').addEventListener('click', () => $('#carruselInput').click());
+  $('#carruselInput').addEventListener('change', async () => {
+    // Las fotos de una misma tanda se suben en orden de nombre de archivo
+    // (solo para que queden parejas al principio; después se reordenan
+    // con las flechas, sin importar cómo se llamen).
+    const files = Array.from($('#carruselInput').files)
       .filter(f => f.type.startsWith('image/') || esHeic(f))
       .sort((a, b) => a.name.localeCompare(b.name, 'es', { numeric: true }));
-    carruselInput.value = '';
+    $('#carruselInput').value = '';
     if (!files.length) return;
-    carruselBtn.disabled = true;
+    $('#carruselBtn').disabled = true;
     let subidas = 0;
     const fallas = [];
     const repetidas = [];
@@ -1847,20 +1676,97 @@
         fallas.push(files[i].name + ' (' + motivo + ')');
       }
     }
-    carruselBtn.disabled = false;
+    $('#carruselBtn').disabled = false;
     let texto = subidas ? `Listo: ${subidas} foto${subidas > 1 ? 's' : ''} agregada${subidas > 1 ? 's' : ''} al carrusel.` : '';
     if (repetidas.length) texto += (texto ? ' ' : '') + (repetidas.length > 1 ? 'Ya estaban y no se repitieron: ' : 'Ya estaba y no se repitió: ') + repetidas.join(', ') + '.';
     if (fallas.length) texto += (texto ? ' ' : '') + 'No se pudieron subir: ' + fallas.join(', ') + '.';
     pintarCarruselEstado(texto, fallas.length > 0);
     if (subidas) cargarCarrusel();
   });
-  // ---------- Uso del plan gratis de Cloudflare ----------
+
+  // ---------- REGALO ----------
+  // Los datos viven en la pestaña "Regalo" del Sheet: se leen del mismo
+  // endpoint público que usa la invitación y se guardan con la clave.
+
+  let regaloGuardado = null;   // lo que hay en el Sheet
+  let regalo = null;           // lo que se está editando
+  const $g = { Monto: $('#gMonto'), Titular: $('#gTitular'), Banco: $('#gBanco'), CBU: $('#gCbu'), Alias: $('#gAlias') };
+  const peso = n => n ? '$' + Number(n).toLocaleString('es-AR') : '—';
+
+  async function cargarRegalo() {
+    try {
+      const res = await fetch(GAS_URL + '?tipo=regalo');
+      const d = await res.json();
+      regaloGuardado = {
+        Monto: d.Monto === undefined || d.Monto === '' ? '' : String(d.Monto).replace(/\D/g, ''),
+        Titular: String(d.Titular || ''),
+        Banco: String(d.Banco || ''),
+        CBU: String(d.CBU || '').replace(/\D/g, ''),
+        Alias: String(d.Alias || '')
+      };
+      regalo = Object.assign({}, regaloGuardado);
+      cargadas.regalo = true;
+      $('#regaloCargando').classList.add('hidden');
+      $('#regaloForm').classList.remove('hidden');
+      volcarRegalo();
+    } catch (err) {
+      $('#regaloCargando').innerHTML = '<span>No pudimos cargar los datos. Probá actualizar.</span>';
+    }
+  }
+
+  function volcarRegalo() {
+    Object.keys($g).forEach(k => { $g[k].value = k === 'Monto' && regalo.Monto ? fmtNum(regalo.Monto) : regalo[k]; });
+    pintarRegalo();
+  }
+
+  function pintarRegalo() {
+    $('#pMonto').textContent = peso(regalo.Monto);
+    $('#pTitular').textContent = regalo.Titular || '—';
+    $('#pBanco').textContent = regalo.Banco || '—';
+    $('#pCbu').textContent = regalo.CBU ? regalo.CBU.replace(/(\d{8})(\d{14})/, '$1 $2') : '—';
+    $('#pAlias').textContent = (regalo.Alias || '—').toUpperCase();
+    const cambio = JSON.stringify(regalo) !== JSON.stringify(regaloGuardado);
+    const largo = regalo.CBU.length;
+    const cbuMal = largo > 0 && largo !== 22;
+    $('#gCbuAyuda').className = 'ayuda' + (cbuMal ? ' err' : '');
+    $('#gCbuAyuda').innerHTML = `<span>${cbuMal ? 'El CBU/CVU tiene 22 dígitos' : ''}</span><span>${largo}/22</span>`;
+    $('#gGuardar').disabled = !cambio || cbuMal;
+    $('#gDescartar').disabled = !cambio;
+  }
+
+  Object.keys($g).forEach(k => $g[k].addEventListener('input', () => {
+    let v = $g[k].value;
+    if (k === 'Monto') { v = v.replace(/\D/g, ''); $g[k].value = v ? fmtNum(v) : ''; }
+    if (k === 'CBU') { v = v.replace(/\D/g, ''); $g[k].value = v; }
+    regalo[k] = v;
+    pintarRegalo();
+  }));
+
+  $('#gDescartar').addEventListener('click', () => { regalo = Object.assign({}, regaloGuardado); volcarRegalo(); toast('Cambios descartados'); });
+  $('#gGuardar').addEventListener('click', async () => {
+    const ok = await confirmar('Guardar los datos del regalo', 'Los invitados van a ver estos datos en la invitación.');
+    if (!ok) return;
+    const btn = $('#gGuardar');
+    btn.disabled = true;
+    btn.textContent = 'Guardando…';
+    try {
+      await gas('adminGuardarRegalo', regalo);
+      regaloGuardado = Object.assign({}, regalo);
+      toast('Datos guardados');
+    } catch (err) {
+      toast(err.message);
+    } finally {
+      btn.textContent = 'Guardar cambios';
+      pintarRegalo();
+    }
+  });
+
+  // ---------- SISTEMA: uso del plan gratis de Cloudflare ----------
   // Lo calcula el Worker (POST /uso, ver worker/src/index.js) y lo guarda
   // un minuto. Amarillo desde USO_AVISO, rojo desde USO_ALERTA.
 
   const USO_AVISO = 0.7;
   const USO_ALERTA = 0.9;
-  const fmtNum = n => n.toLocaleString('es-AR');
   const fmtGB = b => (b / 1e9).toLocaleString('es-AR', { maximumFractionDigits: b < 1e9 ? 2 : 1 }) + ' GB';
 
   function filaUso(nombre, usado, limite, fmt, nota) {
@@ -1869,9 +1775,9 @@
     const pct = Math.round(p * 100);
     return {
       p,
-      html: `<div class="uso-fila ${clase}">
-        <div class="uso-linea"><span>${nombre}</span><span class="uso-cifra">${fmt(usado)} de ${fmt(limite)} · ${pct}%</span></div>
-        <div class="uso-barra"><span style="width:${Math.min(100, Math.max(p * 100, usado ? 1 : 0))}%"></span></div>
+      html: `<div class="uso ${clase}">
+        <div class="uso-l"><span>${nombre}</span><span>${fmt(usado)} de ${fmt(limite)} · ${pct} %</span></div>
+        <div class="bar"><span style="width:${Math.min(100, Math.max(p * 100, usado ? 1 : 0))}%"></span></div>
         ${nota ? `<div class="uso-nota">${nota}</div>` : ''}
       </div>`
     };
@@ -1887,9 +1793,9 @@
   }
 
   async function cargarUso() {
-    const pill = document.getElementById('usoPill');
-    const filas = document.getElementById('usoFilas');
-    const ayuda = document.getElementById('usoAyuda');
+    const pill = $('#usoPill');
+    const filas = $('#usoFilas');
+    const ayuda = $('#usoAyuda');
     try {
       const res = await fetch(MEDIA_URL + '/uso', {
         method: 'POST',
@@ -1898,6 +1804,7 @@
       });
       const d = await res.json();
       if (!d.ok) throw new Error(d.error || 'respuesta inválida');
+      cargadas.uso = true;
 
       const items = [];
       if (d.analitica) {
@@ -1912,7 +1819,7 @@
       filas.innerHTML = items.map(i => i.html).join('');
 
       const peor = Math.max(...items.map(i => i.p));
-      pill.className = 'estado-pill ' + (peor >= USO_ALERTA ? 'falla' : peor >= USO_AVISO ? 'lento' : 'ok');
+      pill.className = 'pill ' + (peor >= USO_ALERTA ? 'bad' : peor >= USO_AVISO ? 'warn' : 'ok');
       pill.textContent = peor >= USO_ALERTA ? 'Casi en el límite' : peor >= USO_AVISO ? 'Atención' : 'Dentro de lo gratis';
 
       let pista = '';
@@ -1929,14 +1836,121 @@
       ayuda.classList.toggle('hidden', !pista);
 
       const hora = new Date(d.generado);
-      document.getElementById('usoHora').textContent = 'Datos de las ' +
-        hora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }) + ' (se actualizan cada minuto)';
+      $('#usoHora').textContent = 'Datos de las ' + hora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
     } catch (err) {
-      pill.className = 'estado-pill falla';
+      pill.className = 'pill bad';
       pill.textContent = 'Sin datos';
       ayuda.textContent = 'No se pudo consultar el uso: ' + err.message;
       ayuda.classList.remove('hidden');
     }
+  }
+
+  // ---------- SISTEMA: respaldo en Drive ----------
+  // Llama a sincronizarDrive() de Apps Script hasta que no quede nada por
+  // copiar: cada llamada trabaja ~20 s y devuelve cuántos faltan. Va por
+  // POST sin no-cors (text/plain, como pedido simple) para poder leer la
+  // respuesta y mostrar el avance.
+
+  const respaldoBtn = $('#respaldoBtn');
+  const respaldoBarra = $('#respaldoBarra');
+  const respaldoBarraFill = $('#respaldoBarraFill');
+  const respaldoLink = $('#respaldoLink');
+
+  function pintarRespaldo(texto, error) {
+    const el = $('#respaldoEstado');
+    el.textContent = texto;
+    el.style.color = error ? 'var(--danger-dark)' : '';
+    el.classList.remove('hidden');
+  }
+
+  // Sincronizar es repetible sin riesgo (copia solo lo que falta), así que
+  // un error pasajero de Drive o de la red se reintenta solo unas veces
+  // antes de mostrarle el error a quien lo está mirando.
+  async function pedirSincronizacion() {
+    for (let intento = 1; ; intento++) {
+      try {
+        return await gas('sincronizarDrive');
+      } catch (err) {
+        if (intento >= 3) throw err;
+        pintarRespaldo('Error pasajero (' + err.message + '). Reintentando…');
+        await new Promise(r => setTimeout(r, 4000));
+      }
+    }
+  }
+
+  respaldoBtn.addEventListener('click', async () => {
+    respaldoBtn.disabled = true;
+    respaldoBtn.textContent = 'Sincronizando…';
+    respaldoBarra.classList.remove('hidden');
+    respaldoBarra.classList.add('trabajando');
+    respaldoBarraFill.style.width = '0';
+    pintarRespaldo('Revisando qué falta copiar…');
+    let copiadas = 0;
+    let fallidas = 0;
+    let motivoFallas = '';
+    try {
+      let data;
+      do {
+        data = await pedirSincronizacion();
+        copiadas += data.copiadas;
+        // Los que fallan se reintentan en la vuelta siguiente: cuentan
+        // los de la última.
+        fallidas = data.fallidas;
+        if (data.ultimoError) motivoFallas = data.ultimoError;
+        respaldoLink.href = data.carpetaUrl;
+        respaldoLink.classList.remove('hidden');
+        // Avance sobre TODO lo que hay (lo que ya estaba en Drive también
+        // cuenta). Lo que falló no está copiado y no se suma.
+        const enDrive = data.total - data.pendientes - fallidas;
+        const pct = data.total ? Math.round(enDrive / data.total * 100) : 100;
+        respaldoBarraFill.style.width = pct + '%';
+        if (data.pendientes) {
+          pintarRespaldo(`Copiando… ${enDrive} de ${data.total} en Drive (${pct} %) · se copiaron ${copiadas} en esta sincronización`);
+        }
+        // Si una vuelta entera no pudo copiar nada, cortar en vez de
+        // insistir para siempre.
+      } while (data.pendientes > 0 && data.copiadas > 0);
+
+      respaldoBarra.classList.remove('trabajando');
+      let texto = copiadas
+        ? 'Listo: ' + copiadas + (copiadas === 1 ? ' archivo nuevo copiado' : ' archivos nuevos copiados') + '.'
+        : 'Ya estaba todo copiado.';
+      if (fallidas) texto += ' ' + fallidas + (fallidas === 1 ? ' no se pudo bajar' : ' no se pudieron bajar') + (motivoFallas ? ' (' + motivoFallas + ')' : '') + ': volvé a sincronizar para reintentar.';
+      if (data.pendientes) texto += ' Quedaron ' + data.pendientes + ' sin copiar: volvé a sincronizar.';
+      pintarRespaldo(texto, fallidas || data.pendientes);
+      respaldoBarraFill.style.width = data.total
+        ? Math.round((data.total - data.pendientes - fallidas) / data.total * 100) + '%' : '100%';
+    } catch (err) {
+      pintarRespaldo((copiadas ? 'Se copiaron ' + copiadas + ', pero después falló: ' : 'No se pudo sincronizar: ') + err.message, true);
+    } finally {
+      respaldoBarra.classList.remove('trabajando');
+      respaldoBtn.disabled = false;
+      respaldoBtn.textContent = 'Sincronizar';
+    }
+  });
+
+  // ---------- SISTEMA: herramientas ----------
+
+  // "Verificar JSON": abre en otra pestaña la respuesta cruda del script
+  // con la lista de invitados. Va por la URL fija del script (GAS_URL) y
+  // no por un enlace script.googleusercontent.com/macros/echo?..., porque
+  // esos son temporales (Google genera uno distinto por pedido). La lista
+  // completa exige la clave de admin, por eso se manda la de esta sesión.
+  $('#btnVerificarJson').addEventListener('click', () => {
+    window.open(GAS_URL + '?clave=' + encodeURIComponent(claveActual), '_blank', 'noopener');
+  });
+
+  $('#btnSalir').addEventListener('click', () => {
+    sessionStorage.removeItem('mensajes-admin-clave');
+    location.reload();
+  });
+
+  // ---------- Arranque ----------
+
+  if (claveActual) {
+    gate.classList.add('hidden');
+    panel.classList.remove('hidden');
+    iniciarPanel();
   }
 </script>
 </body>

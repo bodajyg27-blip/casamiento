@@ -5,6 +5,9 @@
 // claude-ia/memoria/decisiones-tecnicas.md). El Worker consulta acá
 // ?tipo=verificarClave para autorizar los borrados del admin.
 //
+// El panel admin/ también edita el Sheet por acá (lista de invitados y datos
+// del regalo): ver "ADMIN" más abajo. Todo con la clave de admin.
+//
 // Drive se usa solo para el respaldo: el botón "Sincronizar" del admin
 // llama a sincronizarDrive(), que copia a una carpeta de Drive las fotos y
 // videos del Worker que todavía no estén ahí. Nada del sitio depende de
@@ -73,6 +76,22 @@ function doPost(e) {
     if (params.tipo === "sincronizarDrive") {
       if (!claveValida(params.clave)) return errorNoAutorizado();
       return sincronizarDrive();
+    }
+    if (params.tipo === "adminListarInvitados") {
+      if (!claveValida(params.clave)) return errorNoAutorizado();
+      return adminListarInvitados();
+    }
+    if (params.tipo === "adminGuardarInvitado") {
+      if (!claveValida(params.clave)) return errorNoAutorizado();
+      return adminGuardarInvitado(params);
+    }
+    if (params.tipo === "adminBorrarInvitado") {
+      if (!claveValida(params.clave)) return errorNoAutorizado();
+      return adminBorrarInvitado(params);
+    }
+    if (params.tipo === "adminGuardarRegalo") {
+      if (!claveValida(params.clave)) return errorNoAutorizado();
+      return adminGuardarRegalo(params);
     }
     return confirmarInvitado(params);
   } catch (err) {
@@ -261,6 +280,18 @@ function buscarInvitado(q) {
 }
 
 function confirmarInvitado(params) {
+  // Mismo candado que las ediciones del admin: borrar un invitado corre las
+  // filas, y una confirmación a mitad de camino caería en otra.
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    return confirmarInvitadoSinCandado(params);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function confirmarInvitadoSinCandado(params) {
   const sheet = libro().getSheetByName("Invitados");
   const data = sheet.getDataRange().getValues();
   const nombreBuscado = (params.nombre || "").toLowerCase().trim();
@@ -454,11 +485,15 @@ function descargar(item) {
 }
 
 function sincronizarDrive() {
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(1000)) {
+  // Bandera en caché y no el candado del script: ese candado lo usan las
+  // confirmaciones de invitados y las ediciones del admin, y no pueden
+  // esperar a que termine una tanda de copia.
+  const cache = CacheService.getScriptCache();
+  if (cache.get("sync_en_curso")) {
     return ContentService.createTextOutput(JSON.stringify({ ok: false, error: "Ya hay una sincronización en curso" }))
       .setMimeType(ContentService.MimeType.JSON);
   }
+  cache.put("sync_en_curso", "1", 90);
   try {
     const inicio = Date.now();
     const raiz = conReintentos(carpetaRespaldo);
@@ -524,6 +559,159 @@ function sincronizarDrive() {
     return ContentService.createTextOutput(JSON.stringify({ ok: false, error: err.message }))
       .setMimeType(ContentService.MimeType.JSON);
   } finally {
+    cache.remove("sync_en_curso");
+  }
+}
+
+// ---------- ADMIN: invitados y regalo (panel admin/) ----------
+// Todas exigen la clave de admin (ver doPost). Las que escriben toman el
+// candado del script: confirmarInvitado() usa el mismo.
+
+function jsonOut(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function conCandado(fn) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+  } catch (err) {
+    return jsonOut({ ok: false, error: "El servidor está ocupado, probá de nuevo" });
+  }
+  try {
+    return fn();
+  } finally {
     lock.releaseLock();
   }
+}
+
+// Lista completa para el panel, siempre leída del Sheet (sin la caché que
+// usa el buscador de los invitados). "fila" es el número de fila del Sheet:
+// el panel lo devuelve al guardar o borrar, y se confirma con el nombre
+// original para no tocar otra fila si la lista cambió mientras tanto.
+function adminListarInvitados() {
+  const sheet = libro().getSheetByName("Invitados");
+  const data = sheet.getDataRange().getValues();
+  const invitados = [];
+  for (let i = 1; i < data.length; i++) {
+    if (!data[i][0]) continue;
+    const confirmado = data[i][1] === true || data[i][1] === "TRUE";
+    const fecha = data[i][2] instanceof Date ? data[i][2].toISOString() : "";
+    invitados.push({
+      fila: i + 1,
+      nombre: String(data[i][0]).trim(),
+      confirmado,
+      fecha: confirmado ? fecha : "",
+      restricciones: String(data[i][3] || "").split(/,\s*/).map(x => x.trim()).filter(Boolean),
+      detalle: String(data[i][4] || ""),
+      tipo: String(data[i][6] || "").trim()
+    });
+  }
+  return jsonOut({ ok: true, invitados });
+}
+
+const TIPOS_INVITADO = ["Familiar", "Invitado"];
+
+// Busca la fila de un invitado: la indicada si todavía tiene ese nombre y,
+// si no, por nombre. Devuelve 0 si no aparece.
+function filaDeInvitado(data, fila, nombreOriginal) {
+  const buscado = normalizarTexto(nombreOriginal);
+  const i = (parseInt(fila, 10) || 0) - 1;
+  if (i >= 1 && i < data.length && normalizarTexto(data[i][0]) === buscado) return i + 1;
+  for (let k = 1; k < data.length; k++) {
+    if (normalizarTexto(data[k][0]) === buscado) return k + 1;
+  }
+  return 0;
+}
+
+function adminGuardarInvitado(params) {
+  return conCandado(() => {
+    const nombre = String(params.nombre || "").trim().slice(0, 100);
+    if (!nombre) return jsonOut({ ok: false, error: "Falta el nombre" });
+    // "tipo" ya lleva el nombre de la acción (ver doPost): el del invitado
+    // viaja como "tipoInvitado".
+    const tipo = TIPOS_INVITADO.includes(params.tipoInvitado) ? params.tipoInvitado : "Invitado";
+    const confirmado = params.confirmado === true;
+    const restricciones = Array.isArray(params.restricciones) ? params.restricciones.map(String).join(", ") : "";
+    const detalle = String(params.detalle || "").trim().slice(0, 300);
+
+    const sheet = libro().getSheetByName("Invitados");
+    const data = sheet.getDataRange().getValues();
+    const esNuevo = !params.nombreOriginal;
+    const fila = esNuevo ? 0 : filaDeInvitado(data, params.fila, params.nombreOriginal);
+    if (!esNuevo && !fila) return jsonOut({ ok: false, error: "No se encontró ese invitado: la lista cambió, recargá" });
+
+    // confirmarInvitado() busca por nombre: dos con el mismo nombre se pisarían.
+    for (let k = 1; k < data.length; k++) {
+      if (k + 1 !== fila && normalizarTexto(data[k][0]) === normalizarTexto(nombre)) {
+        return jsonOut({ ok: false, error: "Ya hay un invitado con ese nombre" });
+      }
+    }
+
+    const fecha = new Date();
+    if (esNuevo) {
+      // Columnas A..G (F sin uso)
+      sheet.appendRow([nombre, confirmado, confirmado ? fecha : "", restricciones, detalle, "", tipo]);
+    } else {
+      const yaConfirmado = data[fila - 1][1] === true || data[fila - 1][1] === "TRUE";
+      sheet.getRange(fila, 1).setValue(nombre);
+      sheet.getRange(fila, 2).setValue(confirmado);
+      // La fecha de confirmación se conserva si ya estaba confirmado.
+      if (confirmado && !yaConfirmado) sheet.getRange(fila, 3).setValue(fecha);
+      if (!confirmado) sheet.getRange(fila, 3).setValue("");
+      sheet.getRange(fila, 4).setValue(restricciones);
+      sheet.getRange(fila, 5).setValue(detalle);
+      sheet.getRange(fila, 7).setValue(tipo);
+    }
+    CacheService.getScriptCache().remove("invitados_lista");
+    return jsonOut({ ok: true });
+  });
+}
+
+function adminBorrarInvitado(params) {
+  return conCandado(() => {
+    if (!params.nombreOriginal) return jsonOut({ ok: false, error: "Falta el nombre" });
+    const sheet = libro().getSheetByName("Invitados");
+    const data = sheet.getDataRange().getValues();
+    const fila = filaDeInvitado(data, params.fila, params.nombreOriginal);
+    if (!fila) return jsonOut({ ok: false, error: "No se encontró ese invitado: la lista cambió, recargá" });
+    sheet.deleteRow(fila);
+    CacheService.getScriptCache().remove("invitados_lista");
+    return jsonOut({ ok: true });
+  });
+}
+
+// Pestaña "Regalo" (ver getRegalo): se actualizan solo las filas de los
+// campos que llegan y se agregan si no existían; cualquier otra fila queda
+// como está. El CBU se guarda como texto para no perder los ceros del
+// principio.
+function adminGuardarRegalo(params) {
+  return conCandado(() => {
+    const monto = String(params.Monto === undefined ? "" : params.Monto).replace(/\D/g, "");
+    const cbu = String(params.CBU || "").replace(/\D/g, "");
+    if (cbu && cbu.length !== 22) return jsonOut({ ok: false, error: "El CBU/CVU tiene que tener 22 dígitos" });
+    const campos = {
+      Monto: monto === "" ? "" : Number(monto),
+      Titular: String(params.Titular || "").trim().slice(0, 100),
+      Banco: String(params.Banco || "").trim().slice(0, 100),
+      CBU: cbu,
+      Alias: String(params.Alias || "").trim().toUpperCase().slice(0, 50)
+    };
+    const sheet = libro().getSheetByName("Regalo");
+    const data = sheet.getDataRange().getValues();
+    Object.keys(campos).forEach(campo => {
+      let fila = 0;
+      for (let i = 0; i < data.length; i++) {
+        if (String(data[i][0]).trim().toLowerCase() === campo.toLowerCase()) { fila = i + 1; break; }
+      }
+      if (!fila) {
+        fila = sheet.getLastRow() + 1;
+        sheet.getRange(fila, 1).setValue(campo);
+      }
+      const celda = sheet.getRange(fila, 2);
+      if (campo === "CBU") celda.setNumberFormat("@");
+      celda.setValue(campos[campo]);
+    });
+    return jsonOut({ ok: true });
+  });
 }
