@@ -320,3 +320,18 @@ Se usa Swift/AVFoundation porque en la Mac no hay ffmpeg y los presets de `avcon
 **Por qué:** permite mantener el diseño gráfico que provee el usuario (mismo marco, misma textura) pero con contenido que puede animarse, actualizarse o traerse del Sheet — cosa que un texto dibujado en un JPG no permite.
 
 **Cómo aplicarlo:** este patrón ya se usó en `lugares.jpg` (hora de ceremonia/fiesta) y `TARJETA.jpg` (nombres de la portada). Si aparece una imagen nueva con texto que haya que "activar", replicar el mismo proceso. Siempre verificar el parche componiendo la imagen resultante sobre un fondo sólido antes de darlo por bueno (ver también la nota de `alianzas.png` sobre falsos positivos de "transparencia" en el visor).
+
+## Fotos y videos en Cloudflare R2 + Worker (2026-10-19)
+
+**Decisión:** las fotos de la galería y los mensajes de video se guardan en Cloudflare R2 (buckets `boda-fotos` y `boda-mensajes`) y se sirven/suben por un Worker propio (`worker/`, publicado en `https://boda-media.bodajyg.workers.dev`). Apps Script queda para invitados/RSVP, canciones, regalo, carrusel, modo del sitio, visibilidad de la galería y la clave del admin.
+
+**Por qué:** Apps Script atiende 30 ejecuciones simultáneas y Google bloquea por red la descarga directa de Drive (403 "Sorry..."), justo el caso del wifi del salón. Se comparó con Cloudinary (gratis, pero listado con tope de 1000, subida sin firma abierta y riesgo de que deshabiliten la cuenta) y se eligió R2: descarga gratis, 10 GB gratis, la subida pasa por el Worker que valida tipo y tamaño. El Worker vive en `workers.dev` porque el DNS de `bodajyg.site` está en DonWeb.
+
+**Cómo aplicarlo:**
+- El Worker devuelve los mismos campos que antes Apps Script (`id`, `nombre`, `fecha`, `url`, `directo`, `thumb`), pero las URLs son el archivo en sí, no JSON con base64.
+- Los ids ordenan de más nuevo a más viejo (`10^13 - Date.now()` con ceros adelante), porque R2 lista alfabéticamente.
+- Borrar pasa por `POST /borrar` del Worker, que valida la clave contra `?tipo=verificarClave` de Apps Script: si Apps Script está caído, no se puede borrar.
+- Workers gratis = 100.000 pedidos por día (se reinicia a las 21:00 de Argentina, en plena fiesta) y cada miniatura vista cuenta: **activar Workers Paid (USD 5) el mes de la boda**.
+- Publicar cambios del Worker: `cd worker && npx wrangler deploy` (lo corre el usuario).
+- **Carrusel "Nuestra historia" también en R2 (2026-10-19):** fotos en `boda-fotos/carrusel/`, cargadas a mano desde el panel de Cloudflare; el orden lo da el nombre (`1.jpg`, `2.jpg`...). `GET /carrusel` y `GET /c/<nombre>` (caché de 1 hora en el navegador, porque se pueden reemplazar con el mismo nombre).
+- **Apps Script ya no toca Drive:** solo Sheet + CacheService. `logError()` escribe en la pestaña "Errores" del Sheet (últimos 50). El usuario pidió sacar de Google todo lo de imágenes y videos, incluida la API key de Drive.

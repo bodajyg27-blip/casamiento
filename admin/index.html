@@ -176,7 +176,7 @@
     margin-bottom: 16px;
   }
   /* Estado del sistema: semáforo de los servicios de los que depende la
-     fiesta (Apps Script, galería, fotos en Drive, mensajes). */
+     fiesta (Apps Script, Worker de fotos y videos). */
   .estado-head {
     display: flex;
     align-items: center;
@@ -550,9 +550,9 @@
             <span class="estado-pill" id="estadoPill">Revisando…</span>
           </div>
           <div class="estado-ayuda hidden" id="estadoAyuda"></div>
-          <div class="estado-fila" data-check="servidor"><span class="estado-dot"></span><span class="estado-nombre">Servidor</span><span class="estado-detalle">—</span></div>
+          <div class="estado-fila" data-check="servidor"><span class="estado-dot"></span><span class="estado-nombre">Servidor (Apps Script)</span><span class="estado-detalle">—</span></div>
           <div class="estado-fila" data-check="galeria"><span class="estado-dot"></span><span class="estado-nombre">Lista de la galería</span><span class="estado-detalle">—</span></div>
-          <div class="estado-fila" data-check="fotos"><span class="estado-dot"></span><span class="estado-nombre">Fotos en Drive</span><span class="estado-detalle">—</span></div>
+          <div class="estado-fila" data-check="fotos"><span class="estado-dot"></span><span class="estado-nombre">Fotos</span><span class="estado-detalle">—</span></div>
           <div class="estado-fila" data-check="mensajes"><span class="estado-dot"></span><span class="estado-nombre">Mensajes de video</span><span class="estado-detalle">—</span></div>
           <div class="estado-pie">
             <span id="estadoHora">Sin revisar todavía</span>
@@ -657,7 +657,10 @@
   <div class="toast" id="toast"></div>
 
 <script>
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbz-sc2l5jW1oMN6Dkr-s3gduTSbTTlL2gRiPlw_khEQ6GzTCkJHlnqpgvrvD0b2sBOo/exec";
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbxC-pfS4VL6-8teZ8T3Pt5cXYdHQIrkn5gslkQ6HcKk6qQmlMVVL8Cz5HWzsuM6ExMN/exec";
+  // Fotos y videos: Worker de Cloudflare con R2 (ver worker/src/index.js).
+  // Apps Script queda para la clave, el modo del sitio y la visibilidad.
+  const MEDIA_URL = "https://boda-media.bodajyg.workers.dev";
   let claveActual = sessionStorage.getItem('mensajes-admin-clave') || '';
 
   const ICON_PLAY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
@@ -681,8 +684,8 @@
   // ---------- Estado del sistema ----------
   // Cuatro chequeos de solo lectura contra los mismos endpoints que usan
   // los invitados. Sirve para enterarse durante la fiesta si Apps Script
-  // dejó de responder (p. ej. el "Acceso denegado" de bugs-conocidos.md)
-  // sin esperar a que alguien avise. Se repite solo cada minuto mientras
+  // (el "Acceso denegado" de bugs-conocidos.md) o el Worker de fotos y
+  // videos dejaron de responder, sin esperar a que alguien avise. Se repite solo cada minuto mientras
   // el panel está en el menú principal y la pestaña visible.
   const ESTADO_LENTO_MS = 4000;
   const ESTADO_TIMEOUT_MS = 15000;
@@ -750,20 +753,20 @@
         return d;
       }, () => 'Responde'),
       chequear('galeria', async () => {
-        const d = await pedirJsonEstado(GAS_URL + '?tipo=galeria&pagina=0&porPagina=1');
+        const d = await pedirJsonEstado(MEDIA_URL + '/fotos?pagina=0&porPagina=1');
         if (!d || typeof d.total !== 'number') throw new Error('respuesta inválida');
         return d;
       }, d => d.total + (d.total === 1 ? ' foto' : ' fotos')),
       chequear('mensajes', async () => {
-        const d = await pedirJsonEstado(GAS_URL + '?tipo=mensajes');
+        const d = await pedirJsonEstado(MEDIA_URL + '/mensajes');
         if (!Array.isArray(d)) throw new Error('respuesta inválida');
         return d;
       }, d => d.length + (d.length === 1 ? ' mensaje' : ' mensajes')),
     ]);
 
-    // "Fotos en Drive": baja de verdad una foto por el mismo camino que
-    // la galería (API de Drive con la key). Necesita que la lista haya
-    // respondido y que haya al menos una foto.
+    // "Fotos": baja de verdad una foto por el mismo camino que la
+    // galería. Necesita que la lista haya respondido y que haya al menos
+    // una foto.
     let fotos;
     const primera = galeria.valor && galeria.valor.fotos && galeria.valor.fotos[0];
     if (galeria.estado === 'falla') {
@@ -773,19 +776,7 @@
       pintarEstado('fotos', null, 'Sin fotos para probar');
       fotos = { estado: 'ok' };
     } else {
-      // Se prueban las dos rutas que usa la galería: la directa (API de
-      // Drive con la key) y la alternativa (lh3.googleusercontent.com). Si
-      // solo anda la alternativa, la galería sigue mostrando fotos pero
-      // conviene saberlo: Google está bloqueando la directa en esta red.
       fotos = await chequear('fotos', () => cargarImagenEstado(primera.thumb || primera.directo), () => 'Se ven');
-      if (fotos.estado === 'falla') {
-        const alternativa = 'https://lh3.googleusercontent.com/d/' + primera.id + '=w600';
-        try {
-          await cargarImagenEstado(alternativa);
-          pintarEstado('fotos', 'lento', 'Solo por la ruta alternativa');
-          fotos = { estado: 'lento', soloAlternativa: true };
-        } catch (err) {}
-      }
     }
 
     const estados = [servidor.estado, galeria.estado, mensajes.estado, fotos.estado];
@@ -795,7 +786,7 @@
       pill.textContent = fallas === estados.length ? 'No funciona' : 'Hay problemas';
     } else if (estados.includes('lento')) {
       pill.className = 'estado-pill lento';
-      pill.textContent = fotos.soloAlternativa ? 'Funciona con avisos' : 'Funciona lento';
+      pill.textContent = 'Funciona lento';
     } else {
       pill.className = 'estado-pill ok';
       pill.textContent = 'Todo funcionando';
@@ -804,11 +795,13 @@
     // Pista según qué falló.
     let pista = '';
     if (servidor.estado === 'falla' && galeria.estado === 'falla' && mensajes.estado === 'falla') {
-      pista = 'Apps Script no responde. Si este dispositivo tiene internet, revisá el deploy del script (puede estar pidiendo autorización de nuevo).';
-    } else if (fotos.soloAlternativa) {
-      pista = 'Google está bloqueando en esta red la descarga directa de fotos. La galería las muestra igual por la ruta alternativa; suele destrabarse solo en unas horas.';
-    } else if (fotos.estado === 'falla' && galeria.estado !== 'falla') {
-      pista = 'La lista funciona pero las fotos no cargan desde Drive por ninguna de las dos rutas: puede ser la clave de la API o un bloqueo de Google en esta red.';
+      pista = 'No responde nada: revisá si este dispositivo tiene internet.';
+    } else if (servidor.estado === 'falla') {
+      pista = 'Apps Script no responde (buscador de invitados, modo del sitio, clave). Revisá el deploy del script: puede estar pidiendo autorización de nuevo. Fotos y videos siguen andando.';
+    } else if (galeria.estado === 'falla' || mensajes.estado === 'falla') {
+      pista = 'El Worker de fotos y videos (Cloudflare) no responde. Revisá el panel de Cloudflare: puede haberse agotado el cupo diario de pedidos.';
+    } else if (fotos.estado === 'falla') {
+      pista = 'La lista funciona pero las fotos no cargan desde el Worker.';
     }
     ayuda.textContent = pista;
     ayuda.classList.toggle('hidden', !pista);
@@ -1009,8 +1002,9 @@
     listEl.innerHTML = '';
     countBadge.classList.add('hidden');
     try {
-      const res = await fetch(GAS_URL + '?tipo=mensajes');
+      const res = await fetch(MEDIA_URL + '/mensajes');
       const mensajes = await res.json();
+      if (!Array.isArray(mensajes)) throw new Error('respuesta inválida');
       mensajesCargados = true;
       loadingEl.classList.add('hidden');
       if (!mensajes.length) {
@@ -1060,37 +1054,8 @@
         return;
       }
       if (!video.src) {
-        // msg.directo (API oficial de Drive) permite streaming real y
-        // seek; si no vino (key sin configurar), cae al proxy de siempre.
-        if (msg.directo) {
-          video.src = msg.directo;
-          // Si Google bloquea la ruta directa en esta red, se baja el
-          // video por el proxy (una sola vez).
-          video.addEventListener('error', async () => {
-            try {
-              const res = await fetch(GAS_URL + '?tipo=mensajeVideo&id=' + msg.id);
-              const data = await res.json();
-              video.src = 'data:' + data.mimeType + ';base64,' + data.data;
-              if (playerWrap.classList.contains('open')) video.play().catch(() => {});
-            } catch (err) {
-              toast('No se pudo cargar el video');
-            }
-          }, { once: true });
-        } else {
-          btnVer.disabled = true;
-          btnVer.innerHTML = ICON_STOP;
-          try {
-            const res = await fetch(GAS_URL + '?tipo=mensajeVideo&id=' + msg.id);
-            const data = await res.json();
-            video.src = 'data:' + data.mimeType + ';base64,' + data.data;
-          } catch (err) {
-            toast('No se pudo cargar el video');
-            btnVer.disabled = false;
-            btnVer.innerHTML = ICON_PLAY;
-            return;
-          }
-          btnVer.disabled = false;
-        }
+        video.src = msg.directo || msg.url;
+        video.addEventListener('error', () => toast('No se pudo cargar el video'), { once: true });
       }
       playerWrap.classList.add('open');
       btnVer.innerHTML = ICON_STOP;
@@ -1105,11 +1070,7 @@
       btnBorrar.disabled = true;
       btnVer.disabled = true;
       try {
-        await fetch(GAS_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          body: JSON.stringify({ tipo: 'borrarMensaje', id: msg.id, clave: claveActual })
-        });
+        await borrarEnWorker('mensaje', msg.id);
         item.classList.add('removing');
         toast('Mensaje borrado');
         setTimeout(() => {
@@ -1131,6 +1092,19 @@
     listEl.appendChild(item);
   }
 
+  // El Worker valida la clave contra Apps Script y responde {ok}: si no
+  // se borró (clave inválida, Apps Script caído), se avisa en vez de
+  // sacar el ítem de la lista como si nada.
+  async function borrarEnWorker(tipo, id) {
+    const res = await fetch(MEDIA_URL + '/borrar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tipo, id, clave: claveActual })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'No se pudo borrar');
+  }
+
   // ---------- Galería de fotos ----------
 
   const listFotosEl = document.getElementById('listFotos');
@@ -1145,8 +1119,9 @@
     listFotosEl.innerHTML = '';
     countBadge.classList.add('hidden');
     try {
-      const res = await fetch(GAS_URL + '?tipo=galeria');
+      const res = await fetch(MEDIA_URL + '/fotos');
       const fotos = await res.json();
+      if (!Array.isArray(fotos)) throw new Error('respuesta inválida');
       fotosCargadas = true;
       loadingFotosEl.classList.add('hidden');
       if (!fotos.length) {
@@ -1188,34 +1163,19 @@
     const full = item.querySelector('.photo-full');
     const btnVer = item.querySelector('.btn-ver-foto');
     const btnBorrar = item.querySelector('.btn-borrar-foto');
-    let dataUrl = null;
+    thumb.loading = 'lazy';
+    thumb.src = foto.thumb || foto.directo;
 
-    async function obtenerDataUrl() {
-      if (dataUrl) return dataUrl;
-      const res = await fetch(foto.url);
-      const data = await res.json();
-      dataUrl = 'data:' + data.mimeType + ';base64,' + data.data;
-      return dataUrl;
-    }
-
-    obtenerDataUrl().then(url => { thumb.src = url; }).catch(() => {});
-
-    btnVer.addEventListener('click', async () => {
+    btnVer.addEventListener('click', () => {
       if (photoWrap.classList.contains('open')) {
         photoWrap.classList.remove('open');
         return;
       }
-      try {
-        if (!full.src) {
-          btnVer.disabled = true;
-          full.src = await obtenerDataUrl();
-          btnVer.disabled = false;
-        }
-        photoWrap.classList.add('open');
-      } catch (err) {
-        btnVer.disabled = false;
-        toast('No se pudo cargar la foto');
+      if (!full.src) {
+        full.onerror = () => toast('No se pudo cargar la foto');
+        full.src = foto.directo;
       }
+      photoWrap.classList.add('open');
     });
 
     btnBorrar.addEventListener('click', async () => {
@@ -1224,11 +1184,7 @@
       btnBorrar.disabled = true;
       btnVer.disabled = true;
       try {
-        await fetch(GAS_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          body: JSON.stringify({ tipo: 'borrarFoto', id: foto.id, clave: claveActual })
-        });
+        await borrarEnWorker('foto', foto.id);
         item.classList.add('removing');
         toast('Foto borrada');
         setTimeout(() => {

@@ -176,7 +176,8 @@
   </div>
 
 <script>
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbz-sc2l5jW1oMN6Dkr-s3gduTSbTTlL2gRiPlw_khEQ6GzTCkJHlnqpgvrvD0b2sBOo/exec";
+  // Fotos y videos: Worker de Cloudflare con R2 (ver worker/src/index.js).
+  const MEDIA_URL = "https://boda-media.bodajyg.workers.dev";
   const PHOTO_DURATION = 6500;
   const REFRESH_INTERVAL = 2 * 60 * 1000;
   const PRECARGA_ADELANTE = 3;
@@ -217,11 +218,14 @@
   async function cargarDatos() {
     try {
       const [resF, resM] = await Promise.all([
-        fetchConTimeout(GAS_URL + '?tipo=galeria', 15000),
-        fetchConTimeout(GAS_URL + '?tipo=mensajes', 15000)
+        fetchConTimeout(MEDIA_URL + '/fotos', 15000),
+        fetchConTimeout(MEDIA_URL + '/mensajes', 15000)
       ]);
-      fotos = await resF.json();
-      mensajes = await resM.json();
+      const nuevasFotos = await resF.json();
+      const nuevosMensajes = await resM.json();
+      // Si alguna respuesta vino mal, se sigue con la lista anterior.
+      if (Array.isArray(nuevasFotos)) fotos = nuevasFotos;
+      if (Array.isArray(nuevosMensajes)) mensajes = nuevosMensajes;
     } catch (err) {
       console.error('Error cargando datos', err);
     }
@@ -243,56 +247,32 @@
     return barajar(todos);
   }
 
-  async function obtenerFoto(foto) {
+  // La foto se precarga con un Image() para que ya esté en la caché del
+  // navegador cuando le toque aparecer (el Worker la marca como inmutable).
+  function obtenerFoto(foto) {
     if (cache.has(foto.id)) return cache.get(foto.id);
-    const res = await fetchConTimeout(foto.url, 15000);
-    const data = await res.json();
-    const url = 'data:' + data.mimeType + ';base64,' + data.data;
-    cache.set(foto.id, url);
-    return url;
+    const promesa = new Promise((resolve, reject) => {
+      const img = new Image();
+      const timer = setTimeout(() => reject(new Error('timeout')), 15000);
+      img.onload = () => { clearTimeout(timer); resolve(foto.directo); };
+      img.onerror = () => { clearTimeout(timer); reject(new Error('No cargó la foto')); };
+      img.src = foto.directo;
+    });
+    // Si falla no se recuerda, así se vuelve a intentar en la próxima vuelta.
+    promesa.catch(() => cache.delete(foto.id));
+    cache.set(foto.id, promesa);
+    return promesa;
   }
 
-  // msg.directo apunta directo a la API de Drive (streaming real, sin
-  // pasar por este script) — a diferencia de las fotos, un video no hace
-  // falta bajarlo entero antes de mostrarlo: el <video> arranca a
-  // reproducir progresivamente apenas tiene los primeros bytes. Si por
-  // algún motivo no vino "directo" (p. ej. la Script Property de la key
-  // no está configurada), cae al proxy de siempre.
-  // La ruta directa puede quedar bloqueada por Google para toda una red
-  // (HTTP 403 "Sorry...", ver bugs-conocidos.md). Cuando un video falla
-  // por ahí se marca videoDirectoBloqueado y, de ahí en más, los videos
-  // se piden por el proxy de este script (más lento: baja el video entero
-  // en base64 antes de reproducir, pero no depende de esa ruta).
-  let videoDirectoBloqueado = false;
-
-  async function obtenerVideoPorProxy(msg) {
-    if (cache.has(msg.id)) return cache.get(msg.id);
-    const res = await fetchConTimeout(GAS_URL + '?tipo=mensajeVideo&id=' + msg.id, 25000);
-    const data = await res.json();
-    const url = 'data:' + data.mimeType + ';base64,' + data.data;
-    cache.set(msg.id, url);
-    return url;
-  }
-
-  async function obtenerVideo(msg) {
-    if (msg.directo && !videoDirectoBloqueado) return msg.directo;
-    return obtenerVideoPorProxy(msg);
+  // Los videos no se precargan: el <video> los va bajando en streaming
+  // apenas se muestran.
+  function obtenerVideo(msg) {
+    return Promise.resolve(msg.directo || msg.url);
   }
 
   function precargar(entry) {
-    if (!entry) return Promise.resolve();
-    return (entry.type === 'foto' ? obtenerFoto(entry.item) : obtenerVideo(entry.item)).catch(() => {});
-  }
-
-  // Las fotos sí conviene precargarlas en paralelo (son data-URIs pesadas
-  // que hay que bajar enteras). Los videos con "directo" ya no lo
-  // necesitan — el <video> los va bajando solo en streaming apenas se
-  // muestran — así que esta función queda solo por si algún video cae al
-  // proxy viejo (ver obtenerVideo()).
-  function precargarTodosLosVideos(lista) {
-    lista.forEach(entry => {
-      if (entry.type === 'video' && (!entry.item.directo || videoDirectoBloqueado)) precargar(entry);
-    });
+    if (!entry || entry.type !== 'foto') return Promise.resolve();
+    return obtenerFoto(entry.item).catch(() => {});
   }
 
   function limpiarAnteriores() {
@@ -329,7 +309,6 @@
         await cargarDatos();
       }
       playlist = construirPlaylist();
-      precargarTodosLosVideos(playlist);
     }
 
     const entry = playlist[idx];
@@ -370,23 +349,11 @@
       requestAnimationFrame(() => { wrap.classList.add('visible'); caption.classList.add('visible'); });
       limpiarAnteriores();
       video.addEventListener('ended', mostrarSiguiente);
-      // Si el video no carga por la ruta directa, se reintenta una vez por
-      // el proxy; si tampoco, se pasa al siguiente sin esperar al watchdog.
-      let probandoProxy = false;
-      video.addEventListener('error', async () => {
+      // Si el video no carga, se pasa al siguiente sin esperar al watchdog.
+      video.addEventListener('error', () => {
         clearTimeout(advanceTimer);
-        if (probandoProxy || url !== entry.item.directo) {
-          advanceTimer = setTimeout(mostrarSiguiente, 2000);
-          return;
-        }
-        probandoProxy = true;
-        videoDirectoBloqueado = true;
-        const alternativa = await obtenerVideoPorProxy(entry.item).catch(() => null);
         if (!wrap.isConnected) return; // el watchdog ya pasó a otra cosa
-        if (!alternativa) { advanceTimer = setTimeout(mostrarSiguiente, 1000); return; }
-        resetWatchdog();
-        video.src = alternativa;
-        video.play().catch(() => { if (!video.error) advanceTimer = setTimeout(mostrarSiguiente, 5000); });
+        advanceTimer = setTimeout(mostrarSiguiente, 2000);
       });
       // Si play() falla porque el video no cargó, se encarga el 'error' de arriba.
       video.play().catch(() => { if (!video.error) advanceTimer = setTimeout(mostrarSiguiente, 5000); });
@@ -433,7 +400,6 @@
       playlist = construirPlaylist();
       idx = 0;
       if (playlist.length) {
-        precargarTodosLosVideos(playlist);
         await Promise.all([
           precargar(playlist[0]),
           precargar(playlist[1 % playlist.length])

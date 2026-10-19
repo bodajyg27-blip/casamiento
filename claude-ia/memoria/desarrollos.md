@@ -202,3 +202,11 @@ Varias imágenes provistas por el usuario venían con fondos que no eran transpa
 
 - `img/alianzas.png`: se detectó el fondo (píxeles de baja saturación) y se usó `scipy.ndimage.label` para identificar componentes conectados — se removió el fondo externo **y** los huecos internos de los anillos (que al no tocar el borde de la imagen no se habían sacado en el primer intento), con un leve desenfoque gaussiano en el borde del recorte para evitar un halo duro. Usada en el footer ("Julieta & Gabriel 💍 23.10.2027").
 - Antes de confiar en el resultado, siempre conviene **componer la imagen sobre un color sólido** (no dejarse engañar por el checkerboard que el visor de imágenes muestra tanto para "transparencia real" como, a veces, para contenido opaco cuadriculado) para confirmar visualmente que el fondo es transparente de verdad.
+
+## 2026-10-19 — Migración de fotos y mensajes a Cloudflare R2
+
+- Nuevo `worker/` (Worker `boda-media` + `wrangler.jsonc`), probado en local con R2 simulado (subidas, listado paginado, miniaturas, Range en videos, borrado con clave inválida) y publicado; responde en `https://boda-media.bodajyg.workers.dev`.
+- `galeria/`, `mensaje/`, `tv/` y `admin/` usan `MEDIA_URL` (el Worker) en vez de Apps Script para fotos y videos. Se quitaron las rutas alternativas de Drive (`lh3.googleusercontent.com`) y el proxy base64.
+- Las fotos y videos que estaban en Drive no se migraron (eran de prueba).
+- El carrusel también pasó al Worker (`/carrusel`), y `AppsScript_RSVP.gs` quedó solo con el Sheet (de 765 a ~300 líneas, sin `DriveApp`).
+- Pendiente: probar en el navegador de punta a punta; que el usuario publique el Worker, suba las fotos del carrusel a R2, publique el script nuevo y borre en Google la API key de Drive y las carpetas.

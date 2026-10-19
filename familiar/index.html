@@ -1084,7 +1084,9 @@
   }
   window.scrollTo(0, 0);
 
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbz-sc2l5jW1oMN6Dkr-s3gduTSbTTlL2gRiPlw_khEQ6GzTCkJHlnqpgvrvD0b2sBOo/exec";
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbxC-pfS4VL6-8teZ8T3Pt5cXYdHQIrkn5gslkQ6HcKk6qQmlMVVL8Cz5HWzsuM6ExMN/exec";
+  // Fotos (carrusel incluido): Worker de Cloudflare con R2 (ver worker/src/index.js).
+  const MEDIA_URL = "https://boda-media.bodajyg.workers.dev";
 
   function renderCountdown(targetDate) {
     // Clases en vez de ids: así el contador se actualiza en TODAS las
@@ -1135,24 +1137,11 @@
     }
   })();
 
-  function leerCacheCarrusel() {
-    try {
-      const raw = sessionStorage.getItem('carruselCache');
-      if (!raw) return {};
-      const data = JSON.parse(raw);
-      if (Date.now() - data.ts > 5 * 60 * 1000) return {};
-      return data.fotos || {};
-    } catch (err) {
-      return {};
-    }
-  }
-
   async function loadCarrusel() {
     const track = document.getElementById('carruselTrack');
     const dotsEl = document.getElementById('carruselDots');
-    const cache = leerCacheCarrusel();
     try {
-      const res = await fetch(GAS_URL + "?tipo=carrusel");
+      const res = await fetch(MEDIA_URL + "/carrusel");
       const fotos = await res.json();
       if (!Array.isArray(fotos) || !fotos.length) {
         track.innerHTML = '<div class="carrusel-slide loaded"><p class="carrusel-empty">Pronto vamos a compartir fotos acá.</p></div>';
@@ -1160,7 +1149,7 @@
       }
       track.innerHTML = fotos.map(() => '<div class="carrusel-slide"><img class="carrusel-img" alt="Julieta y Gabriel"></div>').join('');
       const slides = track.querySelectorAll('.carrusel-slide');
-      fotos.forEach((f, i) => loadCarruselFoto(f, slides[i], cache[f.id]));
+      fotos.forEach((f, i) => loadCarruselFoto(f, slides[i]));
 
       dotsEl.innerHTML = fotos.map((_, i) => `<span class="carrusel-dot${i === 0 ? ' active' : ''}"></span>`).join('');
       const dots = dotsEl.querySelectorAll('.carrusel-dot');
@@ -1191,23 +1180,15 @@
     }
   }
 
-  async function loadCarruselFoto(foto, slideEl, dataUrlCacheada) {
+  // Si index.html ya la precargó, sale de la caché del navegador al instante.
+  function loadCarruselFoto(foto, slideEl) {
     const img = slideEl.querySelector('img');
-    if (dataUrlCacheada) {
-      img.src = dataUrlCacheada;
+    img.onload = () => {
       img.classList.add('ready');
       slideEl.classList.add('loaded');
-      return;
-    }
-    try {
-      const res = await fetch(GAS_URL + "?tipo=foto&id=" + foto.id);
-      const data = await res.json();
-      img.src = 'data:' + data.mimeType + ';base64,' + data.data;
-      img.classList.add('ready');
-      slideEl.classList.add('loaded');
-    } catch (err) {
-      console.error('No se pudo cargar una foto del carrusel', err);
-    }
+    };
+    img.onerror = () => console.error('No se pudo cargar una foto del carrusel', foto.nombre);
+    img.src = foto.url;
   }
   loadCarrusel();
 

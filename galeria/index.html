@@ -407,7 +407,10 @@
   <div class="toast" id="toast"></div>
 
 <script>
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbz-sc2l5jW1oMN6Dkr-s3gduTSbTTlL2gRiPlw_khEQ6GzTCkJHlnqpgvrvD0b2sBOo/exec";
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbxC-pfS4VL6-8teZ8T3Pt5cXYdHQIrkn5gslkQ6HcKk6qQmlMVVL8Cz5HWzsuM6ExMN/exec";
+  // Fotos: Worker de Cloudflare con R2 (ver worker/src/index.js). Apps
+  // Script queda solo para la visibilidad de la galería.
+  const MEDIA_URL = "https://boda-media.bodajyg.workers.dev";
   const MAX_DIM = 1600;
   const THUMB_DIM = 600;   // miniatura para la grilla (la foto completa se ve al tocarla)
   const PAGE_SIZE = 16;
@@ -527,9 +530,9 @@
   let idsEnGrilla = new Set(); // evita repetir una foto si el listado se corre entre tandas
   let finGaleria = false;      // el servidor ya devolvió una tanda vacía
 
-  // Fotos que este dispositivo acaba de subir. El servidor guarda el
-  // listado en caché ~1 minuto (ya no lo invalida con cada subida, para
-  // no re-escanear Drive todo el tiempo durante la fiesta), así que la
+  // Fotos que este dispositivo acaba de subir. El Worker guarda el
+  // listado unos segundos en memoria (no lo invalida con cada subida, para
+  // no listar R2 todo el tiempo durante la fiesta), así que la
   // foto recién subida puede tardar en aparecer en el listado: mientras
   // tanto se le muestra a quien la subió desde su propia copia local.
   const MIS_SUBIDAS_MAX_MS = 5 * 60 * 1000;
@@ -642,15 +645,14 @@
   // ---------- Scroll infinito + lazy loading + liberación de memoria ----------
   // Cada tanda de fotos se pide paginada al backend (liviano: solo
   // metadata) cuando el sentinel al pie de la grilla entra en pantalla.
-  // Las <img> apuntan directo a la API oficial de Drive (foto.directo,
-  // ver AppsScript_RSVP.gs), no al proxy de este script — así ver fotos
-  // no gasta ejecuciones de Apps Script. El mismo observer, cuando una
+  // Las <img> apuntan directo al Worker (foto.thumb / foto.directo).
+  // El mismo observer, cuando una
   // foto ya cargada queda muy lejos por arriba del scroll, le limpia el
   // src para no acumular miles de imágenes decodificadas en memoria; si
   // el usuario vuelve a subir, se vuelve a pedir sola.
 
   async function pedirPagina(pagina) {
-    const data = await pedirJson(GAS_URL + `?tipo=galeria&pagina=${pagina}&porPagina=${PAGE_SIZE}`, 4);
+    const data = await pedirJson(MEDIA_URL + `/fotos?pagina=${pagina}&porPagina=${PAGE_SIZE}`, 4);
     return (data && Array.isArray(data.fotos)) ? data : null;
   }
 
@@ -714,29 +716,13 @@
     }, 300);
   }
 
-  // ---------- Rutas alternativas para cada foto ----------
-  // La descarga directa por la API de Drive (alt=media con la key) a veces
-  // es bloqueada por Google para toda una red: responde 403 con la página
-  // "Sorry..." de tráfico automatizado. Pasa cuando salen muchas descargas
-  // desde la misma IP — justo el caso de todos los invitados en el wifi
-  // del salón. Las imágenes de lh3.googleusercontent.com van por otro
-  // camino y siguen respondiendo, así que cada foto tiene una lista de
-  // rutas y pasa a la siguiente cuando una falla. Si la directa falla
-  // varias veces, el resto de la sesión arranca por la alternativa para
-  // no seguir insistiendo contra la ruta bloqueada.
-  let fallosRutaDirecta = 0;
-  let preferirAlternativa = false;
-
-  function rutasDeFoto(foto, ancho, conMiniatura) {
-    const propia = String(foto.directo).startsWith('blob:'); // recién subida desde este dispositivo
-    const drive = (conMiniatura && foto.thumb) ? [foto.thumb, foto.directo] : [foto.directo];
-    if (propia) return [drive[0]];
-    const alternativa = 'https://lh3.googleusercontent.com/d/' + foto.id + '=w' + ancho;
-    return preferirAlternativa ? [alternativa].concat(drive) : drive.concat([alternativa]);
-  }
-
-  function anotarFalloDeRuta(url) {
-    if (String(url).includes('googleapis.com') && ++fallosRutaDirecta >= 3) preferirAlternativa = true;
+  // ---------- Rutas de cada foto ----------
+  // En la grilla se prueba primero la miniatura y, si falla, la original.
+  // Las fotos recién subidas desde este dispositivo (blob:) solo tienen
+  // su copia local.
+  function rutasDeFoto(foto, conMiniatura) {
+    if (String(foto.directo).startsWith('blob:')) return [conMiniatura && foto.thumb ? foto.thumb : foto.directo];
+    return (conMiniatura && foto.thumb) ? [foto.thumb, foto.directo] : [foto.directo];
   }
 
   function agregarFotosAlGrid(fotos) {
@@ -760,7 +746,7 @@
       // En la grilla va la miniatura (~600px, mucho más liviana); la foto
       // completa se pide recién en el lightbox. Las fotos sin miniatura
       // (subidas antes de que existieran) usan la original.
-      const rutas = rutasDeFoto(foto, 600, true);
+      const rutas = rutasDeFoto(foto, true);
       let iRuta = 0;
       img.dataset.src = rutas[0];
       img.addEventListener('load', () => {
@@ -777,7 +763,6 @@
       img.addEventListener('error', () => {
         // Primero se prueba la ruta siguiente, sin esperar. Recién cuando
         // fallaron todas entran los reintentos de siempre, desde la primera.
-        anotarFalloDeRuta(rutas[iRuta]);
         if (iRuta < rutas.length - 1) {
           iRuta++;
           img.dataset.src = rutas[iRuta];
@@ -840,13 +825,11 @@
       lightboxImg.classList.remove('hidden');
       lightboxSpinner.classList.add('hidden');
     };
-    // Mismas rutas alternativas que la grilla, pero a tamaño completo.
-    const rutas = rutasDeFoto(foto, 1600, false);
+    const rutas = rutasDeFoto(foto, false);
     const indice = lightboxIndex;
     let iRuta = 0;
     lightboxImg.onerror = () => {
       if (indice !== lightboxIndex) return; // ya se pasó a otra foto
-      anotarFalloDeRuta(rutas[iRuta]);
       if (iRuta < rutas.length - 1) {
         iRuta++;
         lightboxImg.src = rutas[iRuta];
@@ -880,21 +863,26 @@
   });
 
   document.getElementById('lightbox-download').addEventListener('click', () => {
-    downloadFoto(fotosCache[lightboxIndex].id);
+    downloadFoto(fotosCache[lightboxIndex]);
   });
 
-  async function downloadFoto(id) {
+  // Se baja como blob porque el atributo download no aplica a URLs de
+  // otro dominio (el Worker): sin esto el navegador abriría la foto en
+  // vez de guardarla.
+  async function downloadFoto(foto) {
     try {
-      const res = await fetch(GAS_URL + "?tipo=foto&id=" + id);
-      const data = await res.json();
-      const ext = (data.mimeType || '').includes('webp') ? 'webp'
-        : (data.mimeType || '').includes('png') ? 'png' : 'jpg';
+      const res = await fetch(foto.download || foto.directo);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const blob = await res.blob();
+      const ext = (blob.type || '').includes('webp') ? 'webp'
+        : (blob.type || '').includes('png') ? 'png' : 'jpg';
       const link = document.createElement('a');
-      link.href = 'data:' + data.mimeType + ';base64,' + data.data;
+      link.href = URL.createObjectURL(blob);
       link.download = 'foto-casamiento.' + ext;
       document.body.appendChild(link);
       link.click();
       link.remove();
+      setTimeout(() => URL.revokeObjectURL(link.href), 10000);
     } catch (err) {
       showToast('No se pudo descargar la foto');
     }
@@ -946,15 +934,6 @@
     });
   }
 
-  function blobToBase64(blob) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onerror = reject;
-      reader.onloadend = () => resolve(reader.result.split(',')[1]);
-      reader.readAsDataURL(blob);
-    });
-  }
-
   // ---------- Cola local (IndexedDB): guarda la foto hasta confirmar la subida ----------
   // Mismo patrón que mensaje/index.html: la foto se resguarda localmente
   // antes de subirse y recién se borra de la cola cuando el servidor
@@ -1003,17 +982,13 @@
   }
 
   async function uploadRecord(record) {
-    const base64 = await blobToBase64(record.blob);
-    const payload = { tipo: 'foto', nombre: record.nombre, mimeType: record.mimeType, data: base64 };
-    if (record.thumb) {
-      payload.thumb = await blobToBase64(record.thumb);
-      payload.thumbMimeType = record.thumb.type || record.mimeType;
-    }
-    const res = await fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
-    });
+    // Va como archivo (FormData), sin pasar a base64: un tercio menos de
+    // datos por el wifi del salón.
+    const form = new FormData();
+    form.append('foto', new File([record.blob], record.nombre, { type: record.mimeType }));
+    if (record.thumb) form.append('thumb', record.thumb, 'thumb');
+    form.append('nombre', record.nombre);
+    const res = await fetch(MEDIA_URL + '/fotos', { method: 'POST', body: form });
     const data = await res.json();
     if (!data.success) throw new Error('El servidor no confirmó la subida');
     registrarSubidaPropia(data.id, record);

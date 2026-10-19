@@ -294,7 +294,8 @@
   </div>
 
 <script>
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbz-sc2l5jW1oMN6Dkr-s3gduTSbTTlL2gRiPlw_khEQ6GzTCkJHlnqpgvrvD0b2sBOo/exec";
+  // Videos: Worker de Cloudflare con R2 (ver worker/src/index.js).
+  const MEDIA_URL = "https://boda-media.bodajyg.workers.dev";
   const MAX_SECONDS = 30;
 
   const stages = {
@@ -496,19 +497,6 @@
     }
   });
 
-  function blobToBase64(blob) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const marker = ';base64,';
-        const idx = reader.result.indexOf(marker);
-        resolve(reader.result.slice(idx + marker.length));
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  }
-
   // ---------- Cola local (IndexedDB): guarda el video hasta confirmar la subida ----------
 
   const DB_NAME = 'mensajes-casamiento';
@@ -552,31 +540,30 @@
     });
   }
 
-  // El POST va con mode:'no-cors' (ver bugs-conocidos.md), así que su
-  // respuesta no se puede leer: que el fetch no falle NO garantiza que el
-  // video se haya guardado (p. ej. si Apps Script estaba saturado). Por
-  // eso la confirmación se hace aparte, buscando el nombre del archivo en
-  // el listado público de mensajes — recién ahí se borra de la cola.
-  async function yaEstaEnDrive(filename) {
-    const res = await fetch(GAS_URL + '?tipo=mensajes');
+  // Antes de reintentar se busca el nombre en el listado: si un intento
+  // anterior sí llegó y solo se perdió la respuesta (corte de wifi), no se
+  // vuelve a subir y no queda duplicado.
+  async function yaEstaSubido(filename) {
+    const res = await fetch(MEDIA_URL + '/mensajes');
     const lista = await res.json();
     if (!Array.isArray(lista)) throw new Error('Listado de mensajes inválido');
     return lista.some(m => m.nombre === filename);
   }
 
+  // El video va crudo en el cuerpo (sin base64) y el Worker responde
+  // {ok} legible — a diferencia de Apps Script, que obligaba a usar
+  // mode:'no-cors' y confirmar aparte.
   async function uploadRecord(record) {
-    // Si un intento anterior sí llegó (y solo falló la confirmación), no
-    // se vuelve a subir: evita duplicados en Drive.
-    if (await yaEstaEnDrive(record.filename)) return;
-    const base64 = await blobToBase64(record.blob);
-    await fetch(GAS_URL, {
+    if (record.intentos && await yaEstaSubido(record.filename)) return;
+    record.intentos = (record.intentos || 0) + 1;
+    await savePending(record);
+    const res = await fetch(MEDIA_URL + '/mensajes?nombre=' + encodeURIComponent(record.filename), {
       method: 'POST',
-      mode: 'no-cors',
-      body: JSON.stringify({ tipo: 'mensaje', file: base64, mimeType: record.mimeType, filename: record.filename }),
+      headers: { 'Content-Type': record.mimeType || 'video/webm' },
+      body: record.blob,
     });
-    if (!(await yaEstaEnDrive(record.filename))) {
-      throw new Error('El servidor no confirmó el video');
-    }
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'El servidor no confirmó el video');
   }
 
   let uploadingQueue = false;

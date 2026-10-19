@@ -1,0 +1,19 @@
+// Worker que guarda y sirve las fotos de la galería y los mensajes de
+// video desde Cloudflare R2 (reemplaza a Drive + Apps Script para eso).
+// Publicar con: npx wrangler deploy (desde esta carpeta).
+{
+  "name": "boda-media",
+  "main": "src/index.js",
+  "compatibility_date": "2025-09-01",
+  "workers_dev": true,
+  "r2_buckets": [
+    { "binding": "FOTOS", "bucket_name": "boda-fotos" },
+    { "binding": "MENSAJES", "bucket_name": "boda-mensajes" }
+  ],
+  "vars": {
+    // Se usa solo para validar la clave del admin al borrar
+    // (?tipo=verificarClave), así la clave sigue viviendo en un solo lugar:
+    // la pestaña Config del Sheet.
+    "GAS_URL": "https://script.google.com/macros/s/AKfycbxC-pfS4VL6-8teZ8T3Pt5cXYdHQIrkn5gslkQ6HcKk6qQmlMVVL8Cz5HWzsuM6ExMN/exec"
+  }
+}
