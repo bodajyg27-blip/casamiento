@@ -219,8 +219,10 @@ function setGaleriaVisible(params) {
 
 // ---------- INVITADOS ----------
 // Columnas: A=nombre, B=confirmado, C=fecha confirmación, D=restricciones,
-// E=detalle restricción, F=(sin uso), G=Tipo ("Familiar" o "Invitado") —
-// define a qué variante de invitación redirige el buscador de index.html.
+// E=detalle restricción, F=Pagado ("SI", "NO" o "AUN NO CONFIRMADO": solo lo
+// ven y editan los admin, ver PAGO_* más abajo), G=Tipo ("Familiar" o
+// "Invitado") — define a qué variante de invitación redirige el buscador de
+// index.html.
 
 const INVITADOS_CACHE_TTL = 60;      // segundos
 const BUSQUEDA_MIN_LETRAS = 3;
@@ -592,6 +594,7 @@ function conCandado(fn) {
 function adminListarInvitados() {
   const sheet = libro().getSheetByName("Invitados");
   const data = sheet.getDataRange().getValues();
+  const colPago = columnaPago(data);
   const invitados = [];
   for (let i = 1; i < data.length; i++) {
     if (!data[i][0]) continue;
@@ -604,6 +607,7 @@ function adminListarInvitados() {
       fecha: confirmado ? fecha : "",
       restricciones: String(data[i][3] || "").split(/,\s*/).map(x => x.trim()).filter(Boolean),
       detalle: String(data[i][4] || ""),
+      pago: String(data[i][colPago] || "").trim(),
       tipo: String(data[i][6] || "").trim()
     });
   }
@@ -611,6 +615,25 @@ function adminListarInvitados() {
 }
 
 const TIPOS_INVITADO = ["Familiar", "Invitado"];
+
+// Columna "Pagado" de la pestaña Invitados (menú desplegable en el Sheet).
+// Es un dato interno: solo viaja en las acciones de admin. leerInvitados(),
+// buscarInvitado() y getInvitados() devuelven campos explícitos (nombre,
+// confirmado, tipo) y no la incluyen, así que no llega a la tarjeta de los
+// invitados.
+const PAGO_VALORES = ["SI", "NO", "AUN NO CONFIRMADO"];
+const PAGO_POR_DEFECTO = "AUN NO CONFIRMADO";   // todo invitado nuevo arranca así
+
+// Índice (desde 0) de la columna Pagado: la que tenga "pag" en el
+// encabezado y, si no hay, la F. Nunca una de las que ya usa otra cosa.
+function columnaPago(data) {
+  const encabezado = data[0] || [];
+  for (let c = 0; c < encabezado.length; c++) {
+    if ([0, 1, 2, 3, 4, 6].includes(c)) continue;
+    if (normalizarTexto(encabezado[c]).indexOf("pag") !== -1) return c;
+  }
+  return 5;
+}
 
 // Busca la fila de un invitado: la indicada si todavía tiene ese nombre y,
 // si no, por nombre. Devuelve 0 si no aparece.
@@ -634,9 +657,17 @@ function adminGuardarInvitado(params) {
     const confirmado = params.confirmado === true;
     const restricciones = Array.isArray(params.restricciones) ? params.restricciones.map(String).join(", ") : "";
     const detalle = String(params.detalle || "").trim().slice(0, 300);
+    // "pago" es opcional: si no llega, en un invitado existente no se toca
+    // y en uno nuevo queda PAGO_POR_DEFECTO.
+    let pago = null;
+    if (params.pago !== undefined && params.pago !== null) {
+      pago = String(params.pago).trim();
+      if (!PAGO_VALORES.includes(pago)) return jsonOut({ ok: false, error: "Valor de pago inválido" });
+    }
 
     const sheet = libro().getSheetByName("Invitados");
     const data = sheet.getDataRange().getValues();
+    const colPago = columnaPago(data);
     const esNuevo = !params.nombreOriginal;
     const fila = esNuevo ? 0 : filaDeInvitado(data, params.fila, params.nombreOriginal);
     if (!esNuevo && !fila) return jsonOut({ ok: false, error: "No se encontró ese invitado: la lista cambió, recargá" });
@@ -650,8 +681,11 @@ function adminGuardarInvitado(params) {
 
     const fecha = new Date();
     if (esNuevo) {
-      // Columnas A..G (F sin uso)
-      sheet.appendRow([nombre, confirmado, confirmado ? fecha : "", restricciones, detalle, "", tipo]);
+      // Columnas A..G (F = Pagado)
+      const filaNueva = [nombre, confirmado, confirmado ? fecha : "", restricciones, detalle, "", tipo];
+      while (filaNueva.length <= colPago) filaNueva.push("");
+      filaNueva[colPago] = pago === null ? PAGO_POR_DEFECTO : pago;
+      sheet.appendRow(filaNueva);
     } else {
       const yaConfirmado = data[fila - 1][1] === true || data[fila - 1][1] === "TRUE";
       sheet.getRange(fila, 1).setValue(nombre);
@@ -662,6 +696,7 @@ function adminGuardarInvitado(params) {
       sheet.getRange(fila, 4).setValue(restricciones);
       sheet.getRange(fila, 5).setValue(detalle);
       sheet.getRange(fila, 7).setValue(tipo);
+      if (pago !== null) sheet.getRange(fila, colPago + 1).setValue(pago);
     }
     CacheService.getScriptCache().remove("invitados_lista");
     return jsonOut({ ok: true });

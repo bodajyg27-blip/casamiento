@@ -236,8 +236,8 @@
   /* ---------- REGALO ---------- */
   .campo { margin-bottom: 14px; }
   .campo label { display: block; font-size: 14px; color: var(--muted); margin-bottom: 4px; }
-  .campo input, .campo textarea { width: 100%; padding: 11px 13px; border: 1px solid var(--border); border-radius: 10px; background: #fff; outline: none; }
-  .campo input:focus, .campo textarea:focus { border-color: var(--olive); }
+  .campo input, .campo textarea, .campo select { width: 100%; padding: 11px 13px; border: 1px solid var(--border); border-radius: 10px; background: #fff; outline: none; }
+  .campo input:focus, .campo textarea:focus, .campo select:focus { border-color: var(--olive); }
   .campo .ayuda { font-size: 13px; color: var(--muted); margin-top: 3px; display: flex; justify-content: space-between; }
   .campo .ayuda.err { color: var(--danger-dark); }
   .prefijo { position: relative; }
@@ -570,6 +570,8 @@
       <div class="campo"><label for="iNombre">Nombre completo</label><input id="iNombre" autocomplete="off" maxlength="100"></div>
       <div class="campo"><label>Tipo de invitación</label><div class="seg" id="iTipo"><button data-v="Familiar">Familiar</button><button data-v="Invitado">Invitado</button></div></div>
       <div class="sw"><div><b>Confirmó asistencia</b><div class="small muted" id="iFecha"></div></div><button class="toggle" id="iConf" aria-label="Confirmó asistencia"></button></div>
+      <!-- Dato interno: solo se ve acá, en el detalle. No está en la lista, en los filtros, en el CSV ni en lo que ven los invitados. -->
+      <div class="campo" style="margin-top:2px"><label for="iPago">Pagado</label><select id="iPago"></select></div>
       <div class="campo" style="margin-top:6px"><label>Restricciones alimentarias</label><div class="restr" id="iRestr"></div></div>
       <div class="campo"><label for="iDetalle">Detalle (opcional)</label><textarea id="iDetalle" rows="2" maxlength="300" placeholder="Ej.: alergia a los frutos secos"></textarea></div>
       <div class="acciones"><button class="btn" id="iGuardar">Guardar</button></div>
@@ -1050,6 +1052,8 @@
   // se muestra para poder quitarla.
   const RESTRICCIONES = ['Celiaquía', 'Diabetes', 'Vegetariano', 'Intolerancia', 'Otros'];
   const TIPOS = ['Familiar', 'Invitado'];
+  // Valores de la columna "Pagado" del Sheet (menú desplegable de allá).
+  const PAGO_OPCIONES = ['SI', 'NO', 'AUN NO CONFIRMADO'];
   let invitados = [];
   let filtro = 'todos';
   let textoBusqueda = '';
@@ -1169,8 +1173,20 @@
     $('#iRestr').innerHTML = opciones.map(r => `<button class="chip ${formRestr.includes(r) ? 'on' : ''}" data-r="${esc(r)}">${esc(r)}</button>`).join('');
   }
 
+  // Selector de "Pagado": las opciones del Sheet y, si el invitado tiene
+  // otro valor (o ninguno), se muestra tal cual para no perderlo.
+  function pintarPago(valor) {
+    const opciones = PAGO_OPCIONES.slice();
+    if (valor && !opciones.includes(valor)) opciones.push(valor);
+    const sel = $('#iPago');
+    sel.innerHTML = (valor ? '' : '<option value="">— sin dato —</option>') +
+      opciones.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('');
+    sel.value = valor || '';
+  }
+
   function abrirInvitado(inv) {
     editando = inv;
+    pintarPago(inv ? inv.pago : 'AUN NO CONFIRMADO');
     $('#shTitulo').textContent = inv ? 'Editar invitado' : 'Agregar invitado';
     $('#iNombre').value = inv ? inv.nombre : '';
     $('#iDetalle').value = inv ? inv.detalle : '';
@@ -1200,7 +1216,7 @@
     btn.disabled = true;
     btn.textContent = 'Guardando…';
     try {
-      await gas('adminGuardarInvitado', {
+      const datos = {
         fila: editando ? editando.fila : null,
         nombreOriginal: editando ? editando.nombre : '',
         nombre,
@@ -1209,7 +1225,11 @@
         confirmado: formConf,
         restricciones: formRestr,
         detalle: $('#iDetalle').value.trim()
-      });
+      };
+      // "Pagado" solo viaja si se cambió: así nunca se pisa un valor que el
+      // panel no entiende. Un invitado nuevo lo recibe del servidor (AUN NO CONFIRMADO).
+      if (editando && $('#iPago').value !== editando.pago) datos.pago = $('#iPago').value;
+      await gas('adminGuardarInvitado', datos);
       cerrar('ovInvitado');
       toast(editando ? 'Cambios guardados' : 'Invitado agregado');
       await cargarInvitados();

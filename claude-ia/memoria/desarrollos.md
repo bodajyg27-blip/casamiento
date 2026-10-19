@@ -260,3 +260,11 @@ Varias imágenes provistas por el usuario venían con fondos que no eran transpa
 ## 2026-10-19 — Alta rápida de invitados (admin)
 
 - Botón **Agregar** en la cabecera de la lista de Invitados (y el **+** flotante) abre un popup chico con solo nombre y tipo (Familiar/Invitado, por defecto Invitado). Se envía como `adminGuardarInvitado` sin `nombreOriginal` (confirmó = no, sin restricciones); lo demás se completa después editando. Valida nombre vacío y repetido (el popup queda abierto para corregir), limpia la búsqueda y el filtro, y resalta al recién agregado. La hoja completa queda solo para editar. Probado en Chrome (12 verificaciones).
+
+## 2026-10-19 — Columna "Pagado" (solo admin)
+
+- Columna **F** de la pestaña Invitados (estaba "sin uso"; menú desplegable en el Sheet con `SI`, `NO`, `AUN NO CONFIRMADO`). El script la busca por un encabezado que contenga "pag" y, si no hay, usa la F (`columnaPago()`); nunca una de las columnas que ya usan otra cosa.
+- Es un dato interno: viaja solo en `adminListarInvitados` / `adminGuardarInvitado` (con clave). `leerInvitados()`, `buscarInvitado()` y `getInvitados()` devuelven campos explícitos (nombre, confirmado, tipo), así que no llega a la tarjeta del invitado ni al JSON público; el CSV del panel tampoco lo incluye, y no hay filtro ni columna en la lista. Solo se ve en el detalle del invitado (selector "Pagado").
+- Todo invitado nuevo se crea con `AUN NO CONFIRMADO` (`PAGO_POR_DEFECTO`), venga del popup de alta rápida o de la hoja completa. Editar: el panel manda `pago` solo si se cambió; el servidor valida contra `PAGO_VALORES` y, si no llega, no toca la celda. Un valor que no esté en la lista (o vacío) se muestra tal cual en el selector y no se pisa.
+- `confirmarInvitado()` (confirmación desde la web) NO toca esta columna.
+- Probado: funciones del script con Sheet simulado (por defecto, no filtrado en buscador/lista, sin pisar, inválido rechazado, encabezado en otra columna) y 12 verificaciones en Chrome. Requiere publicar el `.gs` nuevo.
