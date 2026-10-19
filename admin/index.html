@@ -1524,7 +1524,7 @@
     respaldoEstado.classList.remove('hidden');
   }
 
-  async function pedirSincronizacion() {
+  async function pedirSincronizacionUnaVez() {
     const res = await fetch(GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -1533,6 +1533,21 @@
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || 'No se pudo sincronizar');
     return data;
+  }
+
+  // Sincronizar es repetible sin riesgo (copia solo lo que falta), así que
+  // un error pasajero de Drive o de la red se reintenta solo unas veces
+  // antes de mostrarle el error a quien lo está mirando.
+  async function pedirSincronizacion() {
+    for (let intento = 1; ; intento++) {
+      try {
+        return await pedirSincronizacionUnaVez();
+      } catch (err) {
+        if (intento >= 3) throw err;
+        pintarRespaldo('Error pasajero (' + err.message + '). Reintentando…');
+        await new Promise(r => setTimeout(r, 4000));
+      }
+    }
   }
 
   respaldoBtn.addEventListener('click', async () => {

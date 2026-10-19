@@ -422,6 +422,22 @@ function listarWorker(ruta) {
 // sincronización entera. El motivo queda en ultimoErrorDescarga.
 let ultimoErrorDescarga = "";
 
+// Drive también tira errores pasajeros ("Service error: Drive"), sobre todo
+// al crear muchos archivos seguidos: lo que toca Drive se reintenta igual.
+function conReintentos(fn) {
+  let ultimo;
+  for (let intento = 1; intento <= RESPALDO_REINTENTOS; intento++) {
+    try {
+      return fn();
+    } catch (err) {
+      ultimo = err;
+      ultimoErrorDescarga = err.message;
+      if (intento < RESPALDO_REINTENTOS) Utilities.sleep(800 * intento);
+    }
+  }
+  throw ultimo;
+}
+
 function descargar(item) {
   for (let intento = 1; intento <= RESPALDO_REINTENTOS; intento++) {
     try {
@@ -445,10 +461,10 @@ function sincronizarDrive() {
   }
   try {
     const inicio = Date.now();
-    const raiz = carpetaRespaldo();
+    const raiz = conReintentos(carpetaRespaldo);
     const grupos = [
-      { carpeta: subcarpeta(raiz, "Fotos"), lista: listarWorker("/fotos") },
-      { carpeta: subcarpeta(raiz, "Mensajes"), lista: listarWorker("/mensajes") }
+      { carpeta: conReintentos(() => subcarpeta(raiz, "Fotos")), lista: listarWorker("/fotos") },
+      { carpeta: conReintentos(() => subcarpeta(raiz, "Mensajes")), lista: listarWorker("/mensajes") }
     ];
 
     // Todo lo que falta, de las dos carpetas, en una sola cola.
@@ -456,7 +472,7 @@ function sincronizarDrive() {
     const faltan = [];
     grupos.forEach(g => {
       total += g.lista.length;
-      const ya = idsEnCarpeta(g.carpeta);
+      const ya = conReintentos(() => idsEnCarpeta(g.carpeta));
       g.lista.forEach(item => {
         if (!ya.has(item.id)) faltan.push({ carpeta: g.carpeta, item });
       });
@@ -483,8 +499,14 @@ function sincronizarDrive() {
         const res = resParalela && resParalela.getResponseCode() === 200 ? resParalela : descargar(t.item);
         if (!res) { fallidas++; return; }
         const fecha = Utilities.formatDate(new Date(t.item.fecha), RESPALDO_ZONA, "yyyy-MM-dd HH.mm.ss");
-        t.carpeta.createFile(res.getBlob().setName(fecha + " - " + t.item.id));
-        copiadas++;
+        try {
+          const blob = res.getBlob().setName(fecha + " - " + t.item.id);
+          conReintentos(() => t.carpeta.createFile(blob));
+          copiadas++;
+          Utilities.sleep(100);   // sin ráfagas: Drive se queja si se crean muchos seguidos
+        } catch (err) {
+          fallidas++;             // este archivo no se pudo guardar; el resto sigue
+        }
       });
     }
 
