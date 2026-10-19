@@ -345,7 +345,8 @@ function getRegalo() {
 const MEDIA_URL = "https://boda-media.bodajyg.workers.dev";
 const RESPALDO_NOMBRE_CARPETA = "Casamiento J&G - Respaldo";
 const RESPALDO_TIEMPO_MAX_MS = 20 * 1000;   // tandas cortas: el admin muestra el avance entre una y otra
-const RESPALDO_TANDA = 6;            // descargas en paralelo por tanda
+const RESPALDO_TANDA = 4;            // descargas en paralelo por tanda
+const RESPALDO_REINTENTOS = 3;       // intentos por archivo antes de darlo por fallido
 const RESPALDO_ZONA = "America/Argentina/Buenos_Aires";
 
 function autorizarRespaldo() {
@@ -414,6 +415,28 @@ function listarWorker(ruta) {
   return lista;
 }
 
+// Baja un archivo del Worker con reintentos. Un corte momentáneo de red
+// ("Dirección no disponible") es normal entre los servidores de Google y
+// Cloudflare: se reintenta con una pausa corta y, si no hay caso, se
+// devuelve null para que ESE archivo cuente como fallido sin cortar la
+// sincronización entera. El motivo queda en ultimoErrorDescarga.
+let ultimoErrorDescarga = "";
+
+function descargar(item) {
+  for (let intento = 1; intento <= RESPALDO_REINTENTOS; intento++) {
+    try {
+      const res = UrlFetchApp.fetch(item.url, { muteHttpExceptions: true });
+      if (res.getResponseCode() === 200) return res;
+      ultimoErrorDescarga = "HTTP " + res.getResponseCode() + " en " + item.id;
+      if (res.getResponseCode() === 404) return null;   // ya no existe: reintentar no sirve
+    } catch (err) {
+      ultimoErrorDescarga = err.message;
+    }
+    if (intento < RESPALDO_REINTENTOS) Utilities.sleep(700 * intento);
+  }
+  return null;
+}
+
 function sincronizarDrive() {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(1000)) {
@@ -445,10 +468,20 @@ function sincronizarDrive() {
     while (i < faltan.length && Date.now() - inicio < RESPALDO_TIEMPO_MAX_MS) {
       const tanda = faltan.slice(i, i + RESPALDO_TANDA);
       i += tanda.length;
-      const respuestas = UrlFetchApp.fetchAll(tanda.map(t => ({ url: t.item.url, muteHttpExceptions: true })));
-      respuestas.forEach((res, j) => {
+      // En paralelo para ir rápido; si fetchAll tira error (una sola
+      // conexión caída lo hace fallar entero), cada archivo se vuelve a
+      // pedir por separado con reintentos.
+      let respuestas;
+      try {
+        respuestas = UrlFetchApp.fetchAll(tanda.map(t => ({ url: t.item.url, muteHttpExceptions: true })));
+      } catch (err) {
+        ultimoErrorDescarga = err.message;
+        respuestas = tanda.map(() => null);
+      }
+      respuestas.forEach((resParalela, j) => {
         const t = tanda[j];
-        if (res.getResponseCode() !== 200) { fallidas++; return; }
+        const res = resParalela && resParalela.getResponseCode() === 200 ? resParalela : descargar(t.item);
+        if (!res) { fallidas++; return; }
         const fecha = Utilities.formatDate(new Date(t.item.fecha), RESPALDO_ZONA, "yyyy-MM-dd HH.mm.ss");
         t.carpeta.createFile(res.getBlob().setName(fecha + " - " + t.item.id));
         copiadas++;
@@ -461,6 +494,7 @@ function sincronizarDrive() {
       copiadas,
       fallidas,
       pendientes: faltan.length - i,
+      ultimoError: fallidas ? ultimoErrorDescarga : "",
       carpetaUrl: raiz.getUrl()
     })).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {

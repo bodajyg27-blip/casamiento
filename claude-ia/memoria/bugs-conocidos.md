@@ -88,3 +88,9 @@ Estos archivos quedaron fuera del flujo de trabajo activo y no se tocan más (ve
 - `documentos/index.html` y `documentos/invitacion/index.html` — congelados desde 2026-07-11 (el trabajo se mudó a los archivos homónimos de la **raíz** del repo).
 
 Si alguien los abre esperando ver el estado actual del proyecto, va a ver algo desactualizado. Antes de tocar cualquier `index.html` del proyecto, confirmar que sea el de la raíz.
+
+## Resuelto — Sincronizar a Drive se cortaba con "Dirección no disponible" — 2026-10-19
+
+**Síntoma:** "Se copiaron 12, pero después falló: Dirección no disponible: https://boda-media.bodajyg.workers.dev/f/…". La foto existía y respondía 200 desde afuera: fue un corte de red momentáneo entre Google y Cloudflare.
+**Causa:** `sincronizarDrive()` bajaba de a 6 con `UrlFetchApp.fetchAll`, que tira excepción entera si UNA conexión falla (`muteHttpExceptions` solo cubre errores HTTP, no de red); la excepción abortaba toda la llamada.
+**Fix:** `descargar()` reintenta cada archivo (3 intentos, pausa creciente, 404 no se reintenta); si `fetchAll` falla se vuelve a pedir cada archivo por separado; un archivo que no se pudo cuenta como fallido y la sincronización sigue. Tandas de 4 en vez de 6. La respuesta trae `ultimoError` y el admin lo muestra. Probado con un simulador en Node (fallo de `fetchAll`, archivo que falla 2 veces y anda, uno que nunca anda, un 404). Requiere publicar el `.gs` nuevo.

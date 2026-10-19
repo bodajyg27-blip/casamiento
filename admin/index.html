@@ -1544,10 +1544,12 @@
     pintarRespaldo('Revisando qué falta copiar…');
     let copiadas = 0;
     let fallidas = 0;
+    let motivoFallas = '';
     try {
       let data;
       do {
         data = await pedirSincronizacion();
+        if (data.ultimoError) motivoFallas = data.ultimoError;
         copiadas += data.copiadas;
         // Los que fallan se reintentan en la vuelta siguiente: cuentan
         // los de la última.
@@ -1570,7 +1572,7 @@
       let texto = copiadas
         ? 'Listo: ' + copiadas + (copiadas === 1 ? ' archivo nuevo copiado' : ' archivos nuevos copiados') + '.'
         : 'Ya estaba todo copiado.';
-      if (fallidas) texto += ' ' + fallidas + ' no se pudieron bajar: volvé a sincronizar más tarde.';
+      if (fallidas) texto += ' ' + fallidas + (fallidas === 1 ? ' no se pudo bajar' : ' no se pudieron bajar') + (motivoFallas ? ' (' + motivoFallas + ')' : '') + ': volvé a sincronizar para reintentar.';
       if (data.pendientes) texto += ' Quedaron ' + data.pendientes + ' sin copiar: volvé a sincronizar.';
       pintarRespaldo(texto, fallidas || data.pendientes);
       respaldoBarraFill.style.width = data.total
