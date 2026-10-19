@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Julieta & Gabriel — Dejanos un mensaje</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Special+Elite&display=swap');
 
   @font-face {
     font-family: 'Edwardian Script ITC';
@@ -20,12 +20,7 @@
   html, body { height: 100%; }
 
   body {
-    background-color: #eeecd4;
-    background-image:
-      radial-gradient(circle at 15% 10%, rgba(156,163,82,0.18), transparent 40%),
-      radial-gradient(circle at 85% 30%, rgba(139,150,80,0.14), transparent 45%),
-      radial-gradient(circle at 30% 90%, rgba(108,128,68,0.12), transparent 40%),
-      linear-gradient(135deg, #f2f1de 0%, #e7e6c6 100%);
+    background: #f1efe9;
     font-family: 'Cormorant Garamond', serif;
     color: #48472e;
     display: flex;
@@ -36,26 +31,25 @@
     overflow-x: hidden;
   }
 
+  /* Mismo fondo claro con marco en relieve que la invitación y la galería,
+     fijo detrás de todo (un pseudo-elemento en vez de
+     background-attachment: fixed, que en iOS se ve a los saltos). */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: #f1efe9 url('../img/fondoblancohorizontal.webp') center / cover no-repeat;
+  }
+
   .wrap { max-width: 420px; width: 100%; }
 
+  /* Como en la invitación: sin recuadro, el texto va directo sobre el papel. */
   .card {
-    background: #f9f8ec;
-    border: 1px solid #c7c894;
-    border-radius: 4px;
-    padding: 40px 30px;
+    padding: 40px 24px;
     text-align: center;
-    box-shadow: 0 15px 40px rgba(0,0,0,0.10);
     position: relative;
   }
-  .card::before, .card::after {
-    content: "";
-    position: absolute;
-    width: 26px;
-    height: 26px;
-    border: 1px solid #9c9a52;
-  }
-  .card::before { top: 10px; left: 10px; border-right: none; border-bottom: none; }
-  .card::after { bottom: 10px; right: 10px; border-left: none; border-top: none; }
 
   .kicker {
     font-family: 'Edwardian Script ITC', cursive;
@@ -63,12 +57,15 @@
     color: #4b5320;
     margin-bottom: 4px;
   }
+  /* Tipografías de la invitación: Edwardian para los nombres y Special Elite
+     (máquina de escribir) para títulos, textos y botones. */
   h1 {
-    font-size: 22px;
-    font-weight: 600;
-    letter-spacing: 1px;
+    font-family: 'Special Elite', 'Courier New', monospace;
+    font-size: 15px;
+    font-weight: normal;
+    letter-spacing: 5px;
     text-transform: uppercase;
-    color: #4b5320;
+    color: #55543a;
   }
   .divider {
     width: 56px;
@@ -77,9 +74,12 @@
     margin: 18px auto;
   }
   .intro {
-    font-size: 18px;
-    line-height: 1.5;
-    color: #5b5a3a;
+    font-family: 'Special Elite', 'Courier New', monospace;
+    font-size: 13px;
+    letter-spacing: 1.2px;
+    line-height: 1.9;
+    text-transform: uppercase;
+    color: #6b6a45;
     margin-bottom: 8px;
   }
 
@@ -91,7 +91,7 @@
     overflow: hidden;
     background: #2b2b1f;
     border: 3px solid #9c9a52;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.25);
+    box-shadow: 0 12px 30px rgba(75,83,32,0.25);
     position: relative;
   }
   .oval video {
@@ -136,7 +136,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Special Elite', 'Courier New', monospace;
   }
   .rec-dot {
     width: 9px;
@@ -157,15 +157,16 @@
     background: #4b5320;
     color: #f9f8ec;
     border: none;
-    font-size: 15px;
+    font-size: 13px;
     letter-spacing: 2px;
     text-transform: uppercase;
     border-radius: 2px;
     cursor: pointer;
-    font-family: 'Cormorant Garamond', serif;
-    transition: background 0.2s ease;
+    font-family: 'Special Elite', 'Courier New', monospace;
+    transition: background 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
   }
-  .btn:hover { background: #3a4118; }
+  .btn:hover { background: #3a4118; transform: translateY(-1px); box-shadow: 0 6px 14px rgba(0,0,0,0.15); }
+  .btn:active { transform: translateY(0); box-shadow: none; }
   .btn.secondary { background: transparent; color: #4b5320; border: 1px solid #4b5320; }
   .btn.secondary:hover { background: #eceed6; }
   .btn.stop { background: #a63a3a; }
@@ -173,10 +174,20 @@
 
   .actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 
-  .status-text { font-size: 17px; color: #5b5a3a; margin-top: 22px; }
+  .status-text {
+    font-family: 'Special Elite', 'Courier New', monospace;
+    font-size: 14px;
+    letter-spacing: 1.5px;
+    line-height: 1.8;
+    text-transform: uppercase;
+    color: #6b6a45;
+    margin-top: 22px;
+  }
 
   .audio-warning {
-    font-size: 15px;
+    font-family: 'Special Elite', 'Courier New', monospace;
+    font-size: 12px;
+    letter-spacing: 0.5px;
     color: #a63a3a;
     background: #f7e6e4;
     border: 1px solid #e0b6b2;
@@ -192,19 +203,18 @@
   @media (min-width: 700px) {
     .wrap { max-width: 720px; }
     .card { padding: 40px 48px; }
-    .card::before, .card::after { width: 34px; height: 34px; }
     .kicker { font-size: 56px; margin-bottom: 8px; }
-    h1 { font-size: 30px; letter-spacing: 2px; }
+    h1 { font-size: 20px; letter-spacing: 7px; }
     .divider { width: 70px; margin: 26px auto; }
-    .intro { font-size: 21px; margin-bottom: 10px; }
+    .intro { font-size: 16px; letter-spacing: 1.5px; margin-bottom: 10px; }
     .oval-wrap { height: min(420px, calc(100vh - 420px)); width: auto; aspect-ratio: 11 / 15; margin: 24px auto 0; }
     .oval { border-width: 4px; }
     .play-toggle { width: 84px; height: 84px; font-size: 34px; }
     .rec-indicator { font-size: 17px; padding: 7px 18px; top: 22px; }
     .rec-dot { width: 12px; height: 12px; }
-    .btn { font-size: 19px; padding: 16px 44px; margin-top: 26px; }
+    .btn { font-size: 16px; padding: 16px 44px; margin-top: 26px; }
     .actions { gap: 16px; }
-    .status-text { font-size: 22px; margin-top: 28px; }
+    .status-text { font-size: 18px; margin-top: 28px; }
 
     /* Durante grabación/preview, el header se esconde y el óvalo pasa a ser lo principal */
     .card.stage-record #header-block,
