@@ -420,6 +420,50 @@
   // Fotos: Worker de Cloudflare con R2 (ver worker/src/index.js). Apps
   // Script queda solo para la visibilidad de la galería.
   const MEDIA_URL = "https://boda-media.bodajyg.workers.dev";
+  // ---------- Log de depuración ----------
+  // Siempre va a la consola; con ?debug=1 en la URL además se muestra en un
+  // panel al pie de la pantalla (con botón para copiarlo), pensado para ver
+  // en el celular por qué no se sube una foto sin abrir las herramientas
+  // del navegador.
+  const DEBUG = /[?&]debug=1\b/.test(location.search);
+  const logLineas = [];
+  let logPanel = null;
+
+  function log(...partes) {
+    const hora = new Date().toLocaleTimeString('es-AR', { hourCycle: 'h23' });
+    const linea = hora + ' ' + partes.map(p => {
+      if (p instanceof Error) return p.name + ': ' + p.message;
+      if (p && typeof p === 'object') { try { return JSON.stringify(p); } catch (e) { return String(p); } }
+      return String(p);
+    }).join(' ');
+    logLineas.push(linea);
+    if (logLineas.length > 300) logLineas.shift();
+    console.log('[galeria]', ...partes);
+    if (DEBUG) pintarLog();
+  }
+
+  function pintarLog() {
+    if (!logPanel) {
+      logPanel = document.createElement('div');
+      logPanel.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99999;background:rgba(20,20,10,.92);color:#d8f0a0;font:11px/1.4 ui-monospace,Menlo,monospace;max-height:42vh;display:flex;flex-direction:column';
+      logPanel.innerHTML = '<div style="display:flex;gap:8px;padding:6px 8px;border-bottom:1px solid #555"><b style="flex:1">Log (debug)</b><button id="logCopiar">Copiar</button><button id="logCerrar">Cerrar</button></div><pre id="logTexto" style="margin:0;padding:6px 8px;overflow:auto;white-space:pre-wrap;word-break:break-all"></pre>';
+      document.body.appendChild(logPanel);
+      logPanel.querySelector('#logCopiar').onclick = () => {
+        const texto = logLineas.join('\n');
+        (navigator.clipboard ? navigator.clipboard.writeText(texto) : Promise.reject()).then(
+          () => showToast('Log copiado'), () => showToast('No se pudo copiar el log'));
+      };
+      logPanel.querySelector('#logCerrar').onclick = () => { logPanel.remove(); logPanel = null; };
+    }
+    const pre = logPanel.querySelector('#logTexto');
+    pre.textContent = logLineas.join('\n');
+    pre.scrollTop = pre.scrollHeight;
+  }
+
+  window.addEventListener('error', e => log('ERROR de la página:', e.message, (e.filename || '').split('/').pop() + ':' + e.lineno));
+  window.addEventListener('unhandledrejection', e => log('Promesa sin atrapar:', e.reason));
+  log('Galería abierta · https:', location.protocol === 'https:', '· crypto.subtle:', !!(window.crypto && crypto.subtle), '· online:', navigator.onLine);
+
   const MAX_DIM = 1600;
   const THUMB_DIM = 600;   // miniatura para la grilla (la foto completa se ve al tocarla)
   const PAGE_SIZE = 16;
@@ -1067,17 +1111,24 @@
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), SUBIDA_TIMEOUT_MS);
     let res;
+    const t0 = performance.now();
+    log('Subiendo', record.nombre, Math.round(record.blob.size / 1024) + ' KB →', MEDIA_URL + '/fotos');
     try {
       res = await fetch(MEDIA_URL + '/fotos', { method: 'POST', body: form, signal: controller.signal });
+    } catch (err) {
+      log('  FALLÓ el pedido (sin respuesta):', err, '· online:', navigator.onLine);
+      throw err;
     } finally {
       clearTimeout(timer);
     }
+    log('  respuesta HTTP', res.status, 'en', Math.round(performance.now() - t0), 'ms');
     // 400/413/415: el Worker rechazó esta foto en sí (formato o tamaño).
     // Reintentarla no sirve y, como la cola va en orden, trabaría a todas
     // las que vienen detrás.
     if ([400, 413, 415].includes(res.status)) throw new FotoRechazada(res.status);
     if (res.status === 409) throw new FotoRepetida();
     const data = await res.json();
+    log('  cuerpo:', data);
     if (!data.success) throw new Error('El servidor no confirmó la subida');
     registrarSubidaPropia(data.id, record);
   }
@@ -1118,6 +1169,7 @@
     try {
       const pending = await getAllPending();
       if (!pending.length) return;
+      log('Cola: hay', pending.length, 'foto(s) esperando para subir');
       btn.disabled = true;
       btn.classList.add('busy');
       camBtn.disabled = true;
@@ -1130,20 +1182,24 @@
           subidas++;
         } catch (err) {
           if (err instanceof FotoRepetida) {
+            log('  el Worker dice que esa foto ya estaba: se saca de la cola');
             await deletePending(pending[i].id);
             repetidas++;
             continue;
           }
           if (err instanceof FotoRechazada) {
+            log('  el Worker rechazó la foto (formato o tamaño):', err);
             console.error('Foto rechazada por el servidor', pending[i].nombre, err);
             await deletePending(pending[i].id);
             rechazadas++;
             continue;
           }
+          log('  la cola se corta acá, se reintenta en 30 s:', err);
           break; // probablemente se cortó la conexión de nuevo; se reintenta más tarde
         }
       }
     } catch (err) {
+      log('Cola: no se pudo leer IndexedDB:', err);
       // IndexedDB no disponible o falló la lectura; se reintenta en el próximo trigger
     } finally {
       uploadingQueue = false;
@@ -1175,7 +1231,10 @@
   async function handleFiles(fileList) {
     // Algunos navegadores entregan los HEIC con type vacío: se miran
     // también por la extensión.
-    const files = Array.from(fileList).filter(f => f.type.startsWith('image/') || esHeic(f));
+    const todos = Array.from(fileList);
+    log('Elegidos', todos.length, 'archivos:', todos.map(f => `${f.name} (${f.type || 'sin tipo'}, ${Math.round(f.size / 1024)} KB)`));
+    const files = todos.filter(f => f.type.startsWith('image/') || esHeic(f));
+    if (files.length < todos.length) log('Descartados por no ser imagen:', todos.length - files.length);
     if (!files.length) return;
 
     const input = document.getElementById('photoInput');
@@ -1191,19 +1250,25 @@
     if (hayHeic) showToast('Preparando fotos del iPhone…');
     for (let i = 0; i < files.length; i++) {
       try {
+        log(`[${i + 1}/${files.length}] ${files[i].name}: calculando huella…`);
         const hash = await huellaArchivo(files[i]);
-        if (hash && huellasEnCola.has(hash)) { repetidasEnTanda++; continue; }
+        log(`[${i + 1}/${files.length}] huella:`, hash ? hash.slice(0, 12) + '…' : 'no disponible (se sube sin control de repetidas)');
+        if (hash && huellasEnCola.has(hash)) { log('  ya está en la cola de este dispositivo, se saltea'); repetidasEnTanda++; continue; }
         if (hash) huellasEnCola.add(hash);
         const fuente = await archivoDibujable(files[i]);
+        if (fuente !== files[i]) log('  convertida de HEIC a', fuente.type, Math.round(fuente.size / 1024) + ' KB');
         const resized = await resizeImage(fuente, MAX_DIM);
+        log('  achicada:', resized.type, Math.round(resized.size / 1024) + ' KB');
         // La miniatura es un extra: si no se puede generar, la foto se
         // sube igual y la grilla usa la original.
         let thumb = null;
         try { thumb = await resizeImage(fuente, THUMB_DIM, 0.75); } catch (err) {}
         const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${i}`;
         await savePending({ id, blob: resized, thumb, hash, nombre: files[i].name, mimeType: outputMime, createdAt: Date.now() });
+        log('  guardada en la cola del dispositivo, miniatura:', thumb ? Math.round(thumb.size / 1024) + ' KB' : 'no');
         guardadas++;
       } catch (err) {
+        log('  ERROR preparando', files[i].name + ':', err && err.message ? err : String(err && err.type || err), '(si dice "error" a secas, el navegador no pudo abrir la imagen)');
         console.error('Error preparando foto', files[i].name, err);
         fallidas++;
       }
