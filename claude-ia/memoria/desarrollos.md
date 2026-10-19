@@ -222,3 +222,10 @@ Varias imágenes provistas por el usuario venían con fondos que no eran transpa
 - `admin/` → Contenido → **Carrusel «Nuestra historia»**: lista las fotos en orden (número, miniatura, ver, borrar) y botón **Cargar fotos** (varias a la vez). Cada foto se prepara en el navegador: HEIC → JPEG con `heic2any` si el navegador no lo abre, y se achica a 1600 px en WebP (JPEG si no hay WebP). Se suben en orden de nombre de archivo.
 - Worker: `POST /carrusel` (FormData `foto` + `clave`, valida la clave contra Apps Script, solo jpeg/png/webp) guarda `carrusel/<n>-<base36>.<ext>` con n = mayor + 1; el sufijo evita reutilizar nombres (las fotos de `/c/` se cachean 1 h). `POST /borrar` acepta `tipo: "carrusel"` con el nombre como id.
 - No hay reordenar: para cambiar el orden, borrar y volver a cargar.
+
+## 2026-10-19 — Fotos repetidas (galería y carrusel)
+
+- El navegador calcula el SHA-256 del archivo **original** (antes de convertirlo) y lo manda como `hash`. Detecta el mismo archivo elegido otra vez; no una copia reenviada por WhatsApp o exportada en otro formato.
+- Galería: el Worker guarda una marca `huellas/<hash>` en `boda-fotos` y la consulta con `head()` (no el listado, que es grande y está en memoria); responde 409 `repetida`. Al borrar una foto se borra su marca (el hash va en el customMetadata de la foto). La página saca la foto de la cola y avisa "ya estaba en la galería"; además no encola dos veces el mismo archivo. Las 15 fotos subidas antes del cambio no tienen huella.
+- Carrusel: el hash va en el customMetadata de cada foto y se compara contra el listado del carrusel (pocas fotos); el admin saltea las repetidas antes de convertirlas.
+- En los dos, sin `hash` (página vieja en caché) se sube igual, sin control. Probado con `wrangler dev` (R2 local + Apps Script simulado).

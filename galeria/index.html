@@ -1060,6 +1060,7 @@
     form.append('foto', new File([record.blob], record.nombre, { type: record.mimeType }));
     if (record.thumb) form.append('thumb', record.thumb, 'thumb');
     form.append('nombre', record.nombre);
+    if (record.hash) form.append('hash', record.hash);
     // Con tiempo límite: si la conexión se cuelga a mitad de camino, la
     // cola no puede quedar "subiendo" (y los botones deshabilitados) para
     // siempre.
@@ -1075,6 +1076,7 @@
     // Reintentarla no sirve y, como la cola va en orden, trabaría a todas
     // las que vienen detrás.
     if ([400, 413, 415].includes(res.status)) throw new FotoRechazada(res.status);
+    if (res.status === 409) throw new FotoRepetida();
     const data = await res.json();
     if (!data.success) throw new Error('El servidor no confirmó la subida');
     registrarSubidaPropia(data.id, record);
@@ -1086,6 +1088,23 @@
     constructor(status) { super('Foto rechazada (' + status + ')'); }
   }
 
+  // La foto ya está en la galería (el Worker la reconoce por la huella).
+  class FotoRepetida extends Error {}
+
+  // SHA-256 del archivo original, el que eligió el invitado: el mismo
+  // archivo da siempre la misma huella aunque la conversión a WebP no
+  // salga byte por byte igual. Una copia reenviada por WhatsApp o editada
+  // es otro archivo y no se detecta. Si el navegador no puede calcularla
+  // (crypto.subtle pide https), la foto se sube sin control.
+  async function huellaArchivo(file) {
+    try {
+      const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+      return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
+    } catch (err) {
+      return null;
+    }
+  }
+
   let uploadingQueue = false;
   async function tryUploadPending() {
     if (uploadingQueue || !navigator.onLine) return;
@@ -1095,6 +1114,7 @@
     const pill = document.getElementById('uploadPill');
     let subidas = 0;
     let rechazadas = 0;
+    let repetidas = 0;
     try {
       const pending = await getAllPending();
       if (!pending.length) return;
@@ -1109,6 +1129,11 @@
           await deletePending(pending[i].id);
           subidas++;
         } catch (err) {
+          if (err instanceof FotoRepetida) {
+            await deletePending(pending[i].id);
+            repetidas++;
+            continue;
+          }
           if (err instanceof FotoRechazada) {
             console.error('Foto rechazada por el servidor', pending[i].nombre, err);
             await deletePending(pending[i].id);
@@ -1129,6 +1154,11 @@
       if (subidas > 0) {
         showToast(`📸 ${subidas} foto${subidas > 1 ? 's' : ''} subida${subidas > 1 ? 's' : ''}`);
         loadGaleria();
+      }
+      if (repetidas > 0) {
+        showToast(repetidas > 1
+          ? `${repetidas} fotos ya estaban en la galería y no se repitieron`
+          : 'Esa foto ya estaba en la galería');
       }
       if (rechazadas > 0) {
         showToast(rechazadas > 1
@@ -1151,10 +1181,19 @@
     const input = document.getElementById('photoInput');
     let guardadas = 0;
     let fallidas = 0;
+    let repetidasEnTanda = 0;
+    // Huellas de lo que ya está esperando en la cola de este dispositivo,
+    // para no encolar dos veces el mismo archivo (p. ej. elegirlo de nuevo
+    // mientras no hay señal). Contra lo ya subido controla el Worker.
+    let huellasEnCola = new Set();
+    try { huellasEnCola = new Set((await getAllPending()).map(r => r.hash).filter(Boolean)); } catch (err) {}
     const hayHeic = files.some(esHeic);
     if (hayHeic) showToast('Preparando fotos del iPhone…');
     for (let i = 0; i < files.length; i++) {
       try {
+        const hash = await huellaArchivo(files[i]);
+        if (hash && huellasEnCola.has(hash)) { repetidasEnTanda++; continue; }
+        if (hash) huellasEnCola.add(hash);
         const fuente = await archivoDibujable(files[i]);
         const resized = await resizeImage(fuente, MAX_DIM);
         // La miniatura es un extra: si no se puede generar, la foto se
@@ -1162,7 +1201,7 @@
         let thumb = null;
         try { thumb = await resizeImage(fuente, THUMB_DIM, 0.75); } catch (err) {}
         const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${i}`;
-        await savePending({ id, blob: resized, thumb, nombre: files[i].name, mimeType: outputMime, createdAt: Date.now() });
+        await savePending({ id, blob: resized, thumb, hash, nombre: files[i].name, mimeType: outputMime, createdAt: Date.now() });
         guardadas++;
       } catch (err) {
         console.error('Error preparando foto', files[i].name, err);
@@ -1170,6 +1209,10 @@
       }
     }
     input.value = '';
+    if (repetidasEnTanda && !guardadas && !fallidas) {
+      showToast(repetidasEnTanda > 1 ? 'Esas fotos ya se están subiendo' : 'Esa foto ya se está subiendo');
+      return;
+    }
     if (fallidas && guardadas) {
       showToast(fallidas > 1
         ? `${fallidas} fotos no se pudieron abrir; las demás se suben igual`

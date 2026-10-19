@@ -3,7 +3,8 @@
 // Rutas:
 //   GET  /fotos                      → lista completa (array), para tv/ y admin/
 //   GET  /fotos?pagina=N&porPagina=M → { total, pagina, porPagina, fotos }, para galeria/
-//   POST /fotos                      → FormData: foto (archivo), thumb (opcional), nombre
+//   POST /fotos                      → FormData: foto (archivo), thumb (opcional), nombre,
+//                                      hash (opcional); 409 si esa foto ya se subió
 //   GET  /f/<id>                     → la foto original
 //   GET  /t/<id>                     → su miniatura
 //   GET  /mensajes                   → lista de videos
@@ -12,7 +13,8 @@
 //   POST /borrar                     → JSON { tipo: "foto"|"mensaje", id, clave }
 //   GET  /carrusel                   → fotos de "Nuestra historia", ordenadas por nombre
 //   GET  /c/<nombre>                 → una foto del carrusel
-//   POST /carrusel                   → FormData: foto, clave (solo admin); va al final
+//   POST /carrusel                   → FormData: foto, hash, clave (solo admin); va al final;
+//                                      409 si ya hay una foto con ese hash
 //   POST /borrar                     → también { tipo: "carrusel", id: <nombre>, clave }
 //
 // Las fotos del carrusel se cargan desde admin/ (ya convertidas a WebP o
@@ -147,12 +149,12 @@ function listaFotos(env, base) {
 
 function listaCarrusel(env, base) {
   return recordado('carrusel', async () => {
-    const r = await env.FOTOS.list({ prefix: 'carrusel/', limit: 1000 });
+    const r = await env.FOTOS.list({ prefix: 'carrusel/', limit: 1000, include: ['customMetadata'] });
     return r.objects
-      .map(o => o.key.slice('carrusel/'.length))
-      .filter(nombreCarruselValido)
-      .sort((a, b) => a.localeCompare(b, 'es', { numeric: true }))
-      .map(nombre => ({ id: nombre, nombre, url: `${base}/c/${encodeURIComponent(nombre)}` }));
+      .map(o => ({ nombre: o.key.slice('carrusel/'.length), hash: (o.customMetadata && o.customMetadata.hash) || null }))
+      .filter(f => nombreCarruselValido(f.nombre))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { numeric: true }))
+      .map(f => ({ id: f.nombre, nombre: f.nombre, hash: f.hash, url: `${base}/c/${encodeURIComponent(f.nombre)}` }));
   });
 }
 
@@ -224,6 +226,17 @@ async function subirFoto(request, env) {
   if (!ext || !foto.type.startsWith('image/')) return json(request, { success: false, error: 'Tipo no permitido' }, 415);
   if (foto.size > MAX_FOTO) return json(request, { success: false, error: 'Foto demasiado grande' }, 413);
 
+  // Fotos repetidas: el navegador manda el SHA-256 del archivo ORIGINAL y
+  // acá se guarda una marca "huellas/<hash>" por foto. Se consulta la
+  // marca (un HEAD, siempre al día) y no el listado, que puede tener miles
+  // de fotos y vive unos segundos en memoria. Sin hash (una página vieja
+  // en caché) se sube igual, sin control.
+  const hash = String(form.get('hash') || '');
+  const conHash = /^[0-9a-f]{64}$/.test(hash);
+  if (conHash && await env.FOTOS.head('huellas/' + hash)) {
+    return json(request, { success: false, repetida: true, error: 'Esa foto ya está en la galería' }, 409);
+  }
+
   const id = nuevoId(ext);
   let conThumb = false;
   const thumb = form.get('thumb');
@@ -235,8 +248,12 @@ async function subirFoto(request, env) {
   }
   await env.FOTOS.put('fotos/' + id, foto, {
     httpMetadata: { contentType: foto.type },
-    customMetadata: { nombre: limpiarNombre(form.get('nombre') || foto.name), thumb: conThumb ? '1' : '0' }
+    customMetadata: Object.assign(
+      { nombre: limpiarNombre(form.get('nombre') || foto.name), thumb: conThumb ? '1' : '0' },
+      conHash ? { hash } : {}
+    )
   });
+  if (conHash) await env.FOTOS.put('huellas/' + hash, id);
   // A propósito NO se olvida el listado acá (mismo criterio que addFoto()
   // en Apps Script): quien subió ve su foto al instante desde su navegador.
   return json(request, { success: true, id });
@@ -279,17 +296,27 @@ async function subirCarrusel(request, env, base) {
   const ext = TIPOS_CARRUSEL[foto.type];
   if (!ext) return json(request, { ok: false, error: 'Tipo no permitido' }, 415);
   if (foto.size > MAX_FOTO) return json(request, { ok: false, error: 'Foto demasiado grande' }, 413);
+  // SHA-256 del archivo ORIGINAL (antes de convertirlo en el navegador):
+  // elegir dos veces el mismo archivo da la misma huella aunque la
+  // conversión no salga byte por byte igual.
+  // Sin hash (un admin viejo en caché) se sube igual, sin control.
+  const hash = String(form.get('hash') || '');
+  const conHash = /^[0-9a-f]{64}$/.test(hash);
+
+  const actuales = await env.FOTOS.list({ prefix: 'carrusel/', limit: 1000, include: ['customMetadata'] });
+  if (conHash && actuales.objects.some(o => o.customMetadata && o.customMetadata.hash === hash)) {
+    return json(request, { ok: false, repetida: true, error: 'Esa foto ya está en el carrusel' }, 409);
+  }
 
   // Siguiente número después del mayor que haya. El sufijo al azar hace
   // que un nombre no se repita nunca (si se borra la última y se sube
   // otra), porque /c/ deja las fotos una hora en la caché del navegador.
-  const actuales = await env.FOTOS.list({ prefix: 'carrusel/', limit: 1000 });
   const mayor = actuales.objects.reduce((max, o) => {
     const n = parseInt(o.key.slice('carrusel/'.length), 10);
     return Number.isFinite(n) && n > max ? n : max;
   }, 0);
   const nombre = `${mayor + 1}-${Date.now().toString(36)}.${ext}`;
-  await env.FOTOS.put('carrusel/' + nombre, foto, { httpMetadata: { contentType: foto.type } });
+  await env.FOTOS.put('carrusel/' + nombre, foto, { httpMetadata: { contentType: foto.type }, customMetadata: conHash ? { hash } : {} });
   olvidar('carrusel');
   return json(request, { ok: true, id: nombre, url: `${base}/c/${encodeURIComponent(nombre)}` });
 }
@@ -318,12 +345,15 @@ async function borrar(request, env) {
   if (!idOk) return json(request, { ok: false, error: 'Id inválido' }, 400);
   if (!(await claveValida(env, params.clave))) return json(request, { ok: false, error: 'No autorizado' }, 403);
 
-  if (params.tipo === 'carrusel') {
+  if (params.tipo === 'foto') {
+    // Si se borra una foto, se puede volver a subir: se va su marca.
+    const meta = await env.FOTOS.head('fotos/' + params.id);
+    const hash = meta && meta.customMetadata && meta.customMetadata.hash;
+    await env.FOTOS.delete(['fotos/' + params.id, 'miniaturas/' + params.id].concat(hash ? ['huellas/' + hash] : []));
+    olvidar('fotos');
+  } else if (params.tipo === 'carrusel') {
     await env.FOTOS.delete('carrusel/' + params.id);
     olvidar('carrusel');
-  } else if (params.tipo === 'foto') {
-    await env.FOTOS.delete(['fotos/' + params.id, 'miniaturas/' + params.id]);
-    olvidar('fotos');
   } else if (params.tipo === 'mensaje') {
     await env.MENSAJES.delete(params.id);
     olvidar('mensajes');

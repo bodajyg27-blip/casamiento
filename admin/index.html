@@ -1600,13 +1600,33 @@
     return canvasABlob(canvas, 'image/jpeg', 0.88);
   }
 
-  async function subirFotoCarrusel(blob) {
+  // Huella SHA-256 del archivo original, para no subir dos veces la misma
+  // foto. Detecta el mismo archivo elegido otra vez; no una copia editada
+  // o exportada en otro formato (esa es otra foto para la huella).
+  async function huellaArchivo(file) {
+    const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+    return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  class FotoRepetida extends Error {}
+
+  async function subirFotoCarrusel(blob, hash) {
     const form = new FormData();
     form.append('foto', blob, 'foto');
+    form.append('hash', hash);
     form.append('clave', claveActual);
     const res = await fetch(MEDIA_URL + '/carrusel', { method: 'POST', body: form });
     const data = await res.json();
+    if (data.repetida) throw new FotoRepetida();
     if (!data.ok) throw new Error(data.error || 'No se pudo subir');
+  }
+
+  // Huellas de lo que ya está en el carrusel (sin la caché de la lista
+  // que se está mostrando, por si otro dispositivo agregó algo).
+  async function huellasDelCarrusel() {
+    const res = await fetch(MEDIA_URL + '/carrusel');
+    const fotos = await res.json();
+    return new Set(Array.isArray(fotos) ? fotos.map(f => f.hash).filter(Boolean) : []);
   }
 
   async function cargarCarrusel() {
@@ -1701,18 +1721,34 @@
     carruselBtn.disabled = true;
     let subidas = 0;
     const fallas = [];
+    const repetidas = [];
+    let huellas;
+    try {
+      huellas = await huellasDelCarrusel();
+    } catch (err) {
+      huellas = new Set(); // igual el Worker rechaza las repetidas
+    }
     for (let i = 0; i < files.length; i++) {
       pintarCarruselEstado(`Preparando y subiendo ${i + 1} de ${files.length}…`);
       try {
-        await subirFotoCarrusel(await prepararFotoCarrusel(files[i]));
+        const hash = await huellaArchivo(files[i]);
+        // También cubre elegir el mismo archivo dos veces en una tanda.
+        if (huellas.has(hash)) throw new FotoRepetida();
+        await subirFotoCarrusel(await prepararFotoCarrusel(files[i]), hash);
+        huellas.add(hash);
         subidas++;
       } catch (err) {
+        if (err instanceof FotoRepetida) {
+          repetidas.push(files[i].name);
+          continue;
+        }
         console.error('No se pudo subir al carrusel', files[i].name, err);
         fallas.push(files[i].name);
       }
     }
     carruselBtn.disabled = false;
     let texto = subidas ? `Listo: ${subidas} foto${subidas > 1 ? 's' : ''} agregada${subidas > 1 ? 's' : ''} al carrusel.` : '';
+    if (repetidas.length) texto += (texto ? ' ' : '') + (repetidas.length > 1 ? 'Ya estaban y no se repitieron: ' : 'Ya estaba y no se repitió: ') + repetidas.join(', ') + '.';
     if (fallas.length) texto += (texto ? ' ' : '') + 'No se pudieron subir: ' + fallas.join(', ') + '.';
     pintarCarruselEstado(texto, fallas.length > 0);
     if (subidas) cargarCarrusel();
